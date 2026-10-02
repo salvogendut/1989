@@ -347,6 +347,13 @@ static bool Main_Init(void) {
 	overlay_init();
 	overlay_update_leds();
 
+	/* First run: create the main configuration file (1989.conf) with the
+	 * current defaults, matching the sibling emulators. */
+	if (!File_Exists(sConfigFileName)) {
+		Configuration_Save();
+		overlay_config_save();
+	}
+
 	/* Init emulation */
 	M68000_Init();
 	DSP_Init();
@@ -403,7 +410,7 @@ static void Main_LoadInitialConfig(void) {
 	if (psGlobalConfig)
 	{
 		File_MakePathBuf(psGlobalConfig, FILENAME_MAX, CONFDIR,
-		                 "previous", "cfg");
+		                 "1989", "conf");
 		/* Try to load the global configuration file */
 		Configuration_Load(psGlobalConfig);
 

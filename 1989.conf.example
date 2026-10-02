@@ -1,5 +1,7 @@
 # 1989 configuration
-# Written by the options dialog (F12) to ~/.config/1989/1989.cfg.
+# This is the main configuration file. On first run 1989 creates
+# ~/.config/1989/1989.conf with these defaults; edit it there (or copy this
+# example) or use the F9 overlay / F1 options dialog.
 # All paths may be absolute or relative to the current working directory.
 
 [System]
@@ -101,6 +103,7 @@ bShowTitlebar = 1
 kOptions = F1
 kFullScreen = F11
 kQuit = F12
+kColdReset = F5
 
 [ShortcutsWithModifiers]
 # Modifier + key. Default modifier is Alt.
@@ -122,3 +125,11 @@ kTitlebar = T
 [Log]
 bEnableLog = 0
 bEnableTrace = 0
+
+[UI89]
+# Happy-years UI settings (F9 overlay).
+bTinker = FALSE
+bSmoothing = TRUE
+nGifWidth = 480
+nGifFps = 25
+nNotifyMode = 1

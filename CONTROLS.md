@@ -11,6 +11,7 @@ fullscreen.
 |-------|-------------------------------------------------|
 | `F1`  | Legacy options dialog (until fully migrated)    |
 | `F4`  | Screenshot (PPM)                                |
+| `F5`  | Reset                                           |
 | `F6`  | Toggle GIF capture                              |
 | `F9`  | Open / close the options overlay                |
 | `F11` | Toggle fullscreen                               |
@@ -77,7 +78,7 @@ back to its idle colour.
 
 A thin strip above the LED bar reminds you of the shortcuts, in the shared
 sibling style (red machine name, grey `key=action` list):
-`1989  F1=menu  F4=screenshot  F6=gif  F9=options  F11=fullscreen  F12=quit`.
+`1989  F1=menu  F4=screenshot  F5=reset  F6=gif  F9=options  F11=fullscreen  F12=quit`.
 
 ## Mouse
 

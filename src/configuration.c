@@ -560,9 +560,9 @@ void Configuration_SetDefault(void)
 
 	/* Initialize the configuration file name */
 	if (File_MakePathBuf(sConfigFileName, sizeof(sConfigFileName),
-	                     psHomeDir, "1989", "cfg"))
+	                     psHomeDir, "1989", "conf"))
 	{
-		strcpy(sConfigFileName, "1989.cfg");
+		strcpy(sConfigFileName, "1989.conf");
 	}
 }
 

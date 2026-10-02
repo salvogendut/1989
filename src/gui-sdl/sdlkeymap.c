@@ -39,10 +39,11 @@ void Keymap_Init(void)
 void Keymap_InitShortcutDefaultKeys(void)
 {
 	/* F1 keeps the legacy options dialog until every option is migrated to
-	 * the F9 overlay. F12 now quits (the 1989 convention). */
+	 * the F9 overlay. F12 now quits (the 1989 convention). F5 resets. */
 	ConfigureParams.Shortcut.withoutModifier[SHORTCUT_OPTIONS]    = SDLK_F1;
 	ConfigureParams.Shortcut.withoutModifier[SHORTCUT_FULLSCREEN] = SDLK_F11;
 	ConfigureParams.Shortcut.withoutModifier[SHORTCUT_QUIT]       = SDLK_F12;
+	ConfigureParams.Shortcut.withoutModifier[SHORTCUT_COLDRESET]  = SDLK_F5;
 
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_OPTIONS]       = SDLK_O;
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_FULLSCREEN]    = SDLK_F;

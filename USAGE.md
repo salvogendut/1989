@@ -23,10 +23,9 @@ overlay has four tabs:
 - **Extensions**: NeXTdimension, printer, Ethernet, tablet and microphone.
 - **Advanced**: display and capture options (needs Tinker on).
 
-The configuration file is `~/.config/1989/1989.cfg` (a legacy `~/.previous`
-directory is used if the new one does not exist). `1989.conf.example` shows
-the format. UI-only settings (Tinker, GIF, notifications) live in the
-`[UI89]` section.
+The main configuration file is `~/.config/1989/1989.conf`; it is created
+with defaults on first run. `1989.conf.example` shows the format. UI-only
+settings (Tinker, GIF, notifications) live in the `[UI89]` section.
 
 ### Legacy options dialog (F1)
 

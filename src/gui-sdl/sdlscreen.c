@@ -231,7 +231,8 @@ static void Screen89_RenderExtras(SDL_Renderer *r) {
 
 	const char *model = "1989";
 	const char *keys =
-	    "  F1=menu  F4=screenshot  F6=gif  F9=options  F11=fullscreen  F12=quit";
+	    "  F1=menu  F4=screenshot  F5=reset  F6=gif  F9=options  "
+	    "F11=fullscreen  F12=quit";
 	float text_w = (float)(strlen(model) + strlen(keys)) * 8.0f;
 	float scale = text_w > (float)width - 12.0f
 	              ? ((float)width - 12.0f) / text_w : 1.0f;

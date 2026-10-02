@@ -69,7 +69,7 @@ LEDs, toasts and GIF capture are rendered by `Screen89_RenderExtras()` before
   small, contained addition on top of the upstream code.
 - Branding: the binary and package are named `1989`; the user config
   directory is `~/.config/1989` (`HATARI_HOME_DIR` in `src/paths.c`) and the
-  config file is `1989.cfg`. The internal "Previous" identifiers are
+  config file is `1989.conf`. The internal "Previous" identifiers are
   otherwise kept intact to ease future upstream merges.
 
 ## Verification
