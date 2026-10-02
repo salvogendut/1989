@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=1989
+Comment=NeXT (Motorola 68K) emulator
+Exec=1989
+Icon=io.github.salvogendut.Emulator1989
+Terminal=false
+Categories=Game;Emulator;
+Keywords=NeXT;NeXTstep;68030;68040;emulator;Previous;

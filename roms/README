@@ -1,0 +1,14 @@
+# 1989 ROM images
+
+The NeXT firmware images (NeXT boot ROMs) required by 1989 are:
+
+- `Rev_1.0_v41.BIN` — NeXT Computer (68030 Cube), 64 KiB
+- `Rev_0.8_v31.BIN` — NeXT Computer board revision 1, 64 KiB
+- `Rev_2.5_v66.BIN` — NeXTstation / NeXTcube (non-Turbo), 128 KiB
+- `Rev_3.3_v74.BIN` — NeXTstation Turbo (Color) / NeXTcube Turbo, 128 KiB
+- `ND_step1_v43.BIN` — NeXTdimension Graphics Board, 128 KiB
+
+These images are the ROM set distributed with the upstream "Previous" 4.3
+emulator (the code base integrated into 1989). See `ROMS.md` for details on
+how they are selected and how to override the paths in the configuration
+file.

@@ -1,0 +1,92 @@
+.TH 1989 1 "October 2026" "1989 0.1.0" "User Commands"
+.SH NAME
+1989 \- NeXT (Motorola 68030/68040) emulator
+.SH SYNOPSIS
+.B 1989
+[\fIoptions\fR]
+.SH DESCRIPTION
+.B 1989
+is a work-in-progress emulator of the NeXT family of Motorola 68K based
+workstations (NeXT Computer, NeXTcube, NeXTcube Turbo, NeXTstation and
+NeXTstation Color, plus the optional NeXTdimension graphics board). It is
+built on the "Previous" NeXT emulator code base: the m68k core comes from
+WinUAE, and the i860 NeXTdimension emulation from Jason Eckhardt, all
+rendered through an SDL3 desktop interface.
+.SH OPTIONS
+.TP
+\fB\-\-help\fR
+Show brief command-line help and exit.
+.PP
+All machine configuration (machine type, RAM, ROM paths, disk images,
+networking, sound, screen mode, shortcut keys) is stored in the per-user
+configuration file and edited through the SDL options dialog, opened with
+\fBF12\fR (or \fBAlt+O\fR).
+.SH KEYS
+Default shortcut keys (all reconfigurable from the options dialog):
+.TP
+.B F12
+Open the options dialog.
+.TP
+.B F11
+Toggle fullscreen.
+.TP
+.B Alt+O
+Open the options dialog (same as F12).
+.TP
+.B Alt+F
+Toggle fullscreen.
+.TP
+.B Alt+P
+Pause / resume emulation.
+.TP
+.B Alt+D
+Open the m68k debugger.
+.TP
+.B Alt+I
+Open the i860 (NeXTdimension) debugger.
+.TP
+.B Alt+M
+Grab / release the host mouse.
+.TP
+.B Alt+C
+Cold reset the emulated machine.
+.TP
+.B Alt+G
+Save a screenshot (PPM, or PNG if built with libpng).
+.TP
+.B Alt+R
+Start / stop recording.
+.TP
+.B Alt+S
+Toggle sound.
+.TP
+.B Alt+Q
+Quit.
+.TP
+.B Alt+N
+Toggle the NeXTdimension board.
+.TP
+.B Alt+B
+Toggle the status bar.
+.TP
+.B Alt+T
+Toggle the title bar.
+.SH FILES
+.TP
+.I ~/.config/1989/1989.cfg
+Per-user configuration written by the options dialog. A legacy
+.I ~/.previous
+directory is used if the new one is absent.
+.TP
+.I ~/.config/1989/
+Default directory for screenshots and recordings.
+.TP
+.I $pkgdatadir/roms
+Install-time location of the NeXT firmware images (see
+.I ROMS.md
+).
+.SH SEE ALSO
+.BR SDL3 (3)
+.SH BUGS
+This is scaffolding work based on the upstream "Previous" 4.3 emulator.
+See DEVELOPMENT.md for the integration status and roadmap.
