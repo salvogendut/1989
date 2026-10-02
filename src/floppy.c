@@ -18,6 +18,7 @@ const char Floppy_fileid[] = "Previous floppy.c";
 #include "cycInt.h"
 #include "file.h"
 #include "statusbar.h"
+#include "leds.h"
 
 #define LOG_FLP_REG_LEVEL   LOG_DEBUG
 #define LOG_FLP_CMD_LEVEL   LOG_DEBUG
@@ -1276,6 +1277,7 @@ void FLP_DataRate_Write(void) {
 
 void FLP_FIFO_Read(void) { /* 0x02014105 */
     if (floppy_controller_present(BUS_ERROR_READ)) {
+        leds_ping(LED_FLOPPY);
         IoMem_WriteByte(IoAccessCurrentAddress, floppy_fifo_read());
         Log_Printf(LOG_FLP_REG_LEVEL,"[Floppy] FIFO read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem_ReadByte(IoAccessCurrentAddress), m68k_getpc());
     }
@@ -1284,6 +1286,7 @@ void FLP_FIFO_Read(void) { /* 0x02014105 */
 void FLP_FIFO_Write(void) {
     if (floppy_controller_present(BUS_ERROR_WRITE)) {
         uint8_t val = IoMem_ReadByte(IoAccessCurrentAddress);
+        leds_ping(LED_FLOPPY);
         Log_Printf(LOG_FLP_REG_LEVEL,"[Floppy] FIFO write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem_ReadByte(IoAccessCurrentAddress), m68k_getpc());
         
         floppy_fifo_write(val);

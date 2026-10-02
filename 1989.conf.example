@@ -98,8 +98,9 @@ bShowStatusbar = 1
 bShowTitlebar = 1
 
 [ShortcutsWithoutModifiers]
-kOptions = F12
+kOptions = F1
 kFullScreen = F11
+kQuit = F12
 
 [ShortcutsWithModifiers]
 # Modifier + key. Default modifier is Alt.

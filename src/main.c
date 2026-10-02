@@ -28,6 +28,10 @@ const char Main_fileid[] = "Previous main.c";
 #include "ethernet.h"
 #include "statusbar.h"
 #include "str.h"
+#include "overlay.h"
+#include "leds.h"
+#include "notify.h"
+#include "capture.h"
 #include "debugui.h"
 #include "file.h"
 #include "dsp.h"
@@ -310,7 +314,9 @@ static void Main_Loop(void) {
  * @return true if configuration is ready, false if we need to quit
  */
 static bool Main_StartMenu(void) {
-	if (!File_Exists(sConfigFileName) || ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup) {
+	/* Boot straight into emulation; the config dialog is only shown at
+	 * startup when the user explicitly enabled it (F12 opens it anytime). */
+	if (ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup) {
 		Dialog_DoProperty();
 	}
 	if (!bQuitProgram) {
@@ -335,6 +341,11 @@ static bool Main_Init(void) {
 
 	/* Init user interface */
 	UI_Init();
+
+	/* Init 1989 happy-years UI (options overlay, LED bar, toasts) */
+	notify_init();
+	overlay_init();
+	overlay_update_leds();
 
 	/* Init emulation */
 	M68000_Init();
@@ -515,11 +526,14 @@ int main(int argc, char *argv[])
 
 	/* Stop recording */
 	Grab_Stop();
+	if (Capture_GifActive())
+		Capture_GifStop();
 
 	/* Return from full screen */
 	Screen_ReturnFromFullScreen();
 
 	/* Un-init emulation system */
+	overlay_quit();
 	Main_UnInit();
 
 	return 0;

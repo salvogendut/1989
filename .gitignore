@@ -66,6 +66,9 @@
 /tests/test-*
 /tests/test-str
 /tests/test-headers
+/tests/test-capture
+/tests/test.gif
+/tests/1989-*.ppm
 
 # web build output (future)
 /web/build/

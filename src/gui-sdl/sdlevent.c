@@ -21,6 +21,9 @@ const char SDLevent_fileid[] = "Previous sdlevent.c";
 #include "sdlstatusbar.h"
 #include "tablet.h"
 #include "dimension.hpp"
+#include "overlay.h"
+#include "capture.h"
+#include "notify.h"
 
 
 static bool bIgnoreNextMouseMotion = false; /* Ignore next mouse motion (needed after SDL_WarpMouse) */
@@ -276,6 +279,10 @@ void GuiEvent_EventHandler(void) {
 	do {
 		bContinueProcessing = false;
 
+		/* Process pending options-overlay file-dialog results. */
+		overlay_tick();
+		notify_tick(20);
+
 #ifdef ENABLE_RENDERING_THREAD
 		if (bEmulationActive) {
 			events = SDL_PollEvent(&event);
@@ -306,10 +313,12 @@ void GuiEvent_EventHandler(void) {
 				break;
 
 			case SDL_EVENT_MOUSE_MOTION:               /* Read/Update internal mouse position */
+				if (overlay_is_visible()) continue;
 				GuiEvent_HandleMouseMotion(&event);
 				break;
 
 			case SDL_EVENT_MOUSE_BUTTON_DOWN:
+				if (overlay_is_visible()) continue;
 				if (ConfigureParams.Mouse.bEnableMacClick) {
 					if (event.button.button == SDL_BUTTON_LEFT) {
 						if (SDL_GetModState() & SDL_KMOD_CTRL) {
@@ -348,6 +357,7 @@ void GuiEvent_EventHandler(void) {
 				break;
 
 			case SDL_EVENT_MOUSE_BUTTON_UP:
+				if (overlay_is_visible()) continue;
 				if (ConfigureParams.Mouse.bEnableMacClick) {
 					if (event.button.button == SDL_BUTTON_LEFT) {
 						if (SDL_GetModState() & SDL_KMOD_CTRL) {
@@ -373,6 +383,7 @@ void GuiEvent_EventHandler(void) {
 				break;
 
 			case SDL_EVENT_MOUSE_WHEEL:
+				if (overlay_is_visible()) continue;
 #ifdef ENABLE_RENDERING_THREAD
 				Keymap_MouseWheel(&event.wheel);
 #else
@@ -382,6 +393,23 @@ void GuiEvent_EventHandler(void) {
 
 			case SDL_EVENT_KEY_DOWN:
 				if (event.key.repeat) {
+					break;
+				}
+				/* 1989 happy-years F-keys + options overlay (F9). */
+				if (overlay_handle_event(&event)) {
+					Screen_Repaint();
+					continue;
+				}
+				if (event.key.scancode == SDL_SCANCODE_F4) {
+					Capture_Screenshot();
+					break;
+				}
+				if (event.key.scancode == SDL_SCANCODE_F6) {
+					if (Capture_GifActive())
+						Capture_GifStop();
+					else
+						Capture_GifStart(UI89Config_.nGifWidth,
+						                 UI89Config_.nGifFps);
 					break;
 				}
 				if (ShortCut_CheckKeys(event.key.key, GuiEvent_ShortcutMod(event.key.mod), true)) {
@@ -396,6 +424,7 @@ void GuiEvent_EventHandler(void) {
 				break;
 
 			case SDL_EVENT_KEY_UP:
+				if (overlay_is_visible()) break;
 				if (ShortCut_CheckKeys(event.key.key, GuiEvent_ShortcutMod(event.key.mod), false)) {
 					break;
 				}

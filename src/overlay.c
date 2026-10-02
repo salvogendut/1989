@@ -1,0 +1,1001 @@
+/* overlay.c — F9 options overlay for 1989 (happy-years conventions).
+ *
+ * See overlay.h for the tab layout. The overlay reuses the existing
+ * ConfigureParams structure for the machine state and keeps a small "[UI89]"
+ * section for the UI-only settings (Tinker, GIF, notifications).
+ */
+
+#include "overlay.h"
+#include "cfgopts.h"
+#include "configuration.h"
+#include "capture.h"
+#include "floppy.h"
+#include "grab.h"
+#include "leds.h"
+#include "mo.h"
+#include "notify.h"
+#include "paths.h"
+#include "reset.h"
+#include "scsi.h"
+#include "screen.h"
+#include "snd.h"
+#include "main.h"
+#include "sdlscreen.h"
+
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define OV_SCALE      1.25f
+#define OV_LINE_H     20
+#define OV_VALUE_X    250
+
+#ifndef PACKAGE_VERSION
+#define PACKAGE_VERSION "unknown"
+#endif
+#ifndef PROG_GIT_COMMIT
+#define PROG_GIT_COMMIT "unknown"
+#endif
+
+extern char sConfigFileName[FILENAME_MAX];
+
+/* ------------------------------------------------------------------ */
+/* [UI89] settings                                                     */
+
+UI89Config UI89Config_;
+
+static const struct Config_Tag configs_UI89[] = {
+    { "bTinker",    Bool_Tag,  &UI89Config_.bTinker },
+    { "bSmoothing", Bool_Tag,  &UI89Config_.bSmoothing },
+    { "nGifWidth",  Int_Tag,   &UI89Config_.nGifWidth },
+    { "nGifFps",    Int_Tag,   &UI89Config_.nGifFps },
+    { "nNotifyMode",Int_Tag,   &UI89Config_.nNotifyMode },
+    { NULL, Error_Tag, NULL }
+};
+
+void overlay_config_load(void) {
+    UI89Config_.bTinker    = false;
+    UI89Config_.bSmoothing = true;
+    UI89Config_.nGifWidth  = 480;
+    UI89Config_.nGifFps    = 25;
+    UI89Config_.nNotifyMode = NOTIFY_MODE_SCREEN;
+    if (sConfigFileName[0])
+        input_config(sConfigFileName, configs_UI89, "[UI89]");
+    notify_set_mode((NotifyMode)UI89Config_.nNotifyMode);
+}
+
+void overlay_config_save(void) {
+    if (sConfigFileName[0])
+        update_config(sConfigFileName, configs_UI89, "[UI89]");
+}
+
+void overlay_save_config(void) {
+    Configuration_Save();
+}
+
+/* ------------------------------------------------------------------ */
+
+typedef struct {
+    MACHINETYPE nMachineType;
+    bool bTurbo;
+    bool bColor;
+    const char *name;
+} MachineVariant;
+
+static const MachineVariant machines[] = {
+    { NEXT_CUBE030, false, false, "NeXT Computer" },
+    { NEXT_CUBE040, false, false, "NeXTcube" },
+    { NEXT_CUBE040, true,  false, "NeXTcube Turbo" },
+    { NEXT_STATION, false, false, "NeXTstation" },
+    { NEXT_STATION, true,  false, "NeXTstation Turbo" },
+    { NEXT_STATION, false, true,  "NeXTstation Color" },
+    { NEXT_STATION, true,  true,  "NeXTstation Turbo Color" },
+};
+#define MACHINE_COUNT ((int)(sizeof(machines) / sizeof(machines[0])))
+
+static int current_machine_index(void) {
+    for (int i = 0; i < MACHINE_COUNT; i++) {
+        if (machines[i].nMachineType == ConfigureParams.System.nMachineType &&
+            machines[i].bTurbo      == ConfigureParams.System.bTurbo &&
+            machines[i].bColor      == ConfigureParams.System.bColor)
+            return i;
+    }
+    return 0;
+}
+
+/* General section rows */
+enum {
+    GEN_MACHINE = 0,
+    GEN_RAM,
+    GEN_CPUCLOCK,
+    GEN_FPU,
+    GEN_DSP,
+    GEN_MMU,
+    GEN_ADB,
+    GEN_BOOTDEV,
+    GEN_TINKER,
+    GEN_ABOUT,
+    GEN_RESET,
+    GEN_ROWS
+};
+
+/* Media section rows */
+enum {
+    MED_BOOT = 0,
+    MED_SCSI0,
+    MED_SCSI1,
+    MED_SCSI2,
+    MED_SCSI3,
+    MED_FLOPPY0,
+    MED_FLOPPY1,
+    MED_MO0,
+    MED_MO1,
+    MED_ROWS
+};
+
+/* Extensions section rows */
+enum {
+    EXT_ND = 0,
+    EXT_PRINTER,
+    EXT_ETHERNET,
+    EXT_TABLET,
+    EXT_MIC,
+    EXT_ROWS
+};
+
+/* Advanced section rows */
+enum {
+    ADV_SMOOTHING = 0,
+    ADV_GIF_WIDTH,
+    ADV_GIF_FPS,
+    ADV_NOTIFICATIONS,
+    ADV_FULLSCREEN,
+    ADV_STATUSBAR,
+    ADV_TITLEBAR,
+    ADV_DRAMTEST,
+    ADV_VERBOSE,
+    ADV_VERSION,
+    ADV_ROWS
+};
+
+static struct {
+    bool      visible;
+    bool      about_visible;
+    OvSection section;
+    int       row;
+
+    /* Pending native file-dialog result. */
+    OvDialogKind dialog_kind;
+    bool         dialog_ready;
+    char         dialog_path[FILENAME_MAX];
+} g_ov;
+
+static const char *const about_lines[] = {
+    "1989 NeXT (Motorola 68K) emulator",
+    "(c) 2026 salvogendut",
+    "Version " PACKAGE_VERSION " (commit " PROG_GIT_COMMIT ")",
+    "Previous 4.3 core - WinUAE 68k, Hatari, i860 by Jason Eckhardt"
+};
+#define ABOUT_LINE_COUNT ((int)(sizeof(about_lines) / sizeof(about_lines[0])))
+
+/* ------------------------------------------------------------------ */
+/* helpers                                                             */
+
+static const char *machine_name(void) {
+    return machines[current_machine_index()].name;
+}
+
+static void machine_cycle(int dir) {
+    int i = current_machine_index();
+    i = (i + dir + MACHINE_COUNT) % MACHINE_COUNT;
+    ConfigureParams.System.nMachineType = machines[i].nMachineType;
+    ConfigureParams.System.bTurbo       = machines[i].bTurbo;
+    ConfigureParams.System.bColor       = machines[i].bColor;
+}
+
+static const char *ram_string(char *buf, size_t size) {
+    int mb = 0;
+    for (int i = 0; i < 4; i++)
+        mb += ConfigureParams.Memory.nMemoryBankSize[i];
+    snprintf(buf, size, "%d MB (%dx%d)", mb,
+             ConfigureParams.Memory.nMemoryBankSize[0],
+             ConfigureParams.Memory.nMemoryBankSize[1]);
+    return buf;
+}
+
+static const char *cpu_freq_string(char *buf, size_t size) {
+    snprintf(buf, size, "%d MHz (%s)", ConfigureParams.System.nCpuFreq,
+             ConfigureParams.System.bTurbo ? "turbo" : "stock");
+    return buf;
+}
+
+static const char *fpu_string(char *buf, size_t size) {
+    switch (ConfigureParams.System.n_FPUType) {
+        case FPU_NONE:  snprintf(buf, size, "None"); break;
+        case FPU_68881: snprintf(buf, size, "68881"); break;
+        case FPU_68882: snprintf(buf, size, "68882"); break;
+        default:        snprintf(buf, size, "CPU (68040)"); break;
+    }
+    return buf;
+}
+
+static const char *dsp_string(char *buf, size_t size) {
+    switch (ConfigureParams.System.nDSPType) {
+        case DSP_TYPE_NONE:    snprintf(buf, size, "None"); break;
+        case DSP_TYPE_ACCURATE:snprintf(buf, size, "Accurate"); break;
+        default:               snprintf(buf, size, "Emulated"); break;
+    }
+    return buf;
+}
+
+static const char *boot_string(char *buf, size_t size) {
+    switch (ConfigureParams.Boot.nBootDevice) {
+        case BOOT_ROM:      snprintf(buf, size, "ROM monitor"); break;
+        case BOOT_SCSI:     snprintf(buf, size, "SCSI disk"); break;
+        case BOOT_ETHERNET: snprintf(buf, size, "Ethernet (netboot)"); break;
+        case BOOT_MO:       snprintf(buf, size, "Magneto-optical"); break;
+        default:            snprintf(buf, size, "Floppy"); break;
+    }
+    return buf;
+}
+
+static const char *scsi_label(int i) {
+    static char buf[32];
+    snprintf(buf, sizeof(buf), "SCSI %d", i);
+    return buf;
+}
+
+static const char *scsi_value(int i, char *buf, size_t size) {
+    if (!ConfigureParams.SCSI.target[i].bDiskInserted)
+        snprintf(buf, size, "<none>");
+    else {
+        const char *type = ConfigureParams.SCSI.target[i].nDeviceType == SD_CD
+                           ? "CD" :
+                           ConfigureParams.SCSI.target[i].nDeviceType == SD_FLOPPY
+                           ? "FLOPPY" : "DISK";
+        snprintf(buf, size, "%s %s%s", type,
+                 ConfigureParams.SCSI.target[i].szImageName[0]
+                    ? ConfigureParams.SCSI.target[i].szImageName : "(unnamed)",
+                 ConfigureParams.SCSI.target[i].bWriteProtected ? " [WP]" : "");
+    }
+    return buf;
+}
+
+static const char *floppy_value(int i, char *buf, size_t size) {
+    if (!ConfigureParams.Floppy.drive[i].bDiskInserted)
+        snprintf(buf, size, "<none>");
+    else
+        snprintf(buf, size, "%s%s",
+                 ConfigureParams.Floppy.drive[i].szImageName[0]
+                    ? ConfigureParams.Floppy.drive[i].szImageName : "(unnamed)",
+                 ConfigureParams.Floppy.drive[i].bWriteProtected ? " [WP]" : "");
+    return buf;
+}
+
+static const char *mo_value(int i, char *buf, size_t size) {
+    if (!ConfigureParams.MO.drive[i].bDiskInserted)
+        snprintf(buf, size, "<none>");
+    else
+        snprintf(buf, size, "%s%s",
+                 ConfigureParams.MO.drive[i].szImageName[0]
+                    ? ConfigureParams.MO.drive[i].szImageName : "(unnamed)",
+                 ConfigureParams.MO.drive[i].bWriteProtected ? " [WP]" : "");
+    return buf;
+}
+
+static const char *tablet_string(char *buf, size_t size) {
+    switch (ConfigureParams.Tablet.nTabletType) {
+        case TABLET_NONE:  snprintf(buf, size, "None"); break;
+        case TABLET_MM961: snprintf(buf, size, "Summagraphics MM961"); break;
+        case TABLET_MM1201:snprintf(buf, size, "Summagraphics MM1201"); break;
+        default:           snprintf(buf, size, "SD series"); break;
+    }
+    return buf;
+}
+
+/* Pause the emulator thread, apply+reset the machine, resume. */
+static void overlay_apply_reset(const char *message) {
+	bool was_active = Main_PauseEmulation(false);
+	Configuration_Apply(false);
+	Reset_Cold();
+	if (was_active)
+		Main_UnPauseEmulation();
+	overlay_save_config();
+	overlay_update_leds();
+	if (message)
+		notify_post("%s", message);
+}
+
+/* Refresh the activity-LED enable/colour state from ConfigureParams. */
+void overlay_update_leds(void) {
+	leds_set_enabled(LED_CPU, true);
+	leds_set_cpu_frequency((unsigned)ConfigureParams.System.nCpuFreq);
+	leds_set_enabled(LED_DSP,
+	                 ConfigureParams.System.nDSPType != DSP_TYPE_NONE);
+	leds_set_enabled(LED_SCSI, true);
+	leds_set_enabled(LED_FLOPPY, true);
+	leds_set_enabled(LED_MO, true);
+	leds_set_enabled(LED_NET, ConfigureParams.Ethernet.bEthernetConnected);
+	leds_set_enabled(LED_SND, ConfigureParams.Sound.bEnableSound);
+	leds_set_enabled(LED_ND, ConfigureParams.Dimension.board[0].bEnabled);
+}
+
+/* ------------------------------------------------------------------ */
+/* file dialogs                                                        */
+
+static void overlay_file_callback(void *userdata, const char * const *files,
+                                  int filter) {
+    (void)userdata;
+    (void)filter;
+    if (!files || !files[0]) return;
+    snprintf(g_ov.dialog_path, sizeof(g_ov.dialog_path), "%s", files[0]);
+    g_ov.dialog_ready = true;
+}
+
+static void open_file_dialog(OvDialogKind kind) {
+    static const SDL_DialogFileFilter image_filters[] = {
+        { "NeXT disk images", "sd;dsk;img;bin;iso;od" },
+        { "All files", "*" },
+    };
+    static const SDL_DialogFileFilter rom_filters[] = {
+        { "NeXT firmware ROM", "bin" },
+        { "All files", "*" },
+    };
+    const SDL_DialogFileFilter *filters = image_filters;
+    g_ov.dialog_kind = kind;
+    g_ov.dialog_ready = false;
+    if (kind == OV_DIALOG_ROM030 || kind == OV_DIALOG_ROM040 ||
+        kind == OV_DIALOG_ROMTURBO)
+        filters = rom_filters;
+    SDL_ShowOpenFileDialog(overlay_file_callback, NULL, sdlWindow, filters, 2,
+                           NULL, false);
+}
+
+/* ------------------------------------------------------------------ */
+/* media actions                                                       */
+
+static void set_scsi_image(int i, const char *path) {
+    if (!path) {
+        SCSI_Eject(i);
+        ConfigureParams.SCSI.target[i].bDiskInserted = false;
+        ConfigureParams.SCSI.target[i].szImageName[0] = '\0';
+        overlay_save_config();
+        notify_post("SCSI %d MEDIA EJECTED", i);
+        return;
+    }
+    snprintf(ConfigureParams.SCSI.target[i].szImageName, FILENAME_MAX, "%s",
+             path);
+    if (ConfigureParams.SCSI.target[i].nDeviceType == SD_NONE)
+        ConfigureParams.SCSI.target[i].nDeviceType = SD_HARDDISK;
+    ConfigureParams.SCSI.target[i].bDiskInserted = true;
+    SCSI_Insert(i);
+    overlay_save_config();
+    notify_post("SCSI %d: MEDIA INSERTED", i);
+}
+
+static void set_floppy_image(int i, const char *path) {
+    if (!path) {
+        Floppy_Eject(i);
+        ConfigureParams.Floppy.drive[i].bDiskInserted = false;
+        ConfigureParams.Floppy.drive[i].bDriveConnected = false;
+        ConfigureParams.Floppy.drive[i].szImageName[0] = '\0';
+        overlay_save_config();
+        notify_post("FLOPPY %d MEDIA EJECTED", i);
+        return;
+    }
+    snprintf(ConfigureParams.Floppy.drive[i].szImageName, FILENAME_MAX, "%s",
+             path);
+    ConfigureParams.Floppy.drive[i].bDiskInserted = true;
+    ConfigureParams.Floppy.drive[i].bDriveConnected = true;
+    if (Floppy_Insert(i)) {
+        notify_post("FLOPPY %d: BAD IMAGE SIZE", i);
+        ConfigureParams.Floppy.drive[i].bDiskInserted = false;
+        ConfigureParams.Floppy.drive[i].szImageName[0] = '\0';
+        return;
+    }
+    overlay_save_config();
+    notify_post("FLOPPY %d: MEDIA INSERTED", i);
+}
+
+static void set_mo_image(int i, const char *path) {
+    if (!path) {
+        MO_Eject(i);
+        ConfigureParams.MO.drive[i].bDiskInserted = false;
+        ConfigureParams.MO.drive[i].szImageName[0] = '\0';
+        overlay_save_config();
+        notify_post("MAG-OPT %d MEDIA EJECTED", i);
+        return;
+    }
+    snprintf(ConfigureParams.MO.drive[i].szImageName, FILENAME_MAX, "%s", path);
+    ConfigureParams.MO.drive[i].bDiskInserted = true;
+    MO_Insert(i);
+    overlay_save_config();
+    notify_post("MAG-OPT %d: MEDIA INSERTED", i);
+}
+
+static void set_rom_path(OvDialogKind kind, const char *path) {
+    if (!path) return;
+    switch (kind) {
+        case OV_DIALOG_ROM030:
+            snprintf(ConfigureParams.Rom.szRom030FileName, FILENAME_MAX, "%s",
+                     path);
+            break;
+        case OV_DIALOG_ROM040:
+            snprintf(ConfigureParams.Rom.szRom040FileName, FILENAME_MAX, "%s",
+                     path);
+            break;
+        default:
+            snprintf(ConfigureParams.Rom.szRomTurboFileName, FILENAME_MAX, "%s",
+                     path);
+            break;
+    }
+    overlay_save_config();
+    notify_post("ROM PATH SET - COLD RESET TO RELOAD");
+}
+
+/* ------------------------------------------------------------------ */
+/* row actions                                                         */
+
+static void overlay_activate(void) {
+    switch (g_ov.section) {
+        case OV_GENERAL:
+            switch (g_ov.row) {
+                case GEN_MACHINE:
+                    machine_cycle(1);
+                    Configuration_SetSystemDefaults();
+                    overlay_apply_reset("MACHINE CHANGED - COLD RESET");
+                    break;
+                case GEN_RAM: {
+                    int size = ConfigureParams.Memory.nMemoryBankSize[0];
+                    size = size >= 32 ? 4 : size + 4;
+                    for (int i = 0; i < 4; i++)
+                        ConfigureParams.Memory.nMemoryBankSize[i] = size;
+                    overlay_apply_reset("RAM CHANGED - COLD RESET");
+                    break;
+                }
+                case GEN_CPUCLOCK:
+                    ConfigureParams.System.nCpuFreq =
+                        ConfigureParams.System.nCpuFreq >= 40 ? 25
+                        : ConfigureParams.System.nCpuFreq + 8;
+                    overlay_apply_reset("CPU CLOCK CHANGED - COLD RESET");
+                    break;
+                case GEN_FPU: {
+                    FPUTYPE f = ConfigureParams.System.n_FPUType;
+                    f = f == FPU_NONE ? FPU_68881 :
+                        f == FPU_68881 ? FPU_68882 :
+                        f == FPU_68882 ? FPU_CPU : FPU_NONE;
+                    ConfigureParams.System.n_FPUType = f;
+                    overlay_apply_reset("FPU CHANGED - COLD RESET");
+                    break;
+                }
+                case GEN_DSP: {
+                    DSPTYPE d = ConfigureParams.System.nDSPType;
+                    d = d == DSP_TYPE_NONE ? DSP_TYPE_EMU :
+                        d == DSP_TYPE_EMU ? DSP_TYPE_ACCURATE : DSP_TYPE_NONE;
+                    ConfigureParams.System.nDSPType = d;
+                    overlay_apply_reset("DSP CHANGED - COLD RESET");
+                    break;
+                }
+                case GEN_MMU:
+                    ConfigureParams.System.bMMU =
+                        !ConfigureParams.System.bMMU;
+                    overlay_apply_reset("MMU CHANGED - COLD RESET");
+                    break;
+                case GEN_ADB:
+                    ConfigureParams.System.bADB =
+                        !ConfigureParams.System.bADB;
+                    overlay_apply_reset("ADB CHANGED - COLD RESET");
+                    break;
+                case GEN_BOOTDEV: {
+                    BOOT_DEVICE b = ConfigureParams.Boot.nBootDevice;
+                    b = (BOOT_DEVICE)(((int)b + 1) % 5);
+                    ConfigureParams.Boot.nBootDevice = b;
+                    overlay_apply_reset("BOOT DEVICE CHANGED - COLD RESET");
+                    break;
+                }
+                case GEN_TINKER:
+                    UI89Config_.bTinker = !UI89Config_.bTinker;
+                    if (!UI89Config_.bTinker && g_ov.section == OV_ADVANCED)
+                        g_ov.section = OV_GENERAL;
+                    overlay_config_save();
+                    break;
+                case GEN_ABOUT:
+                    g_ov.about_visible = true;
+                    break;
+                case GEN_RESET:
+                    overlay_apply_reset("SYSTEM DEFAULTS RESTORED");
+                    g_ov.row = 0;
+                    break;
+                default:
+                    break;
+            }
+            break;
+
+        case OV_MEDIA:
+            if (g_ov.row == MED_BOOT) {
+                BOOT_DEVICE b = ConfigureParams.Boot.nBootDevice;
+                b = (BOOT_DEVICE)(((int)b + 1) % 5);
+                ConfigureParams.Boot.nBootDevice = b;
+                overlay_apply_reset("BOOT DEVICE CHANGED - COLD RESET");
+            } else if (g_ov.row >= MED_SCSI0 && g_ov.row <= MED_SCSI3) {
+                int i = g_ov.row - MED_SCSI0;
+                if (ConfigureParams.SCSI.target[i].bDiskInserted)
+                    set_scsi_image(i, NULL);
+                else
+                    open_file_dialog((OvDialogKind)(OV_DIALOG_SCSI0 + i));
+            } else if (g_ov.row >= MED_FLOPPY0 && g_ov.row <= MED_FLOPPY1) {
+                int i = g_ov.row - MED_FLOPPY0;
+                if (ConfigureParams.Floppy.drive[i].bDiskInserted)
+                    set_floppy_image(i, NULL);
+                else
+                    open_file_dialog((OvDialogKind)(OV_DIALOG_FLOPPY0 + i));
+            } else if (g_ov.row >= MED_MO0 && g_ov.row <= MED_MO1) {
+                int i = g_ov.row - MED_MO0;
+                if (ConfigureParams.MO.drive[i].bDiskInserted)
+                    set_mo_image(i, NULL);
+                else
+                    open_file_dialog((OvDialogKind)(OV_DIALOG_MO0 + i));
+            }
+            break;
+
+        case OV_EXTENSIONS:
+            switch (g_ov.row) {
+                case EXT_ND:
+                    ConfigureParams.Dimension.board[0].bEnabled =
+                        !ConfigureParams.Dimension.board[0].bEnabled;
+                    overlay_apply_reset("NEXTDIMENSION CHANGED - COLD RESET");
+                    break;
+                case EXT_PRINTER:
+                    ConfigureParams.Printer.bPrinterConnected =
+                        !ConfigureParams.Printer.bPrinterConnected;
+                    overlay_apply_reset("PRINTER CHANGED - COLD RESET");
+                    break;
+                case EXT_ETHERNET:
+                    ConfigureParams.Ethernet.bEthernetConnected =
+                        !ConfigureParams.Ethernet.bEthernetConnected;
+                    overlay_apply_reset("ETHERNET CHANGED - COLD RESET");
+                    break;
+                case EXT_TABLET:
+                    ConfigureParams.Tablet.nTabletType =
+                        (TABLET_TYPE)(((int)ConfigureParams.Tablet.nTabletType + 1)
+                                      % 8);
+                    overlay_apply_reset("TABLET CHANGED - COLD RESET");
+                    break;
+                case EXT_MIC:
+                    ConfigureParams.Sound.bEnableMicrophone =
+                        !ConfigureParams.Sound.bEnableMicrophone;
+                    overlay_save_config();
+                    notify_post(ConfigureParams.Sound.bEnableMicrophone
+                                ? "MICROPHONE ON" : "MICROPHONE OFF");
+                    break;
+                default:
+                    break;
+            }
+            break;
+
+        case OV_ADVANCED:
+            switch (g_ov.row) {
+                case ADV_SMOOTHING:
+                    UI89Config_.bSmoothing = !UI89Config_.bSmoothing;
+                    overlay_config_save();
+                    break;
+                case ADV_GIF_WIDTH:
+                    UI89Config_.nGifWidth =
+                        UI89Config_.nGifWidth >= 640 ? 320 :
+                        UI89Config_.nGifWidth + 160;
+                    overlay_config_save();
+                    break;
+                case ADV_GIF_FPS:
+                    UI89Config_.nGifFps =
+                        UI89Config_.nGifFps >= 25 ? 10 :
+                        UI89Config_.nGifFps + 5;
+                    overlay_config_save();
+                    break;
+                case ADV_NOTIFICATIONS: {
+                    int m = UI89Config_.nNotifyMode + 1;
+                    if (m > NOTIFY_MODE_CONSOLE) m = NOTIFY_MODE_OFF;
+                    UI89Config_.nNotifyMode = m;
+                    notify_set_mode((NotifyMode)m);
+                    overlay_config_save();
+                    break;
+                }
+                case ADV_FULLSCREEN:
+                    if (bInFullScreen)
+                        Screen_ReturnFromFullScreen();
+                    else
+                        Screen_EnterFullScreen();
+                    break;
+                case ADV_STATUSBAR:
+                    ConfigureParams.Screen.bShowStatusbar =
+                        !ConfigureParams.Screen.bShowStatusbar;
+                    Screen_Reset();
+                    overlay_save_config();
+                    break;
+                case ADV_TITLEBAR:
+                    ConfigureParams.Screen.bShowTitlebar =
+                        !ConfigureParams.Screen.bShowTitlebar;
+                    Screen_TitlebarChanged();
+                    overlay_save_config();
+                    break;
+                case ADV_DRAMTEST:
+                    ConfigureParams.Boot.bEnableDRAMTest =
+                        !ConfigureParams.Boot.bEnableDRAMTest;
+                    overlay_apply_reset("DRAM TEST CHANGED - COLD RESET");
+                    break;
+                case ADV_VERBOSE:
+                    ConfigureParams.Boot.bVerbose =
+                        !ConfigureParams.Boot.bVerbose;
+                    overlay_apply_reset("VERBOSE BOOT CHANGED - COLD RESET");
+                    break;
+                case ADV_VERSION:
+                    g_ov.about_visible = true;
+                    break;
+                default:
+                    break;
+            }
+            break;
+
+        default:
+            break;
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* rendering                                                           */
+
+static void draw_row(SDL_Renderer *r, int lw, float y,
+                     const char *label, const char *value, bool highlight) {
+    if (highlight) {
+        SDL_SetRenderDrawColor(r, 0x80, 0x60, 0x20, 255);
+        SDL_FRect hl = { 10, y, (float)lw - 4, OV_LINE_H - 4 };
+        SDL_RenderFillRect(r, &hl);
+    }
+    SDL_SetRenderDrawColor(r, 0xFF, 0xFF, 0xFF, 255);
+    SDL_RenderDebugText(r, 20, y, label);
+    if (value) {
+        char shown[96];
+        size_t max_chars = (size_t)(lw - OV_VALUE_X - 18) / 8;
+        if (max_chars >= sizeof(shown)) max_chars = sizeof(shown) - 1;
+        size_t n = strlen(value);
+        if (n > max_chars && max_chars > 3) {
+            memcpy(shown, value, max_chars - 3);
+            memcpy(shown + max_chars - 3, "...", 4);
+        } else {
+            snprintf(shown, sizeof(shown), "%s", value);
+        }
+        SDL_SetRenderDrawColor(r, 0xFF, highlight ? 0xFF : 0xD0,
+                               highlight ? 0xFF : 0x80, 255);
+        SDL_RenderDebugText(r, (float)OV_VALUE_X, y, shown);
+    }
+}
+
+static int section_rows(void) {
+    switch (g_ov.section) {
+        case OV_GENERAL:    return GEN_ROWS;
+        case OV_MEDIA:      return MED_ROWS;
+        case OV_EXTENSIONS: return EXT_ROWS;
+        case OV_ADVANCED:   return ADV_ROWS;
+        default:            return 0;
+    }
+}
+
+static const char *section_name(OvSection s) {
+    switch (s) {
+        case OV_GENERAL:    return "General";
+        case OV_MEDIA:      return "Media";
+        case OV_EXTENSIONS: return "Extensions";
+        case OV_ADVANCED:   return "Advanced";
+        default:            return "";
+    }
+}
+
+static bool section_available(OvSection s) {
+    if (s == OV_ADVANCED) return UI89Config_.bTinker;
+    return true;
+}
+
+void overlay_render(SDL_Renderer *r) {
+    if (!g_ov.visible) return;
+
+    int rw, rh;
+    if (!SDL_GetRenderOutputSize(r, &rw, &rh)) return;
+
+    int rows = section_rows();
+    int panel_h = 48 + rows * OV_LINE_H + 42;
+    float min_logical_h = panel_h + 8 > 510 ? (float)(panel_h + 8) : 510.0f;
+    float scale = OV_SCALE;
+    if ((float)rw / scale < 860.0f) scale = (float)rw / 860.0f;
+    if ((float)rh / scale < min_logical_h) scale = (float)rh / min_logical_h;
+    if (scale <= 0.0f) return;
+    SDL_SetRenderScale(r, scale, scale);
+    int lw = (int)(rw / scale);
+    int panel_w = lw - 20 < 840 ? lw - 20 : 840;
+
+    SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(r, 0, 0, 0, 90);
+    SDL_FRect shade = { 0, 0, (float)lw, (float)(rh / scale) };
+    SDL_RenderFillRect(r, &shade);
+    SDL_SetRenderDrawColor(r, 8, 10, 24, 235);
+    SDL_FRect bg = { 8, 8, (float)panel_w, (float)panel_h };
+    SDL_RenderFillRect(r, &bg);
+    SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_NONE);
+
+    /* Section tabs */
+    SDL_SetRenderDrawColor(r, 0x30, 0x40, 0x60, 255);
+    SDL_FRect tabbar = { 10, 10, (float)panel_w - 4, 22 };
+    SDL_RenderFillRect(r, &tabbar);
+    float tx = 20;
+    for (int s = 0; s < OV_SECTION_COUNT; s++) {
+        if (!section_available((OvSection)s)) continue;
+        bool active = (s == (int)g_ov.section);
+        SDL_SetRenderDrawColor(r, active ? 0xFF : 0xC0,
+                               active ? 0xFF : 0xC0,
+                               active ? 0xFF : 0xC0, 255);
+        SDL_RenderDebugText(r, tx, 14, section_name((OvSection)s));
+        tx += (float)((int)strlen(section_name((OvSection)s)) * 8 + 20);
+    }
+
+    float y = 48;
+    char vbuf[FILENAME_MAX + 8];
+    char s1[64], s2[64], s3[64];
+
+    if (g_ov.section == OV_GENERAL) {
+        draw_row(r, panel_w, y, "Machine", machine_name(), g_ov.row == GEN_MACHINE);
+        y += OV_LINE_H;
+        draw_row(r, panel_w, y, "RAM", ram_string(vbuf, sizeof(vbuf)),
+                 g_ov.row == GEN_RAM); y += OV_LINE_H;
+        draw_row(r, panel_w, y, "CPU clock", cpu_freq_string(s1, sizeof(s1)),
+                 g_ov.row == GEN_CPUCLOCK); y += OV_LINE_H;
+        draw_row(r, panel_w, y, "FPU", fpu_string(s1, sizeof(s1)),
+                 g_ov.row == GEN_FPU); y += OV_LINE_H;
+        draw_row(r, panel_w, y, "DSP", dsp_string(s1, sizeof(s1)),
+                 g_ov.row == GEN_DSP); y += OV_LINE_H;
+        draw_row(r, panel_w, y, "MMU", ConfigureParams.System.bMMU ? "On" : "Off",
+                 g_ov.row == GEN_MMU); y += OV_LINE_H;
+        draw_row(r, panel_w, y, "ADB", ConfigureParams.System.bADB ? "On" : "Off",
+                 g_ov.row == GEN_ADB); y += OV_LINE_H;
+        draw_row(r, panel_w, y, "Boot device", boot_string(s1, sizeof(s1)),
+                 g_ov.row == GEN_BOOTDEV); y += OV_LINE_H;
+        draw_row(r, panel_w, y, "Tinker", UI89Config_.bTinker ? "On" : "Off",
+                 g_ov.row == GEN_TINKER); y += OV_LINE_H;
+        draw_row(r, panel_w, y, "About", "Program details", g_ov.row == GEN_ABOUT);
+        y += OV_LINE_H;
+        draw_row(r, panel_w, y, "Reset defaults", NULL, g_ov.row == GEN_RESET);
+    } else if (g_ov.section == OV_MEDIA) {
+        draw_row(r, panel_w, y, "Boot device", boot_string(s1, sizeof(s1)),
+                 g_ov.row == MED_BOOT); y += OV_LINE_H;
+        for (int i = 0; i < 4; i++) {
+            draw_row(r, panel_w, y, scsi_label(i),
+                     scsi_value(i, vbuf, sizeof(vbuf)), g_ov.row == MED_SCSI0 + i);
+            y += OV_LINE_H;
+        }
+        for (int i = 0; i < 2; i++) {
+            snprintf(s2, sizeof(s2), "Floppy %d", i);
+            draw_row(r, panel_w, y, s2, floppy_value(i, vbuf, sizeof(vbuf)),
+                     g_ov.row == MED_FLOPPY0 + i);
+            y += OV_LINE_H;
+        }
+        for (int i = 0; i < 2; i++) {
+            snprintf(s2, sizeof(s2), "Mag-opt %d", i);
+            draw_row(r, panel_w, y, s2, mo_value(i, vbuf, sizeof(vbuf)),
+                     g_ov.row == MED_MO0 + i);
+            y += OV_LINE_H;
+        }
+    } else if (g_ov.section == OV_EXTENSIONS) {
+        draw_row(r, panel_w, y, "NeXTdimension",
+                 ConfigureParams.Dimension.board[0].bEnabled ? "On" : "Off",
+                 g_ov.row == EXT_ND); y += OV_LINE_H;
+        draw_row(r, panel_w, y, "Printer",
+                 ConfigureParams.Printer.bPrinterConnected ? "On" : "Off",
+                 g_ov.row == EXT_PRINTER); y += OV_LINE_H;
+        draw_row(r, panel_w, y, "Ethernet",
+                 ConfigureParams.Ethernet.bEthernetConnected ? "On" : "Off",
+                 g_ov.row == EXT_ETHERNET); y += OV_LINE_H;
+        draw_row(r, panel_w, y, "Tablet", tablet_string(s1, sizeof(s1)),
+                 g_ov.row == EXT_TABLET); y += OV_LINE_H;
+        draw_row(r, panel_w, y, "Microphone",
+                 ConfigureParams.Sound.bEnableMicrophone ? "On" : "Off",
+                 g_ov.row == EXT_MIC); y += OV_LINE_H;
+    } else {
+        char gline[64];
+        snprintf(gline, sizeof(gline), "%dx%d, %d fps",
+                 UI89Config_.nGifWidth,
+                 UI89Config_.nGifWidth * 832 / 1120,
+                 UI89Config_.nGifFps);
+        draw_row(r, panel_w, y, "Smoothing",
+                 UI89Config_.bSmoothing ? "On" : "Off",
+                 g_ov.row == ADV_SMOOTHING); y += OV_LINE_H;
+        draw_row(r, panel_w, y, "GIF capture", gline,
+                 g_ov.row == ADV_GIF_WIDTH); y += OV_LINE_H;
+        {
+            char fps[32];
+            snprintf(fps, sizeof(fps), "%d fps", UI89Config_.nGifFps);
+            draw_row(r, panel_w, y, "GIF frame rate", fps,
+                     g_ov.row == ADV_GIF_FPS);
+        }
+        y += OV_LINE_H;
+        draw_row(r, panel_w, y, "Notifications",
+                 UI89Config_.nNotifyMode == NOTIFY_MODE_OFF ? "Off" :
+                 UI89Config_.nNotifyMode == NOTIFY_MODE_CONSOLE ? "Console" :
+                 "Screen",
+                 g_ov.row == ADV_NOTIFICATIONS); y += OV_LINE_H;
+        draw_row(r, panel_w, y, "Fullscreen", bInFullScreen ? "On" : "Off",
+                 g_ov.row == ADV_FULLSCREEN); y += OV_LINE_H;
+        draw_row(r, panel_w, y, "Status bar",
+                 ConfigureParams.Screen.bShowStatusbar ? "On" : "Off",
+                 g_ov.row == ADV_STATUSBAR); y += OV_LINE_H;
+        draw_row(r, panel_w, y, "Title bar",
+                 ConfigureParams.Screen.bShowTitlebar ? "On" : "Off",
+                 g_ov.row == ADV_TITLEBAR); y += OV_LINE_H;
+        draw_row(r, panel_w, y, "DRAM test",
+                 ConfigureParams.Boot.bEnableDRAMTest ? "On" : "Off",
+                 g_ov.row == ADV_DRAMTEST); y += OV_LINE_H;
+        draw_row(r, panel_w, y, "Verbose boot",
+                 ConfigureParams.Boot.bVerbose ? "On" : "Off",
+                 g_ov.row == ADV_VERBOSE); y += OV_LINE_H;
+        draw_row(r, panel_w, y, "Version", PACKAGE_VERSION,
+                 g_ov.row == ADV_VERSION);
+    }
+
+    /* Footer */
+    SDL_SetRenderDrawColor(r, 0xAA, 0xAA, 0xAA, 255);
+    const char *footer = g_ov.section == OV_MEDIA
+        ? "Left/Right section  Up/Down select  Enter choose/eject  F9/Esc close"
+        : "Left/Right section  Up/Down select  Enter toggle  F9/Esc close";
+    SDL_RenderDebugText(r, 20, (float)(panel_h - 20), footer);
+
+    if (g_ov.about_visible) {
+        int lh = (int)(rh / scale);
+        int text_w = 0;
+        for (int i = 0; i < ABOUT_LINE_COUNT; ++i) {
+            int w = (int)strlen(about_lines[i]) * 8;
+            if (w > text_w) text_w = w;
+        }
+        int box_w = text_w + 32;
+        int box_h = 28 + ABOUT_LINE_COUNT * 16 + 28;
+        float bx = (float)(lw - box_w) * 0.5f;
+        float by = (float)(lh - box_h) * 0.5f;
+        SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(r, 0, 0, 0, 180);
+        SDL_FRect dim = { 0, 0, (float)lw, (float)lh };
+        SDL_RenderFillRect(r, &dim);
+        SDL_SetRenderDrawColor(r, 0x19, 0x20, 0x34, 255);
+        SDL_FRect box = { bx, by, (float)box_w, (float)box_h };
+        SDL_RenderFillRect(r, &box);
+        SDL_SetRenderDrawColor(r, 0x89, 0xA3, 0xCB, 255);
+        SDL_RenderRect(r, &box);
+        SDL_SetRenderDrawColor(r, 0xF0, 0xF0, 0xF0, 255);
+        for (int i = 0; i < ABOUT_LINE_COUNT; ++i)
+            SDL_RenderDebugText(r, bx + 16, by + 16 + i * 16,
+                                about_lines[i]);
+        SDL_SetRenderDrawColor(r, 0xFF, 0xDA, 0x79, 255);
+        SDL_RenderDebugText(r, bx + (box_w - 16) * 0.5f,
+                            by + box_h - 20, "OK");
+        SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_NONE);
+    }
+
+    SDL_SetRenderScale(r, 1.0f, 1.0f);
+}
+
+/* ------------------------------------------------------------------ */
+/* lifecycle                                                           */
+
+void overlay_init(void) {
+    memset(&g_ov, 0, sizeof(g_ov));
+    g_ov.section = OV_GENERAL;
+    g_ov.dialog_kind = OV_DIALOG_NONE;
+    overlay_config_load();
+}
+
+void overlay_quit(void) {
+    /* nothing to tear down */
+}
+
+bool overlay_is_visible(void) {
+    return g_ov.visible;
+}
+
+void overlay_close(void) {
+    if (g_ov.visible) {
+        overlay_save_config();
+        overlay_config_save();
+    }
+    g_ov.about_visible = false;
+    g_ov.visible = false;
+}
+
+bool overlay_handle_event(const SDL_Event *ev) {
+    if (ev->type != SDL_EVENT_KEY_DOWN)
+        return g_ov.visible;   /* consume everything while open */
+
+    if (ev->key.repeat)
+        return g_ov.visible;
+
+    SDL_Scancode sc = ev->key.scancode;
+
+/* F9 always toggles the overlay. */
+	if (sc == SDL_SCANCODE_F9) {
+		if (!g_ov.visible) {
+			g_ov.visible = true;
+			g_ov.section = OV_GENERAL;
+			g_ov.row     = 0;
+			/* Release the emulated mouse so the host cursor can navigate. */
+			if (bGrabMouse) {
+				bGrabMouse = false;
+				Screen_SetMouseGrab(false);
+			}
+		} else {
+			overlay_close();
+		}
+		return true;
+	}
+
+    if (!g_ov.visible) return false;
+
+    if (g_ov.about_visible) {
+        if (sc == SDL_SCANCODE_RETURN || sc == SDL_SCANCODE_ESCAPE)
+            g_ov.about_visible = false;
+        return true;
+    }
+
+    switch (sc) {
+        case SDL_SCANCODE_LEFT:
+        case SDL_SCANCODE_RIGHT: {
+            int dir = (sc == SDL_SCANCODE_RIGHT) ? 1 : -1;
+            int s = g_ov.section;
+            do {
+                s = (s + dir + OV_SECTION_COUNT) % OV_SECTION_COUNT;
+            } while (!section_available((OvSection)s));
+            g_ov.section = (OvSection)s;
+            g_ov.row = 0;
+            break;
+        }
+        case SDL_SCANCODE_UP:
+            if (g_ov.row > 0) g_ov.row--;
+            break;
+        case SDL_SCANCODE_DOWN:
+            if (g_ov.row < section_rows() - 1) g_ov.row++;
+            break;
+        case SDL_SCANCODE_RETURN:
+            overlay_activate();
+            break;
+        case SDL_SCANCODE_ESCAPE:
+            overlay_close();
+            break;
+        default:
+            break;
+    }
+    return true;
+}
+
+void overlay_tick(void) {
+    if (!g_ov.dialog_ready) return;
+    g_ov.dialog_ready = false;
+    OvDialogKind kind = g_ov.dialog_kind;
+    g_ov.dialog_kind = OV_DIALOG_NONE;
+
+    switch (kind) {
+        case OV_DIALOG_SCSI0:
+        case OV_DIALOG_SCSI1:
+        case OV_DIALOG_SCSI2:
+        case OV_DIALOG_SCSI3:
+            set_scsi_image(kind - OV_DIALOG_SCSI0, g_ov.dialog_path);
+            break;
+        case OV_DIALOG_FLOPPY0:
+        case OV_DIALOG_FLOPPY1:
+            set_floppy_image(kind - OV_DIALOG_FLOPPY0, g_ov.dialog_path);
+            break;
+        case OV_DIALOG_MO0:
+        case OV_DIALOG_MO1:
+            set_mo_image(kind - OV_DIALOG_MO0, g_ov.dialog_path);
+            break;
+        case OV_DIALOG_ROM030:
+        case OV_DIALOG_ROM040:
+        case OV_DIALOG_ROMTURBO:
+            set_rom_path(kind, g_ov.dialog_path);
+            break;
+        default:
+            break;
+    }
+}

@@ -12,8 +12,25 @@ is missing you are prompted for its location with a file picker.
 
 ## Configuration
 
-Press **F12** (or **Alt+O**) to open the options dialog:
+Press **F1** (or **Alt+O**) to open the legacy options dialog, or **F9** to
+open the happy-years options overlay (see [CONTROLS.md](CONTROLS.md)). The
+overlay has four tabs:
 
+- **General**: machine type, RAM, CPU clock, FPU, DSP, MMU, ADB, boot device
+  and the **Tinker** switch.
+- **Media**: boot device and the attached SCSI / floppy / magneto-optical
+  media.
+- **Extensions**: NeXTdimension, printer, Ethernet, tablet and microphone.
+- **Advanced**: display and capture options (needs Tinker on).
+
+The configuration file is `~/.config/1989/1989.cfg` (a legacy `~/.previous`
+directory is used if the new one does not exist). `1989.conf.example` shows
+the format. UI-only settings (Tinker, GIF, notifications) live in the
+`[UI89]` section.
+
+### Legacy options dialog (F1)
+
+The full options dialog opened with **F1** covers every machine detail:
 - **System**: machine type (NeXT Computer, NeXTcube, NeXTstation, ...),
   CPU (68030/68040) level and clock, FPU, MMU, ADB, NBIC, SCSI controller,
   RTC chip, DSP 56001 emulation.
@@ -30,10 +47,6 @@ Press **F12** (or **Alt+O**) to open the options dialog:
 - **Keyboard / Mouse / Tablet**: input device configuration.
 - **Shortcuts**: rebind the hot keys.
 
-The configuration file is `~/.config/1989/1989.cfg` (a legacy `~/.previous`
-directory is used if the new one does not exist). `1989.conf.example` shows
-the format.
-
 ## Booting NeXTstep
 
 To boot NeXTstep:
@@ -42,7 +55,7 @@ To boot NeXTstep:
    target or to a floppy drive.
 2. Make sure the machine type and the ROM match the disk's target machine.
 3. In the options dialog under **Boot**, select the boot device.
-4. Cold reset with **Alt+C**.
+4. Cold reset with **Alt+C** (or change the boot device in the F9 overlay).
 
 The diagnostics screens shown by the ROM before the OS takes over can be
 toggled in the **Boot** section.
@@ -67,9 +80,12 @@ Both are interactive with a command prompt; `help` lists the commands.
 netboot image creation). Run `ditool -h` for its usage. It is a port of the
 tool distributed with Previous.
 
-## Screenshots and recording
+## Screenshots, GIF capture and recording
 
-- **Alt+G**: save a screenshot (PPM always; PNG when built with libpng).
-- **Alt+R**: start/stop recording (AVI).
+- **F4**: save a screenshot (PPM `1989-<timestamp>.ppm`).
+- **F6**: toggle GIF capture (`1989-<timestamp>.gif`); resolution and frame
+  rate are set in the overlay's Advanced tab.
+- **Alt+G**: legacy screenshot shortcut (PNG when built with libpng).
+- **Alt+R**: legacy sound recording (AIFF).
 
 Files are written to the current working directory by default.

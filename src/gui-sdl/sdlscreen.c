@@ -20,6 +20,10 @@ const char SDLscreen_fileid[] = "Previous sdlscreen.c";
 #include "video.h"
 #include "keymap.h"
 #include "m68000.h"
+#include "leds.h"
+#include "notify.h"
+#include "overlay.h"
+#include "capture.h"
 
 
 /* NeXT screen resolution */
@@ -208,6 +212,53 @@ static void blitUserInterface(SDL_Texture* tex) {
 }
 
 /*
+ Draw the 1989 happy-years bottom UI (function-key hint strip, LED activity
+ bar), the toast notifications and the F9 options overlay on top of the
+ current frame. Call before SDL_RenderPresent with the renderer in logical
+ window coordinates. Also advances GIF capture.
+ */
+static void Screen89_RenderExtras(SDL_Renderer *r) {
+	int sbh = Statusbar_GetHeight();
+	int led_y = height - sbh - LED_BAR_H;
+	int strip_y = led_y - FUNCTION_KEY_BAR_H;
+
+	/* Function-key hint strip (sibling convention: red machine name,
+	 * light-grey shortcuts, centred on a near-black band). */
+	SDL_SetRenderDrawColor(r, 0x10, 0x10, 0x14, 255);
+	SDL_FRect band = { 0, (float)strip_y, (float)width,
+	                   (float)FUNCTION_KEY_BAR_H };
+	SDL_RenderFillRect(r, &band);
+
+	const char *model = "1989";
+	const char *keys =
+	    "  F1=menu  F4=screenshot  F6=gif  F9=options  F11=fullscreen  F12=quit";
+	float text_w = (float)(strlen(model) + strlen(keys)) * 8.0f;
+	float scale = text_w > (float)width - 12.0f
+	              ? ((float)width - 12.0f) / text_w : 1.0f;
+	if (scale > 0.0f) {
+		float x = ((float)width / scale - text_w) * 0.5f;
+		float text_y = ((float)strip_y +
+		                ((float)FUNCTION_KEY_BAR_H - 8.0f * scale) * 0.5f) /
+		               scale;
+		SDL_SetRenderScale(r, scale, scale);
+		SDL_SetRenderDrawColor(r, 0xFF, 0x40, 0x40, 255);
+		SDL_RenderDebugText(r, x, text_y, model);
+		SDL_RenderDebugText(r, x + 1.0f, text_y, model);
+		SDL_SetRenderDrawColor(r, 0xE0, 0xE0, 0xE0, 255);
+		SDL_RenderDebugText(r, x + (float)strlen(model) * 8.0f, text_y, keys);
+		SDL_SetRenderScale(r, 1.0f, 1.0f);
+	}
+
+	/* Activity LED bar */
+	leds_render(r, 0, led_y, width, LED_BAR_H);
+
+	/* Toasts + options overlay + GIF frame capture */
+	notify_render(r);
+	overlay_render(r);
+	Capture_Tick();
+}
+
+/*
  Blits the NeXT framebuffer to the fbTexture, blends with the GUI surface and shows it.
  */
 static bool Screen_SingleRepaint(void) {
@@ -229,6 +280,8 @@ static bool Screen_SingleRepaint(void) {
 		/* Render NeXT framebuffer texture */
 		SDL_RenderTexture(sdlRenderer, fbTexture, NULL, &fbRect);
 		SDL_RenderTexture(sdlRenderer, uiTexture, NULL, &uiRect);
+		/* 1989 happy-years bottom UI + overlay */
+		Screen89_RenderExtras(sdlRenderer);
 		/* Sleeps until next VSYNC if enabled in ScreenInit */
 		SDL_RenderPresent(sdlRenderer);
 	}
@@ -266,6 +319,8 @@ static bool Screen_GroupRepaint(void) {
 			}
 		}
 		SDL_RenderTexture(sdlRenderer, uiTexture, NULL, &uiRect);
+		/* 1989 happy-years bottom UI + overlay */
+		Screen89_RenderExtras(sdlRenderer);
 		/* Sleeps until next VSYNC if enabled in ScreenInit */
 		SDL_RenderPresent(sdlRenderer);
 	}
@@ -471,12 +526,20 @@ void Screen_Reset(void) {
 	width  = screen_w;
 	height = screen_h;
 
-	/* Grow to fit statusbar */
-	height += Statusbar_SetHeight(screen_w, screen_h);
+	/* 1989 happy-years UI: a function-key hint strip and an LED activity
+	 * bar sit at the bottom of the window, above the (optional) legacy
+	 * statusbar. The statusbar pins itself to the bottom of the surface,
+	 * so tell it its screen area includes the strips: that keeps it
+	 * correctly positioned without leaving a mask-coloured gap. */
+	{
+		int strip_total = FUNCTION_KEY_BAR_H + LED_BAR_H;
+		height += Statusbar_SetHeight(screen_w, screen_h + strip_total);
+		height += strip_total;
+	}
 
 	/* Statusbar */
 	statusBar.x = 0;
-	statusBar.y = screen_h;
+	statusBar.y = height - Statusbar_GetHeight();
 	statusBar.w = screen_w;
 	statusBar.h = Statusbar_GetHeight();
 

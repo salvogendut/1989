@@ -397,7 +397,7 @@ void Configuration_SetDefault(void)
 	ConfigureParams.Log.bConsoleWindow = false;
 
 	/* Set defaults for config dialog */
-	ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup = true;
+	ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup = false;
 
 	/* Set defaults for debugger */
 	ConfigureParams.Debugger.nNumberBase = 10;
@@ -502,7 +502,7 @@ void Configuration_SetDefault(void)
 	}
 	ConfigureParams.Screen.nSingleModeSlot = 0;
 	ConfigureParams.Screen.bFullScreen = false;
-	ConfigureParams.Screen.bShowStatusbar = true;
+	ConfigureParams.Screen.bShowStatusbar = false;
 	ConfigureParams.Screen.bShowTitlebar = true;
 
 	/* Set defaults for Sound */

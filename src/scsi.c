@@ -16,6 +16,7 @@ const char Scsi_fileid[] = "Previous scsi.c";
 #include "statusbar.h"
 #include "scsi.h"
 #include "file.h"
+#include "leds.h"
 
 #define LOG_SCSI_LEVEL  LOG_DEBUG    /* Print debugging messages */
 
@@ -1043,6 +1044,7 @@ uint8_t SCSIdisk_Send_Message(void) {
 
 void SCSIdisk_Receive_Command(uint8_t *cdb, uint8_t identify) {
     uint8_t lun = 0;
+    leds_ping(LED_SCSI);
     
     /* Get logical unit number */
     if (identify&MSG_IDENTIFY_MASK) { /* If identify message is valid */

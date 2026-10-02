@@ -10,6 +10,11 @@
 
 extern void Grab_Screen(void);
 
+/* Convert the NeXT framebuffer (single display, or all group monitors) to
+ * RGBA (0xRRGGBBAA, 4 bytes per pixel) into a buffer of screen_w*screen_h
+ * pixels. Returns false if the framebuffer is unavailable. */
+extern bool Grab_FillBuffer(uint8_t* buf);
+
 extern void Grab_Sound(uint8_t* samples, int len);
 extern void Grab_SoundToggle(void);
 

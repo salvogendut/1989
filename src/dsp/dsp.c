@@ -36,6 +36,7 @@
 #include "debugdsp.h"
 #include "dsp_cpu.h"
 #include "dsp_disasm.h"
+#include "leds.h"
 #endif
 
 #define DEBUG 0
@@ -81,6 +82,7 @@ bool bDspEmulated = false;
 void DSP_HandleTXD(int set) {
 	if (set) {
 		Log_Printf(LOG_WARN, "[DSP] Set TXD interrupt");
+		leds_ping(LED_DSP);
 		dsp_txdn_intr = 1;
 	} else {
 		Log_Printf(LOG_WARN, "[DSP] Release TXD interrupt");

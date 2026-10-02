@@ -48,6 +48,11 @@ dist_man1_MANS = 1989.1
 	src/timing.c \
 	src/tmc.c \
 	src/video.c \
+	src/overlay.c \
+	src/leds.c \
+	src/notify.c \
+	src/gifcap.c \
+	src/capture.c \
 	src/gui-sdl/sdlaudio.c \
 	src/gui-sdl/sdlevent.c \
 	src/gui-sdl/sdlgui.c \
@@ -283,6 +288,11 @@ noinst_HEADERS = \
 	src/includes/tmc.h
 	src/includes/video.h
 	src/includes/vs-fix.h
+	src/includes/overlay.h
+	src/includes/leds.h
+	src/includes/notify.h
+	src/includes/gifcap.h
+	src/includes/capture.h
 	src/slirp/bootp.h
 	src/slirp/ctl.h
 	src/slirp/icmp_var.h

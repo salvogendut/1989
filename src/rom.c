@@ -14,6 +14,7 @@ const char Rom_fileid[] = "Previous rom.c";
 #include "file.h"
 #include "paths.h"
 #include "rom.h"
+#include <unistd.h>
 
 
 /* Change the MAC address stored in ROM if requested */
@@ -40,8 +41,8 @@ static void rom_config(uint8_t* buf) {
 }
 
 /* Build the default ROM path for the given ROM name. Prefer the data
- * directory, falling back to ROM_INSTALL_DIR (the install-time ROM path)
- * when the image is not present next to the executable. */
+ * directory, then the install-time ROM_INSTALL_DIR, then a "roms" subfolder
+ * of the current working directory (source-tree convenience). */
 void Rom_GetDefaultPath(char *path, int nMaxLen, const char *pszRomName)
 {
 	const char *pDir = Paths_GetDataDir();
@@ -54,6 +55,34 @@ void Rom_GetDefaultPath(char *path, int nMaxLen, const char *pszRomName)
 		free(pszInstallPath);
 	}
 #endif
+	/* If the selected directory has no image, fall back to a "roms" folder
+	 * next to the executable's current working directory (source-tree runs). */
+	{
+		char *pszDataPath = File_MakePath(pDir, pszRomName, "BIN");
+		if (pszDataPath && !File_Exists(pszDataPath))
+		{
+			char cwd[FILENAME_MAX];
+			char *cwdRoms = NULL;
+			char *cwdPath = NULL;
+			if (getcwd(cwd, sizeof(cwd)))
+				cwdRoms = File_MakePath(cwd, "roms", NULL);
+			if (cwdRoms)
+			{
+				cwdPath = File_MakePath(cwdRoms, pszRomName, "BIN");
+				if (cwdPath && File_Exists(cwdPath))
+				{
+					File_MakePathBuf(path, nMaxLen, cwdRoms, pszRomName, "BIN");
+					free(cwdPath);
+					free(cwdRoms);
+					free(pszDataPath);
+					return;
+				}
+				free(cwdPath);
+				free(cwdRoms);
+			}
+		}
+		free(pszDataPath);
+	}
 	File_MakePathBuf(path, nMaxLen, pDir, pszRomName, "BIN");
 }
 

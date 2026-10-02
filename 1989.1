@@ -22,55 +22,41 @@ networking, sound, screen mode, shortcut keys) is stored in the per-user
 configuration file and edited through the SDL options dialog, opened with
 \fBF12\fR (or \fBAlt+O\fR).
 .SH KEYS
-Default shortcut keys (all reconfigurable from the options dialog):
+1989 follows the shared "happy years" conventions: an F9 options overlay, an
+activity LED bar at the bottom of the window, and dedicated F-keys.
+.PP
+Default shortcut keys:
 .TP
-.B F12
-Open the options dialog.
+.B F1
+Open the legacy options dialog (kept until every option is migrated to the
+F9 overlay).
+.TP
+.B F4
+Save a screenshot (PPM).
+.TP
+.B F6
+Toggle GIF capture.
+.TP
+.B F9
+Open / close the options overlay (General, Media, Extensions and - with
+Tinker on - Advanced tabs).
 .TP
 .B F11
 Toggle fullscreen.
 .TP
-.B Alt+O
-Open the options dialog (same as F12).
-.TP
-.B Alt+F
-Toggle fullscreen.
-.TP
-.B Alt+P
-Pause / resume emulation.
-.TP
-.B Alt+D
-Open the m68k debugger.
-.TP
-.B Alt+I
-Open the i860 (NeXTdimension) debugger.
-.TP
-.B Alt+M
-Grab / release the host mouse.
-.TP
-.B Alt+C
-Cold reset the emulated machine.
-.TP
-.B Alt+G
-Save a screenshot (PPM, or PNG if built with libpng).
-.TP
-.B Alt+R
-Start / stop recording.
-.TP
-.B Alt+S
-Toggle sound.
-.TP
-.B Alt+Q
+.B F12
 Quit.
 .TP
-.B Alt+N
-Toggle the NeXTdimension board.
+.B Alt+O / Alt+F / Alt+M / Alt+C / Alt+G / Alt+R
+Options dialog / fullscreen / mouse grab / cold reset / screenshot / sound
+recording.
 .TP
-.B Alt+B
-Toggle the status bar.
-.TP
-.B Alt+T
-Toggle the title bar.
+.B Alt+P / Alt+D / Alt+I / Alt+B / Alt+T
+Pause / m68k debugger / i860 debugger / status bar / title bar.
+.PP
+While the overlay is open, use Left/Right to switch tabs, Up/Down to select
+a row, Enter to toggle or choose, and Esc or F9 to close (settings are
+saved).
 .SH FILES
 .TP
 .I ~/.config/1989/1989.cfg

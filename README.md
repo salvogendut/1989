@@ -31,7 +31,11 @@ from Hatari) into the scaffolding conventions shared by the sibling
   NeXTdimension i860 graphics board emulation.
 - SCSI hard disks, magneto-optical drives, floppy drives, and Ethernet
   networking through SLiRP user-mode NAT (or pcap when built with it).
-- SDL3 options dialog (F12), m68k and i860 debuggers, screenshots, and
+- SDL3 options overlay (F9) with General / Media / Extensions / Advanced
+  tabs, an activity LED bar and function-key hint strip at the bottom of the
+  window, F-key shortcuts for screenshot (F4), GIF capture (F6) and
+  fullscreen (F11).
+- The legacy SDL3 options dialog (F12), m68k and i860 debuggers, and sound
   recording.
 - A `ditool` companion binary for manipulating NeXT filesystem/disk images.
 

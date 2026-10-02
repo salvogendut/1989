@@ -5,9 +5,12 @@ CPPFLAGS ?= -I../src -I../src/includes -I../src/cpu -I../src/debug \
 	-I../src/softfloat -I../src/dsp -I../src/dimension -I../src/slirp \
 	-I../src/gui-sdl -I..
 
+SDL3_CFLAGS ?= $(shell pkg-config --cflags sdl3)
+SDL3_LIBS ?= $(shell pkg-config --libs sdl3)
+
 TESTS = test-str
 
-all: $(TESTS) test-headers
+all: $(TESTS) test-headers test-capture
 
 test-str: test_str.c ../src/str.c ../src/includes/str.h ../config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) test_str.c ../src/str.c -o $@
@@ -16,10 +19,17 @@ test-str: test_str.c ../src/str.c ../src/includes/str.h ../config.h
 test-headers: test_headers.c ../config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -fsyntax-only test_headers.c
 
+# Screenshot + GIF encoding exercise (gifcap, notify, capture).
+test-capture: test_capture.c ../src/gifcap.c ../src/notify.c ../src/capture.c \
+	../src/includes/gifcap.h ../src/includes/notify.h ../src/includes/capture.h ../config.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) \
+		test_capture.c ../src/gifcap.c ../src/notify.c ../src/capture.c \
+		$(SDL3_LIBS) -lm -o $@
+
 .PHONY: all check clean
 
-check: $(TESTS) test-headers
-	@set -e; for t in $(TESTS); do ./$$t; done; echo "all tests passed"
+check: $(TESTS) test-headers test-capture
+	@set -e; for t in $(TESTS) test-capture; do ./$$t; done; echo "all tests passed"
 
 clean:
-	rm -f $(TESTS)
+	rm -f $(TESTS) test-capture test.gif 1989-*.ppm

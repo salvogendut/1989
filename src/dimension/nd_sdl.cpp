@@ -7,6 +7,7 @@
 
 #include "main.h"
 #include "nd_sdl.hpp"
+#include "leds.h"
 #include "configuration.h"
 #include "dimension.hpp"
 #include "sdlscreen.h"
@@ -38,6 +39,7 @@ NDSDL::NDSDL(int slot, uint32_t* vram) : slot(slot), vram(vram), ndWindow(NULL),
 #endif // !ENABLE_RENDERING_THREAD
 
 void NDSDL::repaint(void) {
+    leds_ping(LED_ND);
     if (nd_video_enabled(slot)) {
         Screen_BlitDimension(vram, ndTexture);
     } else {

@@ -33,7 +33,7 @@ const char Grab_fileid[] = "Previous grab.c";
 /**
  * Convert framebuffer data to RGBA and fill buffer.
  */
-static bool Grab_FillBuffer(uint8_t* buf) {
+bool Grab_FillBuffer(uint8_t* buf) {
 	uint8_t* src;
 	uint8_t* dst;
 	

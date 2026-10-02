@@ -11,7 +11,12 @@ Makefile.am         single-Makefile build for the 1989 and ditool binaries
 src/                the Previous 4.3 emulation core, integrated as-is
   main.c ...        NeXT machine, I/O memory, SCSI, floppy, Ethernet, sound
   includes/         core headers
-  gui-sdl/          SDL3 GUI: options dialogs, screen, keyboard, status bar
+  overlay.c/h       F9 options overlay (General/Media/Extensions/Advanced)
+  leds.c/h          activity LED bar at the bottom of the window
+  notify.c/h        fading toast notifications
+  gifcap.c/h        in-tree GIF89a encoder (LZW)
+  capture.c/h       screenshot (PPM) and GIF recording helpers
+  gui-sdl/          SDL3 GUI: legacy options dialogs, screen, keyboard
   cpu/              WinUAE m68k CPU core (checked-in generated sources)
   debug/            m68k/i860 debuggers and logging
   softfloat/        soft-float support for the 68040 FPU
@@ -24,9 +29,29 @@ roms/               NeXT firmware images (from the Previous distribution)
 disks/              blank floppy/hard-disk image templates
 icons/              hicolor PNG set generated from the Previous bitmap
 docs/               machine/ROM reference material
-tests/              build smoke tests
+tests/              build smoke tests (str, capture/GIF)
 web/                (placeholder) future Emscripten/WASM frontend
 ```
+
+## Happy-years UI conventions
+
+1989 follows the sibling emulator (1983-1986) conventions:
+
+- **F9 options overlay** (`overlay.c`): tabbed panel drawn on the SDL
+  renderer just before present. Reads/writes the existing `ConfigureParams`
+  plus a small `[UI89]` config section (Tinker, GIF, notifications) managed
+  in `overlay.c` via `cfgopts`.
+- **LED activity bar** (`leds.c`): dark strip at the bottom of the window,
+  centred LEDs pinged from the device emulation (`leds_ping`). A
+  function-key hint strip sits above it.
+- **Toast notifications** (`notify.c`): fading messages, tri-state mode.
+- **Function keys**: F4 screenshot, F6 GIF, F9 overlay, F11 fullscreen.
+  The legacy F12 options dialog and Alt+... shortcuts remain available.
+
+The bottom strips reserve `FUNCTION_KEY_BAR_H + LED_BAR_H` window rows below
+the legacy status bar (`Screen_Reset` in `gui-sdl/sdlscreen.c`); the overlay,
+LEDs, toasts and GIF capture are rendered by `Screen89_RenderExtras()` before
+`SDL_RenderPresent`.
 
 ## Integration notes
 

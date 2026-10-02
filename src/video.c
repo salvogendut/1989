@@ -18,6 +18,7 @@ const char Video_fileid[] = "Previous video.c";
 #include "shortcut.h"
 #include "video.h"
 #include "dma.h"
+#include "leds.h"
 #include "sysReg.h"
 #include "tmc.h"
 
@@ -67,6 +68,7 @@ bool Video_Enabled(void) {
  * Check if it is time for vertical video retrace interrupt.
  */
 void Video_VBL_Handler(void) {
+	leds_ping(LED_CPU);
 #ifdef ENABLE_RENDERING_THREAD
 	Timing_BlankCount(MAIN_DISPLAY, true);
 	Screen_StatusbarUpdate();

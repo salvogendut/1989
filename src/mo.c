@@ -23,6 +23,7 @@ const char Mo_fileid[] = "Previous mo.c";
 #include "floppy.h"
 #include "file.h"
 #include "rs.h"
+#include "leds.h"
 #include "statusbar.h"
 
 #define LOG_MO_REG_LEVEL    LOG_DEBUG
@@ -1566,6 +1567,7 @@ void mo_self_diagnostic(void) {
 }
 
 void MO_IO_Handler(void) {
+    leds_ping(LED_MO);
     mo_spiraling_operation();
     
     CycInt_UpdateCycleTimeEvent(SECTOR_IO_DELAY, 400, EVENT_MO_IO);

@@ -15,6 +15,7 @@ const char Snd_fileid[] = "Previous snd.c";
 #include "audio.h"
 #include "snd.h"
 #include "kms.h"
+#include "leds.h"
 
 #define LOG_SND_LEVEL   LOG_DEBUG
 #define LOG_VOL_LEVEL   LOG_DEBUG
@@ -96,6 +97,7 @@ static void snd_make_double_samples(uint8_t *buffer, int len, bool repeat) {
     }
 }
 static void snd_make_normal_samples(uint8_t *buffer, int len) {
+    leds_ping(LED_SND);
     /* do nothing */
 }
 

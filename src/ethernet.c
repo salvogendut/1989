@@ -19,6 +19,7 @@ const char Ethernet_fileid[] = "Previous ethernet.c";
 #include "ethernet.h"
 #include "enet_slirp.h"
 #include "enet_pcap.h"
+#include "leds.h"
 #include "cycInt.h"
 #include "statusbar.h"
 
@@ -416,6 +417,7 @@ static bool enet_packet_for_me(uint8_t *packet) {
 }
 
 void enet_receive(uint8_t *pkt, int len) {
+    leds_ping(LED_NET);
     if (enet_packet_for_me(pkt)) {
         print_packet(pkt, len, 0);
         memcpy(enet_rx_buffer.data,pkt,len);
