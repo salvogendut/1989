@@ -130,6 +130,8 @@ bEnableTrace = 0
 # Happy-years UI settings (F9 overlay).
 bTinker = FALSE
 bSmoothing = TRUE
+# Show emulator debug/log output on the terminal (Advanced > Debugging).
+bDebug = FALSE
 nGifWidth = 480
 nGifFps = 25
 nNotifyMode = 1

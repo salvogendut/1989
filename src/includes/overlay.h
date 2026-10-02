@@ -45,6 +45,7 @@ typedef enum {
 typedef struct {
     bool bTinker;       /* gate the Advanced tab */
     bool bSmoothing;    /* linear framebuffer filtering */
+    bool bDebug;        /* show emulator debug/log output on the terminal */
     int  nGifWidth;     /* recorded GIF width (320/480/640) */
     int  nGifFps;       /* recorded GIF frame rate (10/20/25) */
     int  nNotifyMode;   /* NotifyMode */
@@ -66,11 +67,17 @@ void overlay_render(SDL_Renderer *r);
 void overlay_tick(void);
 
 bool overlay_is_visible(void);
+/* True while the quit-confirmation modal is shown. */
+bool overlay_confirm_visible(void);
 void overlay_close(void);
 
 /* Load/save the [UI89] section of the per-user configuration file. */
 void overlay_config_load(void);
 void overlay_config_save(void);
+
+/* Show the happy-years style quit confirmation modal. The actual quit
+ * happens when the user accepts (via Main_RequestQuit(false)). */
+void overlay_confirm_quit(void);
 
 /* Save the whole ConfigureParams configuration file (as the F12 dialog
  * does when a change is applied). */

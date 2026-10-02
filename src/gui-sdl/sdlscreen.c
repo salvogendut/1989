@@ -451,7 +451,8 @@ static void Screen_GetWindowBounds(SDL_Rect* r) {
 		r->y = SDL_WINDOWPOS_CENTERED_DISPLAY(d);
 	}
 	if (scale > 0.0 && scale != 1.0) {
-		fprintf(stderr, "SDL screen scale: %.3f\n", scale);
+		if (UI89Config_.bDebug)
+			fprintf(stderr, "SDL screen scale: %.3f\n", scale);
 		r->w = (int)SDL_lroundf((float)r->w * scale);
 		r->h = (int)SDL_lroundf((float)r->h * scale);
 	}
@@ -555,7 +556,8 @@ void Screen_Reset(void) {
 		SDL_Rect windowBounds;
 		uint32_t r, g, b, a;
 
-		fprintf(stderr, "SDL screen request: %d x %d (%s)\n", width, height, bInFullScreen ? "fullscreen" : "windowed");
+		if (UI89Config_.bDebug)
+			fprintf(stderr, "SDL screen request: %d x %d (%s)\n", width, height, bInFullScreen ? "fullscreen" : "windowed");
 
 		Screen_GetWindowBounds(&windowBounds);
 

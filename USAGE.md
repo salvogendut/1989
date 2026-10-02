@@ -21,7 +21,8 @@ overlay has four tabs:
 - **Media**: boot device and the attached SCSI / floppy / magneto-optical
   media.
 - **Extensions**: NeXTdimension, printer, Ethernet, tablet and microphone.
-- **Advanced**: display and capture options (needs Tinker on).
+- **Advanced**: display and capture options, notifications and the
+  **Debugging** toggle for terminal log output (needs Tinker on).
 
 The main configuration file is `~/.config/1989/1989.conf`; it is created
 with defaults on first run. `1989.conf.example` shows the format. UI-only

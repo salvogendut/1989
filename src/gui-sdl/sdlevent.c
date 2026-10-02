@@ -313,12 +313,12 @@ void GuiEvent_EventHandler(void) {
 				break;
 
 			case SDL_EVENT_MOUSE_MOTION:               /* Read/Update internal mouse position */
-				if (overlay_is_visible()) continue;
+				if (overlay_is_visible() || overlay_confirm_visible()) continue;
 				GuiEvent_HandleMouseMotion(&event);
 				break;
 
 			case SDL_EVENT_MOUSE_BUTTON_DOWN:
-				if (overlay_is_visible()) continue;
+				if (overlay_is_visible() || overlay_confirm_visible()) continue;
 				if (ConfigureParams.Mouse.bEnableMacClick) {
 					if (event.button.button == SDL_BUTTON_LEFT) {
 						if (SDL_GetModState() & SDL_KMOD_CTRL) {
@@ -357,7 +357,7 @@ void GuiEvent_EventHandler(void) {
 				break;
 
 			case SDL_EVENT_MOUSE_BUTTON_UP:
-				if (overlay_is_visible()) continue;
+				if (overlay_is_visible() || overlay_confirm_visible()) continue;
 				if (ConfigureParams.Mouse.bEnableMacClick) {
 					if (event.button.button == SDL_BUTTON_LEFT) {
 						if (SDL_GetModState() & SDL_KMOD_CTRL) {
@@ -383,7 +383,7 @@ void GuiEvent_EventHandler(void) {
 				break;
 
 			case SDL_EVENT_MOUSE_WHEEL:
-				if (overlay_is_visible()) continue;
+				if (overlay_is_visible() || overlay_confirm_visible()) continue;
 #ifdef ENABLE_RENDERING_THREAD
 				Keymap_MouseWheel(&event.wheel);
 #else
@@ -424,7 +424,7 @@ void GuiEvent_EventHandler(void) {
 				break;
 
 			case SDL_EVENT_KEY_UP:
-				if (overlay_is_visible()) break;
+				if (overlay_is_visible() || overlay_confirm_visible()) break;
 				if (ShortCut_CheckKeys(event.key.key, GuiEvent_ShortcutMod(event.key.mod), false)) {
 					break;
 				}

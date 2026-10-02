@@ -12,6 +12,7 @@
 #include "floppy.h"
 #include "grab.h"
 #include "leds.h"
+#include "log.h"
 #include "mo.h"
 #include "notify.h"
 #include "paths.h"
@@ -48,21 +49,29 @@ UI89Config UI89Config_;
 static const struct Config_Tag configs_UI89[] = {
     { "bTinker",    Bool_Tag,  &UI89Config_.bTinker },
     { "bSmoothing", Bool_Tag,  &UI89Config_.bSmoothing },
+    { "bDebug",     Bool_Tag,  &UI89Config_.bDebug },
     { "nGifWidth",  Int_Tag,   &UI89Config_.nGifWidth },
     { "nGifFps",    Int_Tag,   &UI89Config_.nGifFps },
     { "nNotifyMode",Int_Tag,   &UI89Config_.nNotifyMode },
     { NULL, Error_Tag, NULL }
 };
 
+/* Apply the Debugging toggle to the emulator log level. */
+static void overlay_apply_log_level(void) {
+    Log_SetDebugEnabled(UI89Config_.bDebug);
+}
+
 void overlay_config_load(void) {
     UI89Config_.bTinker    = false;
     UI89Config_.bSmoothing = true;
+    UI89Config_.bDebug     = false;
     UI89Config_.nGifWidth  = 480;
     UI89Config_.nGifFps    = 25;
     UI89Config_.nNotifyMode = NOTIFY_MODE_SCREEN;
     if (sConfigFileName[0])
         input_config(sConfigFileName, configs_UI89, "[UI89]");
     notify_set_mode((NotifyMode)UI89Config_.nNotifyMode);
+    overlay_apply_log_level();
 }
 
 void overlay_config_save(void) {
@@ -150,6 +159,7 @@ enum {
     ADV_GIF_WIDTH,
     ADV_GIF_FPS,
     ADV_NOTIFICATIONS,
+    ADV_DEBUG,
     ADV_FULLSCREEN,
     ADV_STATUSBAR,
     ADV_TITLEBAR,
@@ -165,11 +175,17 @@ static struct {
     OvSection section;
     int       row;
 
+    /* Modal confirmation (happy-years style, replaces the legacy alert). */
+    int       confirm_kind;   /* OV_CONFIRM_* */
+    bool      confirm_ok;     /* true = OK selected, false = Cancel */
+
     /* Pending native file-dialog result. */
     OvDialogKind dialog_kind;
     bool         dialog_ready;
     char         dialog_path[FILENAME_MAX];
 } g_ov;
+
+enum { OV_CONFIRM_NONE = 0, OV_CONFIRM_QUIT };
 
 static const char *const about_lines[] = {
     "1989 NeXT (Motorola 68K) emulator",
@@ -600,6 +616,13 @@ static void overlay_activate(void) {
                     overlay_config_save();
                     break;
                 }
+                case ADV_DEBUG:
+                    UI89Config_.bDebug = !UI89Config_.bDebug;
+                    overlay_apply_log_level();
+                    overlay_config_save();
+                    notify_post(UI89Config_.bDebug
+                                ? "DEBUG OUTPUT ON" : "DEBUG OUTPUT OFF");
+                    break;
                 case ADV_FULLSCREEN:
                     if (bInFullScreen)
                         Screen_ReturnFromFullScreen();
@@ -695,7 +718,89 @@ static bool section_available(OvSection s) {
     return true;
 }
 
+static void draw_confirm_button(SDL_Renderer *r, float x, float y, int w,
+                                int h, const char *label, bool selected) {
+    SDL_FRect rect = { x, y, (float)w, (float)h };
+    if (selected) {
+        SDL_SetRenderDrawColor(r, 0x80, 0x60, 0x20, 255);
+        SDL_RenderFillRect(r, &rect);
+    }
+    SDL_SetRenderDrawColor(r, selected ? 0xFF : 0x89,
+                           selected ? 0xFF : 0xA3,
+                           selected ? 0xFF : 0xCB, 255);
+    SDL_RenderRect(r, &rect);
+    SDL_SetRenderDrawColor(r, selected ? 0xFF : 0xC0,
+                           selected ? 0xFF : 0xC0,
+                           selected ? 0xFF : 0xC0, 255);
+    float tw = (float)strlen(label) * 8.0f;
+    SDL_RenderDebugText(r, x + ((float)w - tw) * 0.5f,
+                        y + ((float)h - 8.0f) * 0.5f, label);
+}
+
+/* Happy-years style modal confirmation (dark panel, dimmed backdrop). */
+static void overlay_render_confirm(SDL_Renderer *r) {
+    int rw, rh;
+    if (!SDL_GetRenderOutputSize(r, &rw, &rh)) return;
+
+    float scale = OV_SCALE;
+    if ((float)rw / scale < 520.0f) scale = (float)rw / 520.0f;
+    if ((float)rh / scale < 300.0f) scale = (float)rh / 300.0f;
+    if (scale <= 0.0f) return;
+    SDL_SetRenderScale(r, scale, scale);
+    int lw = (int)(rw / scale);
+    int lh = (int)(rh / scale);
+
+    static const char *const lines[] = {
+        "All unsaved data will be lost.",
+        "Do you really want to quit?"
+    };
+    const int nlines = (int)(sizeof(lines) / sizeof(lines[0]));
+    int text_w = 0;
+    for (int i = 0; i < nlines; i++) {
+        int w = (int)strlen(lines[i]) * 8;
+        if (w > text_w) text_w = w;
+    }
+    int panel_w = text_w + 64;
+    int panel_h = 24 + nlines * 16 + 20 + 22 + 18;
+    float px = (float)(lw - panel_w) * 0.5f;
+    float py = (float)(lh - panel_h) * 0.5f;
+
+    SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(r, 0, 0, 0, 160);
+    SDL_FRect dim = { 0, 0, (float)lw, (float)lh };
+    SDL_RenderFillRect(r, &dim);
+
+    SDL_SetRenderDrawColor(r, 0x19, 0x20, 0x34, 255);
+    SDL_FRect box = { px, py, (float)panel_w, (float)panel_h };
+    SDL_RenderFillRect(r, &box);
+    SDL_SetRenderDrawColor(r, 0x89, 0xA3, 0xCB, 255);
+    SDL_RenderRect(r, &box);
+
+    SDL_SetRenderDrawColor(r, 0xF0, 0xF0, 0xF0, 255);
+    for (int i = 0; i < nlines; i++)
+        SDL_RenderDebugText(r, px + 32, py + 24 + i * 16, lines[i]);
+
+    const char *ok_label = "OK";
+    const char *cancel_label = "Cancel";
+    int ok_w = (int)strlen(ok_label) * 8 + 20;
+    int cancel_w = (int)strlen(cancel_label) * 8 + 20;
+    int gap = 32;
+    int total = ok_w + gap + cancel_w;
+    float bx = px + (float)(panel_w - total) * 0.5f;
+    float by = py + 24 + nlines * 16 + 20;
+    draw_confirm_button(r, bx, by, ok_w, 22, ok_label, g_ov.confirm_ok);
+    draw_confirm_button(r, bx + ok_w + gap, by, cancel_w, 22, cancel_label,
+                        !g_ov.confirm_ok);
+
+    SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_NONE);
+    SDL_SetRenderScale(r, 1.0f, 1.0f);
+}
+
 void overlay_render(SDL_Renderer *r) {
+    if (g_ov.confirm_kind != OV_CONFIRM_NONE) {
+        overlay_render_confirm(r);
+        return;
+    }
     if (!g_ov.visible) return;
 
     int rw, rh;
@@ -820,6 +925,9 @@ void overlay_render(SDL_Renderer *r) {
                  UI89Config_.nNotifyMode == NOTIFY_MODE_CONSOLE ? "Console" :
                  "Screen",
                  g_ov.row == ADV_NOTIFICATIONS); y += OV_LINE_H;
+        draw_row(r, panel_w, y, "Debugging",
+                 UI89Config_.bDebug ? "On" : "Off",
+                 g_ov.row == ADV_DEBUG); y += OV_LINE_H;
         draw_row(r, panel_w, y, "Fullscreen", bInFullScreen ? "On" : "Off",
                  g_ov.row == ADV_FULLSCREEN); y += OV_LINE_H;
         draw_row(r, panel_w, y, "Status bar",
@@ -896,6 +1004,20 @@ bool overlay_is_visible(void) {
     return g_ov.visible;
 }
 
+bool overlay_confirm_visible(void) {
+    return g_ov.confirm_kind != OV_CONFIRM_NONE;
+}
+
+void overlay_confirm_quit(void) {
+    g_ov.confirm_kind = OV_CONFIRM_QUIT;
+    g_ov.confirm_ok = true;
+    /* Release the emulated mouse so the host cursor/keys can reach the modal. */
+    if (bGrabMouse) {
+        bGrabMouse = false;
+        Screen_SetMouseGrab(false);
+    }
+}
+
 void overlay_close(void) {
     if (g_ov.visible) {
         overlay_save_config();
@@ -906,13 +1028,30 @@ void overlay_close(void) {
 }
 
 bool overlay_handle_event(const SDL_Event *ev) {
+    bool modal = g_ov.visible || g_ov.confirm_kind != OV_CONFIRM_NONE;
     if (ev->type != SDL_EVENT_KEY_DOWN)
-        return g_ov.visible;   /* consume everything while open */
+        return modal;   /* consume everything while open */
 
     if (ev->key.repeat)
-        return g_ov.visible;
+        return modal;
 
     SDL_Scancode sc = ev->key.scancode;
+
+    /* Modal confirmation has priority over the options overlay. */
+    if (g_ov.confirm_kind != OV_CONFIRM_NONE) {
+        if (sc == SDL_SCANCODE_LEFT || sc == SDL_SCANCODE_RIGHT) {
+            g_ov.confirm_ok = !g_ov.confirm_ok;
+        } else if (sc == SDL_SCANCODE_RETURN) {
+            int kind = g_ov.confirm_kind;
+            bool ok = g_ov.confirm_ok;
+            g_ov.confirm_kind = OV_CONFIRM_NONE;
+            if (ok && kind == OV_CONFIRM_QUIT)
+                Main_RequestQuit(false);
+        } else if (sc == SDL_SCANCODE_ESCAPE) {
+            g_ov.confirm_kind = OV_CONFIRM_NONE;
+        }
+        return true;
+    }
 
 /* F9 always toggles the overlay. */
 	if (sc == SDL_SCANCODE_F9) {

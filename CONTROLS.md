@@ -17,6 +17,9 @@ fullscreen.
 | `F11` | Toggle fullscreen                               |
 | `F12` | Quit                                            |
 
+Quitting shows a confirmation in the same overlay style as the F9 panel:
+`Left`/`Right` selects OK or Cancel, `Enter` confirms and `Esc` cancels.
+
 The legacy configurable shortcuts still work (Alt+O opens the old options
 dialog, Alt+G screenshot, Alt+R sound recording, Alt+M mouse grab, Alt+C
 cold reset, Alt+P pause, Alt+D m68k debugger, Alt+I i860 debugger, Alt+Q
@@ -55,8 +58,9 @@ applied with a cold reset.
 ### Advanced tab
 
 Shown only while **Tinker** is enabled in General: display smoothing, GIF
-capture resolution and frame rate, notification mode, fullscreen, status bar
-and title bar toggles, ROM boot diagnostics and an About box.
+capture resolution and frame rate, notification mode, a **Debugging** toggle
+(emulator debug/log output on the terminal, off by default), fullscreen,
+status bar and title bar toggles, ROM boot diagnostics and an About box.
 
 ## LED bar
 

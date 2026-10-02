@@ -190,23 +190,17 @@ void Main_Halt(void) {
  * Optionally ask user whether to quit and set bQuitProgram accordingly
  */
 void Main_RequestQuit(bool confirm) {
-	bool bWasActive;
-
-	if (confirm) {
-		bWasActive = Main_PauseEmulation(true);
-		bQuitProgram = false;	/* if set true, dialog exits */
-		bQuitProgram = DlgAlert_Query("All unsaved data will be lost.\nDo you really want to quit?");
-		if (bWasActive) {
-			Main_UnPauseEmulation();
-		}
-	} else {
-		bQuitProgram = true;
+	if (confirm && ConfigureParams.Log.bConfirmQuit) {
+		/* Show the happy-years overlay confirmation; it calls
+		 * Main_RequestQuit(false) when the user accepts. */
+		overlay_confirm_quit();
+		return;
 	}
 
-	if (bQuitProgram) {
-		/* Assure that CPU core shuts down */
-		M68000_Stop();
-	}
+	bQuitProgram = true;
+
+	/* Assure that CPU core shuts down */
+	M68000_Stop();
 }
 
 /* ----------------------------------------------------------------------- */

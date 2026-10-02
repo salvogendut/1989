@@ -138,6 +138,19 @@ void Log_SetLevels(void)
 	AlertDlgLogLevel = ConfigureParams.Log.nAlertDlgLogLevel;
 }
 
+/**
+ * Override the effective text log level from the 1989 "Debugging" toggle.
+ * With debugging off only errors and fatals reach the terminal; with it on
+ * the configured level (default: warnings and above) is restored.
+ */
+void Log_SetDebugEnabled(bool enabled)
+{
+	if (enabled)
+		TextLogLevel = ConfigureParams.Log.nTextLogLevel;
+	else
+		TextLogLevel = LOG_ERROR;
+}
+
 /*-----------------------------------------------------------------------*/
 /**
  * Initialize the logging and tracing functionality (open the log files etc.).

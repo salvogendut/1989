@@ -77,6 +77,7 @@ typedef enum
 
 extern void Log_Default(void);
 extern void Log_SetLevels(void);
+extern void Log_SetDebugEnabled(bool enabled);
 extern int Log_Init(void);
 extern int Log_SetAlertLevel(int level);
 extern void Log_UnInit(void);
