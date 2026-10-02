@@ -38,6 +38,17 @@ AC_CHECK_LIB([readline], [readline],
     [AC_DEFINE([HAVE_LIBREADLINE], [1], [Define if you have a readline compatible library])],
     [:])
 
+# ffmpeg - optional. Enables the post-capture GIF optimization pass selected
+# with the "GIF encoder" option. The binary path is hardcoded as FFMPEG_PATH
+# for subprocess invocation. The built-in GIF encoder works without it.
+AC_PATH_PROG([FFMPEG], [ffmpeg], [])
+AS_IF([test -n "$FFMPEG"],
+      [AC_DEFINE_UNQUOTED([FFMPEG_PATH], ["$FFMPEG"],
+           [Path to ffmpeg binary for GIF optimization])
+       AC_DEFINE([HAVE_FFMPEG], [1], [ffmpeg available for GIF optimization])
+       AC_MSG_NOTICE([GIF optimization: enabled via $FFMPEG])],
+      [AC_MSG_NOTICE([GIF optimization: disabled (no ffmpeg found)])])
+
 # Headers
 AC_CHECK_HEADERS([byteswap.h strings.h sys/time.h sys/xattr.h arpa/inet.h \
                   netinet/in.h sys/ioctl.h sys/select.h sys/signal.h sys/stat.h \

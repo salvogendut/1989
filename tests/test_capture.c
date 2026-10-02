@@ -2,9 +2,15 @@
  * The framebuffer is faked; the PPM/GIF encoding is real. */
 #include "capture.h"
 #include "gifcap.h"
+#include "ffmpeg_gif.h"
 #include "grab.h"
 #include "screen.h"
 #include "notify.h"
+#include "overlay.h"
+
+/* capture.c reads the GIF-encoder choice from the UI config; provide it
+ * without linking the whole overlay. */
+UI89Config UI89Config_;
 
 #include <SDL3/SDL.h>
 #include <stdio.h>
@@ -66,6 +72,14 @@ int main(void) {
     }
     if (!Capture_GifActive()) { fprintf(stderr, "FAIL: GifActive\n"); failures++; }
     if (!Capture_GifStop()) { fprintf(stderr, "FAIL: GifStop\n"); failures++; }
+
+    /* Optional FFmpeg optimization pass (no-op when not built with ffmpeg). */
+    if (FFMPEG_GIF_SUPPORTED) {
+        if (!ffmpeg_gif_optimize("test.gif")) {
+            fprintf(stderr, "FAIL: ffmpeg_gif_optimize\n");
+            failures++;
+        }
+    }
 
     free(px);
     if (failures) { fprintf(stderr, "%d failure(s)\n", failures); return 1; }

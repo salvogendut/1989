@@ -52,6 +52,7 @@ dist_man1_MANS = 1989.1
 	src/leds.c \
 	src/notify.c \
 	src/gifcap.c \
+	src/ffmpeg_gif.c \
 	src/capture.c \
 	src/gui-sdl/sdlaudio.c \
 	src/gui-sdl/sdlevent.c \
@@ -292,6 +293,7 @@ noinst_HEADERS = \
 	src/includes/leds.h
 	src/includes/notify.h
 	src/includes/gifcap.h
+	src/includes/ffmpeg_gif.h
 	src/includes/capture.h
 	src/slirp/bootp.h
 	src/slirp/ctl.h

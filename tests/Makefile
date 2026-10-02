@@ -19,12 +19,13 @@ test-str: test_str.c ../src/str.c ../src/includes/str.h ../config.h
 test-headers: test_headers.c ../config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -fsyntax-only test_headers.c
 
-# Screenshot + GIF encoding exercise (gifcap, notify, capture).
+# Screenshot + GIF encoding exercise (gifcap, notify, capture, ffmpeg pass).
 test-capture: test_capture.c ../src/gifcap.c ../src/notify.c ../src/capture.c \
-	../src/includes/gifcap.h ../src/includes/notify.h ../src/includes/capture.h ../config.h
+	../src/ffmpeg_gif.c ../src/includes/gifcap.h ../src/includes/notify.h \
+	../src/includes/capture.h ../src/includes/ffmpeg_gif.h ../config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) \
 		test_capture.c ../src/gifcap.c ../src/notify.c ../src/capture.c \
-		$(SDL3_LIBS) -lm -o $@
+		../src/ffmpeg_gif.c $(SDL3_LIBS) -lm -o $@
 
 .PHONY: all check clean
 

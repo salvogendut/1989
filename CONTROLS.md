@@ -57,10 +57,17 @@ applied with a cold reset.
 
 ### Advanced tab
 
-Shown only while **Tinker** is enabled in General: display smoothing, GIF
-capture resolution and frame rate, notification mode, a **Debugging** toggle
-(emulator debug/log output on the terminal, off by default), fullscreen,
-status bar and title bar toggles, ROM boot diagnostics and an About box.
+Shown only while **Tinker** is enabled in General:
+
+- **Smoothing** — linear framebuffer filtering.
+- **Real CRT** — scanline effect; when on, a **Scanlines** row (0–95 %)
+  controls its visibility.
+- **GIF resolution / GIF frame rate / GIF encoder** — capture settings; the
+  encoder is either the built-in one or an FFmpeg optimize pass (when built
+  with ffmpeg).
+- **Notifications**, **Debugging** (terminal log output), **Fullscreen**,
+  **Status bar**, **Title bar**, **DRAM test**, **Verbose boot** and an
+  About box.
 
 ## LED bar
 

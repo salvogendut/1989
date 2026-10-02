@@ -1,8 +1,10 @@
 #include "capture.h"
 #include "gifcap.h"
+#include "ffmpeg_gif.h"
 #include "grab.h"
 #include "screen.h"
 #include "configuration.h"
+#include "overlay.h"
 #include "main.h"
 #include "notify.h"
 
@@ -94,6 +96,9 @@ bool Capture_GifStop(void) {
     gifcap_close(g_gif);
     g_gif = NULL;
     notify_post("GIF CAPTURE SAVED: %s (%d frames)", g_gif_path, frames);
+    /* Optional FFmpeg optimization pass (Advanced > GIF encoder). */
+    if (UI89Config_.bGifFfmpeg && FFMPEG_GIF_SUPPORTED)
+        ffmpeg_gif_optimize(g_gif_path);
     return true;
 }
 

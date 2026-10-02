@@ -15,6 +15,7 @@ src/                the Previous 4.3 emulation core, integrated as-is
   leds.c/h          activity LED bar at the bottom of the window
   notify.c/h        fading toast notifications
   gifcap.c/h        in-tree GIF89a encoder (LZW)
+  ffmpeg_gif.c/h    optional FFmpeg GIF optimization pass
   capture.c/h       screenshot (PPM) and GIF recording helpers
   gui-sdl/          SDL3 GUI: legacy options dialogs, screen, keyboard
   cpu/              WinUAE m68k CPU core (checked-in generated sources)

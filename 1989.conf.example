@@ -130,8 +130,13 @@ bEnableTrace = 0
 # Happy-years UI settings (F9 overlay).
 bTinker = FALSE
 bSmoothing = TRUE
+# Real CRT scanline effect and its visibility (0..95 %).
+bCrtEnabled = FALSE
+nCrtScanlines = 35
 # Show emulator debug/log output on the terminal (Advanced > Debugging).
 bDebug = FALSE
+# Optimize recorded GIFs through ffmpeg when available.
+bGifFfmpeg = FALSE
 nGifWidth = 480
 nGifFps = 25
 nNotifyMode = 1

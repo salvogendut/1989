@@ -9,6 +9,7 @@
 #include "cfgopts.h"
 #include "configuration.h"
 #include "capture.h"
+#include "ffmpeg_gif.h"
 #include "floppy.h"
 #include "grab.h"
 #include "leds.h"
@@ -47,12 +48,15 @@ extern char sConfigFileName[FILENAME_MAX];
 UI89Config UI89Config_;
 
 static const struct Config_Tag configs_UI89[] = {
-    { "bTinker",    Bool_Tag,  &UI89Config_.bTinker },
-    { "bSmoothing", Bool_Tag,  &UI89Config_.bSmoothing },
-    { "bDebug",     Bool_Tag,  &UI89Config_.bDebug },
-    { "nGifWidth",  Int_Tag,   &UI89Config_.nGifWidth },
-    { "nGifFps",    Int_Tag,   &UI89Config_.nGifFps },
-    { "nNotifyMode",Int_Tag,   &UI89Config_.nNotifyMode },
+    { "bTinker",     Bool_Tag,  &UI89Config_.bTinker },
+    { "bSmoothing",  Bool_Tag,  &UI89Config_.bSmoothing },
+    { "bCrtEnabled", Bool_Tag,  &UI89Config_.bCrtEnabled },
+    { "nCrtScanlines", Int_Tag, &UI89Config_.nCrtScanlines },
+    { "bDebug",      Bool_Tag,  &UI89Config_.bDebug },
+    { "bGifFfmpeg",  Bool_Tag,  &UI89Config_.bGifFfmpeg },
+    { "nGifWidth",   Int_Tag,   &UI89Config_.nGifWidth },
+    { "nGifFps",     Int_Tag,   &UI89Config_.nGifFps },
+    { "nNotifyMode", Int_Tag,   &UI89Config_.nNotifyMode },
     { NULL, Error_Tag, NULL }
 };
 
@@ -64,7 +68,10 @@ static void overlay_apply_log_level(void) {
 void overlay_config_load(void) {
     UI89Config_.bTinker    = false;
     UI89Config_.bSmoothing = true;
+    UI89Config_.bCrtEnabled = false;
+    UI89Config_.nCrtScanlines = 35;
     UI89Config_.bDebug     = false;
+    UI89Config_.bGifFfmpeg = false;
     UI89Config_.nGifWidth  = 480;
     UI89Config_.nGifFps    = 25;
     UI89Config_.nNotifyMode = NOTIFY_MODE_SCREEN;
@@ -153,11 +160,14 @@ enum {
     EXT_ROWS
 };
 
-/* Advanced section rows */
+/* Advanced logical rows */
 enum {
     ADV_SMOOTHING = 0,
+    ADV_REAL_CRT,
+    ADV_SCANLINES,      /* shown only while Real CRT is on */
     ADV_GIF_WIDTH,
     ADV_GIF_FPS,
+    ADV_GIF_ENCODER,
     ADV_NOTIFICATIONS,
     ADV_DEBUG,
     ADV_FULLSCREEN,
@@ -166,8 +176,20 @@ enum {
     ADV_DRAMTEST,
     ADV_VERBOSE,
     ADV_VERSION,
-    ADV_ROWS
+    ADV_LOGICAL_COUNT
 };
+
+/* Number of selectable rows in the Advanced tab (Scanlines is conditional). */
+static int adv_row_count(void) {
+    return ADV_LOGICAL_COUNT - (UI89Config_.bCrtEnabled ? 0 : 1);
+}
+
+/* Map a displayed Advanced row to its logical ADV_* row. */
+static int adv_logical_row(int row) {
+    if (!UI89Config_.bCrtEnabled && row > ADV_REAL_CRT)
+        return row + 1;   /* skip the hidden Scanlines row */
+    return row;
+}
 
 static struct {
     bool      visible;
@@ -591,9 +613,21 @@ static void overlay_activate(void) {
             break;
 
         case OV_ADVANCED:
-            switch (g_ov.row) {
+            switch (adv_logical_row(g_ov.row)) {
                 case ADV_SMOOTHING:
                     UI89Config_.bSmoothing = !UI89Config_.bSmoothing;
+                    overlay_config_save();
+                    break;
+                case ADV_REAL_CRT:
+                    UI89Config_.bCrtEnabled = !UI89Config_.bCrtEnabled;
+                    overlay_config_save();
+                    notify_post(UI89Config_.bCrtEnabled
+                                ? "REAL CRT ON" : "REAL CRT OFF");
+                    break;
+                case ADV_SCANLINES:
+                    UI89Config_.nCrtScanlines += 5;
+                    if (UI89Config_.nCrtScanlines > 95)
+                        UI89Config_.nCrtScanlines = 0;
                     overlay_config_save();
                     break;
                 case ADV_GIF_WIDTH:
@@ -607,6 +641,17 @@ static void overlay_activate(void) {
                         UI89Config_.nGifFps >= 25 ? 10 :
                         UI89Config_.nGifFps + 5;
                     overlay_config_save();
+                    break;
+                case ADV_GIF_ENCODER:
+                    if (!FFMPEG_GIF_SUPPORTED) {
+                        notify_post("FFMPEG NOT AVAILABLE");
+                        break;
+                    }
+                    UI89Config_.bGifFfmpeg = !UI89Config_.bGifFfmpeg;
+                    overlay_config_save();
+                    notify_post(UI89Config_.bGifFfmpeg
+                                ? "GIF ENCODER: FFMPEG OPTIMIZE"
+                                : "GIF ENCODER: BUILT-IN");
                     break;
                 case ADV_NOTIFICATIONS: {
                     int m = UI89Config_.nNotifyMode + 1;
@@ -698,7 +743,7 @@ static int section_rows(void) {
         case OV_GENERAL:    return GEN_ROWS;
         case OV_MEDIA:      return MED_ROWS;
         case OV_EXTENSIONS: return EXT_ROWS;
-        case OV_ADVANCED:   return ADV_ROWS;
+        case OV_ADVANCED:   return adv_row_count();
         default:            return 0;
     }
 }
@@ -903,47 +948,64 @@ void overlay_render(SDL_Renderer *r) {
                  ConfigureParams.Sound.bEnableMicrophone ? "On" : "Off",
                  g_ov.row == EXT_MIC); y += OV_LINE_H;
     } else {
-        char gline[64];
-        snprintf(gline, sizeof(gline), "%dx%d, %d fps",
-                 UI89Config_.nGifWidth,
-                 UI89Config_.nGifWidth * 832 / 1120,
-                 UI89Config_.nGifFps);
+        char vbuf2[64];
+        int dr = 0;
         draw_row(r, panel_w, y, "Smoothing",
                  UI89Config_.bSmoothing ? "On" : "Off",
-                 g_ov.row == ADV_SMOOTHING); y += OV_LINE_H;
-        draw_row(r, panel_w, y, "GIF capture", gline,
-                 g_ov.row == ADV_GIF_WIDTH); y += OV_LINE_H;
+                 g_ov.row == dr); y += OV_LINE_H; dr++;
+        draw_row(r, panel_w, y, "Real CRT",
+                 UI89Config_.bCrtEnabled ? "On" : "Off",
+                 g_ov.row == dr); y += OV_LINE_H; dr++;
+        if (UI89Config_.bCrtEnabled) {
+            snprintf(vbuf2, sizeof(vbuf2), "%d%%", UI89Config_.nCrtScanlines);
+            draw_row(r, panel_w, y, "Scanlines", vbuf2,
+                     g_ov.row == dr); y += OV_LINE_H; dr++;
+        }
+        {
+            char gline[64];
+            snprintf(gline, sizeof(gline), "%dx%d",
+                     UI89Config_.nGifWidth,
+                     UI89Config_.nGifWidth * 832 / 1120);
+            draw_row(r, panel_w, y, "GIF resolution", gline,
+                     g_ov.row == dr); y += OV_LINE_H; dr++;
+        }
         {
             char fps[32];
             snprintf(fps, sizeof(fps), "%d fps", UI89Config_.nGifFps);
             draw_row(r, panel_w, y, "GIF frame rate", fps,
-                     g_ov.row == ADV_GIF_FPS);
+                     g_ov.row == dr); y += OV_LINE_H; dr++;
         }
-        y += OV_LINE_H;
+        if (!FFMPEG_GIF_SUPPORTED)
+            snprintf(vbuf2, sizeof(vbuf2), "built-in [ffmpeg unavailable]");
+        else
+            snprintf(vbuf2, sizeof(vbuf2), "%s",
+                     UI89Config_.bGifFfmpeg ? "FFmpeg optimize" : "built-in");
+        draw_row(r, panel_w, y, "GIF encoder", vbuf2,
+                 g_ov.row == dr); y += OV_LINE_H; dr++;
         draw_row(r, panel_w, y, "Notifications",
                  UI89Config_.nNotifyMode == NOTIFY_MODE_OFF ? "Off" :
                  UI89Config_.nNotifyMode == NOTIFY_MODE_CONSOLE ? "Console" :
                  "Screen",
-                 g_ov.row == ADV_NOTIFICATIONS); y += OV_LINE_H;
+                 g_ov.row == dr); y += OV_LINE_H; dr++;
         draw_row(r, panel_w, y, "Debugging",
                  UI89Config_.bDebug ? "On" : "Off",
-                 g_ov.row == ADV_DEBUG); y += OV_LINE_H;
+                 g_ov.row == dr); y += OV_LINE_H; dr++;
         draw_row(r, panel_w, y, "Fullscreen", bInFullScreen ? "On" : "Off",
-                 g_ov.row == ADV_FULLSCREEN); y += OV_LINE_H;
+                 g_ov.row == dr); y += OV_LINE_H; dr++;
         draw_row(r, panel_w, y, "Status bar",
                  ConfigureParams.Screen.bShowStatusbar ? "On" : "Off",
-                 g_ov.row == ADV_STATUSBAR); y += OV_LINE_H;
+                 g_ov.row == dr); y += OV_LINE_H; dr++;
         draw_row(r, panel_w, y, "Title bar",
                  ConfigureParams.Screen.bShowTitlebar ? "On" : "Off",
-                 g_ov.row == ADV_TITLEBAR); y += OV_LINE_H;
+                 g_ov.row == dr); y += OV_LINE_H; dr++;
         draw_row(r, panel_w, y, "DRAM test",
                  ConfigureParams.Boot.bEnableDRAMTest ? "On" : "Off",
-                 g_ov.row == ADV_DRAMTEST); y += OV_LINE_H;
+                 g_ov.row == dr); y += OV_LINE_H; dr++;
         draw_row(r, panel_w, y, "Verbose boot",
                  ConfigureParams.Boot.bVerbose ? "On" : "Off",
-                 g_ov.row == ADV_VERBOSE); y += OV_LINE_H;
+                 g_ov.row == dr); y += OV_LINE_H; dr++;
         draw_row(r, panel_w, y, "Version", PACKAGE_VERSION,
-                 g_ov.row == ADV_VERSION);
+                 g_ov.row == dr);
     }
 
     /* Footer */

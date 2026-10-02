@@ -212,6 +212,35 @@ static void blitUserInterface(SDL_Texture* tex) {
 }
 
 /*
+ Draw the Real CRT scanline overlay over a framebuffer rectangle. The
+ scanline visibility comes from the F9 overlay's Advanced tab.
+ */
+static void Screen89_RenderScanlines(SDL_Renderer *r, const SDL_FRect *rect) {
+	if (!UI89Config_.bCrtEnabled || UI89Config_.nCrtScanlines <= 0)
+		return;
+	Uint8 alpha = (Uint8)((UI89Config_.nCrtScanlines * 255 + 50) / 100);
+
+	/* One output pixel in logical units, so the lines stay a single pixel
+	 * thick on screen no matter the window scale (a 1-logical-px line is
+	 * sub-pixel and vanishes when the window is scaled down). */
+	float lx0, ly0, lx1, ly1;
+	if (!SDL_RenderCoordinatesFromWindow(r, 0.0f, 0.0f, &lx0, &ly0) ||
+	    !SDL_RenderCoordinatesFromWindow(r, 0.0f, 1.0f, &lx1, &ly1))
+		return;
+	float px_h = ly1 - ly0;
+	if (px_h <= 0.0f)
+		px_h = 1.0f;
+
+	SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
+	SDL_SetRenderDrawColor(r, 0, 0, 0, alpha);
+	for (float yy = px_h; yy < rect->h; yy += 2.0f * px_h) {
+		SDL_FRect scan = { rect->x, rect->y + yy, rect->w, px_h };
+		SDL_RenderFillRect(r, &scan);
+	}
+	SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_NONE);
+}
+
+/*
  Draw the 1989 happy-years bottom UI (function-key hint strip, LED activity
  bar), the toast notifications and the F9 options overlay on top of the
  current frame. Call before SDL_RenderPresent with the renderer in logical
@@ -278,8 +307,9 @@ static bool Screen_SingleRepaint(void) {
 
 	if (updateScreen) {
 		SDL_RenderClear(sdlRenderer);
-		/* Render NeXT framebuffer texture */
+		/* Render NeXT framebuffer texture (with optional CRT scanlines) */
 		SDL_RenderTexture(sdlRenderer, fbTexture, NULL, &fbRect);
+		Screen89_RenderScanlines(sdlRenderer, &fbRect);
 		SDL_RenderTexture(sdlRenderer, uiTexture, NULL, &uiRect);
 		/* 1989 happy-years bottom UI + overlay */
 		Screen89_RenderExtras(sdlRenderer);
@@ -317,6 +347,7 @@ static bool Screen_GroupRepaint(void) {
 		for (i = 0; i < NUM_MONITORS; i++) {
 			if (groupTexture[i]) {
 				SDL_RenderTexture(sdlRenderer, groupTexture[i], NULL, &groupRect[i]);
+				Screen89_RenderScanlines(sdlRenderer, &groupRect[i]);
 			}
 		}
 		SDL_RenderTexture(sdlRenderer, uiTexture, NULL, &uiRect);
