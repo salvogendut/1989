@@ -531,6 +531,10 @@ static void remember_dir(OvDialogKind kind, const char *path) {
 static void set_scsi_image(int i, const char *path) {
     if (!path) {
         ConfigureParams.SCSI.target[i].bDiskInserted = false;
+        /* SCSI_Insert() re-inserts a target whose type is SD_HARDDISK, so
+         * clearing the image must also clear the type or the eject would
+         * not survive the media reset. */
+        ConfigureParams.SCSI.target[i].nDeviceType = SD_NONE;
         ConfigureParams.SCSI.target[i].szImageName[0] = '\0';
         notify_post("SCSI %d MEDIA EJECTED", i);
     } else {
