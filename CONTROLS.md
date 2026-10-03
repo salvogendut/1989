@@ -36,7 +36,14 @@ The overlay opens with **F9** and is driven entirely from the keyboard:
 | `Left/Right` | Switch section (tab)                      |
 | `Up/Down`    | Move the selection                        |
 | `Enter`      | Toggle / choose the selected row          |
+| `Delete`     | Clear (eject) the selected media entry    |
 | `Esc` / `F9` | Close (settings are saved)                |
+
+Changes that reset the emulated machine (machine model, RAM, CPU/FPU/DSP/MMU,
+hardware extensions, boot device) or that swap media ask for confirmation
+first, then are **staged**: nothing is applied to the running machine until
+you close the overlay and confirm saving. Closing asks whether to save the
+changes to `1989.conf`; Cancel discards them (no reset is needed).
 
 ### General tab
 

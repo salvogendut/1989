@@ -219,13 +219,34 @@ static struct {
     int       confirm_kind;   /* OV_CONFIRM_* */
     bool      confirm_ok;     /* true = OK selected, false = Cancel */
 
+    /* Pending change awaiting confirmation. */
+    OvSection pending_section;
+    int       pending_row;
+
+    /* True once a change has been made in this overlay session. */
+    bool      dirty;
+    /* Staged changes that need applying when the overlay is saved. */
+    bool      need_reset;   /* machine/hardware change -> cold reset */
+    bool      need_media;   /* media change -> reload the disks */
+
     /* Pending native file-dialog result. */
     OvDialogKind dialog_kind;
     bool         dialog_ready;
     char         dialog_path[FILENAME_MAX];
 } g_ov;
 
-enum { OV_CONFIRM_NONE = 0, OV_CONFIRM_QUIT };
+enum {
+    OV_CONFIRM_NONE = 0,
+    OV_CONFIRM_QUIT,    /* quit the emulator */
+    OV_CONFIRM_RESET,   /* apply a pending hard-reset change */
+    OV_CONFIRM_MEDIA,   /* apply a pending boot/media change */
+    OV_CONFIRM_SAVE     /* save (or discard) changes when closing */
+};
+
+/* Snapshot taken when the overlay opens, restored when changes are
+ * discarded. */
+static CNF_PARAMS g_saved_params;
+static UI89Config g_saved_ui89;
 
 static const char *const about_lines[] = {
     "1989 NeXT (Motorola 68K) emulator",
@@ -351,14 +372,12 @@ static const char *tablet_string(char *buf, size_t size) {
 }
 
 /* Pause the emulator thread, apply+reset the machine, resume. */
+/* Stage a change that will need a hard reset when the overlay is saved.
+ * Nothing is applied to the running machine until then, so discarding the
+ * changes needs no reset. */
 static void overlay_apply_reset(const char *message) {
-	bool was_active = Main_PauseEmulation(false);
-	Configuration_Apply(false);
-	Reset_Cold();
-	if (was_active)
-		Main_UnPauseEmulation();
-	overlay_save_config();
-	overlay_update_leds();
+	g_ov.need_reset = true;
+	g_ov.dirty = true;
 	if (message)
 		notify_post("%s", message);
 }
@@ -438,7 +457,6 @@ static void remember_dir(OvDialogKind kind, const char *path) {
     if (strcmp(UI89Config_.szLastDir[kind], dir) == 0)
         return;
     snprintf(UI89Config_.szLastDir[kind], FILENAME_MAX, "%s", dir);
-    overlay_config_save();
 }
 
 /* ------------------------------------------------------------------ */
@@ -446,61 +464,50 @@ static void remember_dir(OvDialogKind kind, const char *path) {
 
 static void set_scsi_image(int i, const char *path) {
     if (!path) {
-        SCSI_Eject(i);
         ConfigureParams.SCSI.target[i].bDiskInserted = false;
         ConfigureParams.SCSI.target[i].szImageName[0] = '\0';
-        overlay_save_config();
         notify_post("SCSI %d MEDIA EJECTED", i);
-        return;
+    } else {
+        snprintf(ConfigureParams.SCSI.target[i].szImageName, FILENAME_MAX, "%s",
+                 path);
+        if (ConfigureParams.SCSI.target[i].nDeviceType == SD_NONE)
+            ConfigureParams.SCSI.target[i].nDeviceType = SD_HARDDISK;
+        ConfigureParams.SCSI.target[i].bDiskInserted = true;
+        notify_post("SCSI %d: MEDIA INSERTED", i);
     }
-    snprintf(ConfigureParams.SCSI.target[i].szImageName, FILENAME_MAX, "%s",
-             path);
-    if (ConfigureParams.SCSI.target[i].nDeviceType == SD_NONE)
-        ConfigureParams.SCSI.target[i].nDeviceType = SD_HARDDISK;
-    ConfigureParams.SCSI.target[i].bDiskInserted = true;
-    SCSI_Insert(i);
-    overlay_save_config();
-    notify_post("SCSI %d: MEDIA INSERTED", i);
+    g_ov.need_media = true;
+    g_ov.dirty = true;
 }
 
 static void set_floppy_image(int i, const char *path) {
     if (!path) {
-        Floppy_Eject(i);
         ConfigureParams.Floppy.drive[i].bDiskInserted = false;
         ConfigureParams.Floppy.drive[i].bDriveConnected = false;
         ConfigureParams.Floppy.drive[i].szImageName[0] = '\0';
-        overlay_save_config();
         notify_post("FLOPPY %d MEDIA EJECTED", i);
-        return;
+    } else {
+        snprintf(ConfigureParams.Floppy.drive[i].szImageName, FILENAME_MAX, "%s",
+                 path);
+        ConfigureParams.Floppy.drive[i].bDiskInserted = true;
+        ConfigureParams.Floppy.drive[i].bDriveConnected = true;
+        notify_post("FLOPPY %d: MEDIA INSERTED", i);
     }
-    snprintf(ConfigureParams.Floppy.drive[i].szImageName, FILENAME_MAX, "%s",
-             path);
-    ConfigureParams.Floppy.drive[i].bDiskInserted = true;
-    ConfigureParams.Floppy.drive[i].bDriveConnected = true;
-    if (Floppy_Insert(i)) {
-        notify_post("FLOPPY %d: BAD IMAGE SIZE", i);
-        ConfigureParams.Floppy.drive[i].bDiskInserted = false;
-        ConfigureParams.Floppy.drive[i].szImageName[0] = '\0';
-        return;
-    }
-    overlay_save_config();
-    notify_post("FLOPPY %d: MEDIA INSERTED", i);
+    g_ov.need_media = true;
+    g_ov.dirty = true;
 }
 
 static void set_mo_image(int i, const char *path) {
     if (!path) {
-        MO_Eject(i);
         ConfigureParams.MO.drive[i].bDiskInserted = false;
         ConfigureParams.MO.drive[i].szImageName[0] = '\0';
-        overlay_save_config();
         notify_post("MAG-OPT %d MEDIA EJECTED", i);
-        return;
+    } else {
+        snprintf(ConfigureParams.MO.drive[i].szImageName, FILENAME_MAX, "%s", path);
+        ConfigureParams.MO.drive[i].bDiskInserted = true;
+        notify_post("MAG-OPT %d: MEDIA INSERTED", i);
     }
-    snprintf(ConfigureParams.MO.drive[i].szImageName, FILENAME_MAX, "%s", path);
-    ConfigureParams.MO.drive[i].bDiskInserted = true;
-    MO_Insert(i);
-    overlay_save_config();
-    notify_post("MAG-OPT %d: MEDIA INSERTED", i);
+    g_ov.need_media = true;
+    g_ov.dirty = true;
 }
 
 static void set_rom_path(OvDialogKind kind, const char *path) {
@@ -519,14 +526,62 @@ static void set_rom_path(OvDialogKind kind, const char *path) {
                      path);
             break;
     }
-    overlay_save_config();
+    g_ov.need_reset = true;
+    g_ov.dirty = true;
     notify_post("ROM PATH SET - COLD RESET TO RELOAD");
 }
 
 /* ------------------------------------------------------------------ */
 /* row actions                                                         */
 
-static void overlay_activate(void) {
+/* Which confirmation a row needs before it is applied (0 = none). */
+static int overlay_row_confirm(OvSection s, int row) {
+    switch (s) {
+    case OV_GENERAL:
+        switch (row) {
+        case GEN_MACHINE:
+        case GEN_RAM:
+        case GEN_CPUCLOCK:
+        case GEN_FPU:
+        case GEN_DSP:
+        case GEN_MMU:
+        case GEN_ADB:
+        case GEN_RESET:
+            return OV_CONFIRM_RESET;
+        default:
+            return OV_CONFIRM_NONE;
+        }
+    case OV_MEDIA:
+        return OV_CONFIRM_MEDIA;
+    case OV_EXTENSIONS:
+        switch (row) {
+        case EXT_ND:
+        case EXT_PRINTER:
+        case EXT_ETHERNET:
+        case EXT_TABLET:
+            return OV_CONFIRM_RESET;
+        default:
+            return OV_CONFIRM_NONE;
+        }
+    case OV_ADVANCED:
+        switch (adv_logical_row(row)) {
+        case ADV_DRAMTEST:
+        case ADV_VERBOSE:
+            return OV_CONFIRM_RESET;
+        default:
+            return OV_CONFIRM_NONE;
+        }
+    default:
+        return OV_CONFIRM_NONE;
+    }
+}
+
+static void overlay_activate_now(void) {
+    /* Mark the session dirty unless the row is purely informational. */
+    if (!(g_ov.section == OV_GENERAL && g_ov.row == GEN_ABOUT) &&
+        !(g_ov.section == OV_ADVANCED &&
+          adv_logical_row(g_ov.row) == ADV_VERSION))
+        g_ov.dirty = true;
     switch (g_ov.section) {
         case OV_GENERAL:
             switch (g_ov.row) {
@@ -580,7 +635,6 @@ static void overlay_activate(void) {
                     UI89Config_.bTinker = !UI89Config_.bTinker;
                     if (!UI89Config_.bTinker && g_ov.section == OV_ADVANCED)
                         g_ov.section = OV_GENERAL;
-                    overlay_config_save();
                     break;
                 case GEN_ABOUT:
                     g_ov.about_visible = true;
@@ -647,7 +701,6 @@ static void overlay_activate(void) {
                 case EXT_MIC:
                     ConfigureParams.Sound.bEnableMicrophone =
                         !ConfigureParams.Sound.bEnableMicrophone;
-                    overlay_save_config();
                     notify_post(ConfigureParams.Sound.bEnableMicrophone
                                 ? "MICROPHONE ON" : "MICROPHONE OFF");
                     break;
@@ -660,11 +713,9 @@ static void overlay_activate(void) {
             switch (adv_logical_row(g_ov.row)) {
                 case ADV_SMOOTHING:
                     UI89Config_.bSmoothing = !UI89Config_.bSmoothing;
-                    overlay_config_save();
                     break;
                 case ADV_REAL_CRT:
                     UI89Config_.bCrtEnabled = !UI89Config_.bCrtEnabled;
-                    overlay_config_save();
                     notify_post(UI89Config_.bCrtEnabled
                                 ? "REAL CRT ON" : "REAL CRT OFF");
                     break;
@@ -672,19 +723,16 @@ static void overlay_activate(void) {
                     UI89Config_.nCrtScanlines += 5;
                     if (UI89Config_.nCrtScanlines > 95)
                         UI89Config_.nCrtScanlines = 0;
-                    overlay_config_save();
                     break;
                 case ADV_GIF_WIDTH:
                     UI89Config_.nGifWidth =
                         UI89Config_.nGifWidth >= 640 ? 320 :
                         UI89Config_.nGifWidth + 160;
-                    overlay_config_save();
                     break;
                 case ADV_GIF_FPS:
                     UI89Config_.nGifFps =
                         UI89Config_.nGifFps >= 25 ? 10 :
                         UI89Config_.nGifFps + 5;
-                    overlay_config_save();
                     break;
                 case ADV_GIF_ENCODER:
                     if (!FFMPEG_GIF_SUPPORTED) {
@@ -692,7 +740,6 @@ static void overlay_activate(void) {
                         break;
                     }
                     UI89Config_.bGifFfmpeg = !UI89Config_.bGifFfmpeg;
-                    overlay_config_save();
                     notify_post(UI89Config_.bGifFfmpeg
                                 ? "GIF ENCODER: FFMPEG OPTIMIZE"
                                 : "GIF ENCODER: BUILT-IN");
@@ -702,20 +749,17 @@ static void overlay_activate(void) {
                     if (m > NOTIFY_MODE_CONSOLE) m = NOTIFY_MODE_OFF;
                     UI89Config_.nNotifyMode = m;
                     notify_set_mode((NotifyMode)m);
-                    overlay_config_save();
                     break;
                 }
                 case ADV_DEBUG:
                     UI89Config_.bDebug = !UI89Config_.bDebug;
                     overlay_apply_log_level();
-                    overlay_config_save();
                     notify_post(UI89Config_.bDebug
                                 ? "DEBUG OUTPUT ON" : "DEBUG OUTPUT OFF");
                     break;
                 case ADV_RTC_CLOCK:
                     UI89Config_.bRtcLocalTime = !UI89Config_.bRtcLocalTime;
                     Timing_SetLocalTime(UI89Config_.bRtcLocalTime);
-                    overlay_config_save();
                     notify_post(UI89Config_.bRtcLocalTime
                                 ? "RTC CLOCK: LOCAL TIME"
                                 : "RTC CLOCK: UTC");
@@ -730,13 +774,11 @@ static void overlay_activate(void) {
                     ConfigureParams.Screen.bShowStatusbar =
                         !ConfigureParams.Screen.bShowStatusbar;
                     Screen_Reset();
-                    overlay_save_config();
                     break;
                 case ADV_TITLEBAR:
                     ConfigureParams.Screen.bShowTitlebar =
                         !ConfigureParams.Screen.bShowTitlebar;
                     Screen_TitlebarChanged();
-                    overlay_save_config();
                     break;
                 case ADV_DRAMTEST:
                     ConfigureParams.Boot.bEnableDRAMTest =
@@ -759,6 +801,42 @@ static void overlay_activate(void) {
         default:
             break;
     }
+}
+
+/* Delete on a Media row clears (ejects) the attached image. */
+static void overlay_clear_media(void) {
+    if (g_ov.section != OV_MEDIA)
+        return;
+    if (g_ov.row >= MED_SCSI0 && g_ov.row <= MED_SCSI3) {
+        int i = g_ov.row - MED_SCSI0;
+        if (ConfigureParams.SCSI.target[i].bDiskInserted)
+            set_scsi_image(i, NULL);
+    } else if (g_ov.row >= MED_FLOPPY0 && g_ov.row <= MED_FLOPPY1) {
+        int i = g_ov.row - MED_FLOPPY0;
+        if (ConfigureParams.Floppy.drive[i].bDiskInserted)
+            set_floppy_image(i, NULL);
+    } else if (g_ov.row >= MED_MO0 && g_ov.row <= MED_MO1) {
+        int i = g_ov.row - MED_MO0;
+        if (ConfigureParams.MO.drive[i].bDiskInserted)
+            set_mo_image(i, NULL);
+    } else {
+        return;
+    }
+    g_ov.dirty = true;
+}
+
+/* Enter on the current row: apply immediately, or ask first for changes
+ * that reset the machine or swap media. */
+static void overlay_activate(void) {
+    int kind = overlay_row_confirm(g_ov.section, g_ov.row);
+    if (kind != OV_CONFIRM_NONE) {
+        g_ov.pending_section = g_ov.section;
+        g_ov.pending_row = g_ov.row;
+        g_ov.confirm_kind = kind;
+        g_ov.confirm_ok = true;
+        return;
+    }
+    overlay_activate_now();
 }
 
 /* ------------------------------------------------------------------ */
@@ -862,11 +940,30 @@ static void overlay_render_confirm(SDL_Renderer *r) {
     int lw = (int)(rw / scale);
     int lh = (int)(rh / scale);
 
-    static const char *const lines[] = {
+    static const char *const quit_lines[] = {
         "All unsaved data will be lost.",
         "Do you really want to quit?"
     };
-    const int nlines = (int)(sizeof(lines) / sizeof(lines[0]));
+    static const char *const reset_lines[] = {
+        "This change needs a hard reset of",
+        "the emulated machine. Continue?"
+    };
+    static const char *const media_lines[] = {
+        "Changing the boot device or media",
+        "resets the machine. Continue?"
+    };
+    static const char *const save_lines[] = {
+        "Save the changes to 1989.conf?",
+        "Cancel discards them."
+    };
+    const char *const *lines = quit_lines;
+    if (g_ov.confirm_kind == OV_CONFIRM_RESET)
+        lines = reset_lines;
+    else if (g_ov.confirm_kind == OV_CONFIRM_MEDIA)
+        lines = media_lines;
+    else if (g_ov.confirm_kind == OV_CONFIRM_SAVE)
+        lines = save_lines;
+    const int nlines = 2;
     int text_w = 0;
     for (int i = 0; i < nlines; i++) {
         int w = (int)strlen(lines[i]) * 8;
@@ -1151,13 +1248,56 @@ void overlay_confirm_quit(void) {
     }
 }
 
-void overlay_close(void) {
-    if (g_ov.visible) {
-        overlay_save_config();
-        overlay_config_save();
-    }
+/* Hide the overlay without saving or discarding. */
+static void overlay_close_now(void) {
     g_ov.about_visible = false;
     g_ov.visible = false;
+    g_ov.dirty = false;
+    g_ov.need_reset = false;
+    g_ov.need_media = false;
+}
+
+/* Apply the staged changes to the running machine (on save). */
+static void overlay_apply_pending(void) {
+    if (!g_ov.dirty)
+        return;
+    Configuration_Apply(false);
+    if (g_ov.need_reset) {
+        bool was_active = Main_PauseEmulation(false);
+        Reset_Cold();
+        if (was_active)
+            Main_UnPauseEmulation();
+    } else if (g_ov.need_media) {
+        SCSI_Reset();
+        Floppy_Reset();
+        MO_Reset();
+    }
+    overlay_update_leds();
+    g_ov.need_reset = false;
+    g_ov.need_media = false;
+}
+
+/* Restore the state captured when the overlay was opened. Nothing was
+ * applied to the running machine while staging, so no reset is needed. */
+static void overlay_discard(void) {
+    ConfigureParams = g_saved_params;
+    UI89Config_ = g_saved_ui89;
+    Log_SetDebugEnabled(UI89Config_.bDebug);
+    Timing_SetLocalTime(UI89Config_.bRtcLocalTime);
+    notify_set_mode((NotifyMode)UI89Config_.nNotifyMode);
+    overlay_update_leds();
+}
+
+void overlay_close(void) {
+    if (!g_ov.visible)
+        return;
+    /* Ask before dropping the session's changes. */
+    if (g_ov.dirty) {
+        g_ov.confirm_kind = OV_CONFIRM_SAVE;
+        g_ov.confirm_ok = true;
+        return;
+    }
+    overlay_close_now();
 }
 
 bool overlay_handle_event(const SDL_Event *ev) {
@@ -1178,9 +1318,30 @@ bool overlay_handle_event(const SDL_Event *ev) {
             int kind = g_ov.confirm_kind;
             bool ok = g_ov.confirm_ok;
             g_ov.confirm_kind = OV_CONFIRM_NONE;
-            if (ok && kind == OV_CONFIRM_QUIT)
-                Main_RequestQuit(false);
+            if (kind == OV_CONFIRM_QUIT) {
+                if (ok)
+                    Main_RequestQuit(false);
+            } else if (kind == OV_CONFIRM_RESET || kind == OV_CONFIRM_MEDIA) {
+                if (ok) {
+                    g_ov.section = g_ov.pending_section;
+                    g_ov.row = g_ov.pending_row;
+                    overlay_activate_now();
+                }
+            } else if (kind == OV_CONFIRM_SAVE) {
+                if (ok) {
+                    overlay_apply_pending();
+                    overlay_save_config();
+                    overlay_config_save();
+                } else {
+                    overlay_discard();
+                }
+                overlay_close_now();
+            }
         } else if (sc == SDL_SCANCODE_ESCAPE) {
+            if (g_ov.confirm_kind == OV_CONFIRM_SAVE) {
+                overlay_discard();
+                overlay_close_now();
+            }
             g_ov.confirm_kind = OV_CONFIRM_NONE;
         }
         return true;
@@ -1192,6 +1353,10 @@ bool overlay_handle_event(const SDL_Event *ev) {
 			g_ov.visible = true;
 			g_ov.section = OV_GENERAL;
 			g_ov.row     = 0;
+			/* Snapshot the state so the changes can be discarded. */
+			g_saved_params = ConfigureParams;
+			g_saved_ui89   = UI89Config_;
+			g_ov.dirty     = false;
 			/* Release the emulated mouse so the host cursor can navigate. */
 			if (bGrabMouse) {
 				bGrabMouse = false;
@@ -1231,6 +1396,9 @@ bool overlay_handle_event(const SDL_Event *ev) {
             break;
         case SDL_SCANCODE_RETURN:
             overlay_activate();
+            break;
+        case SDL_SCANCODE_DELETE:
+            overlay_clear_media();
             break;
         case SDL_SCANCODE_ESCAPE:
             overlay_close();
