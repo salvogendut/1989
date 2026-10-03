@@ -116,6 +116,7 @@ static FILE *hLogFile = NULL;
 /* local settings, to be able change them temporarily */
 static LOGTYPE TextLogLevel;
 static LOGTYPE AlertDlgLogLevel;
+static bool    debugEnabled = false;
 
 /*-----------------------------------------------------------------------*/
 /**
@@ -145,10 +146,16 @@ void Log_SetLevels(void)
  */
 void Log_SetDebugEnabled(bool enabled)
 {
+	debugEnabled = enabled;
 	if (enabled)
 		TextLogLevel = ConfigureParams.Log.nTextLogLevel;
 	else
 		TextLogLevel = LOG_ERROR;
+}
+
+bool Log_DebugEnabled(void)
+{
+	return debugEnabled;
 }
 
 /*-----------------------------------------------------------------------*/

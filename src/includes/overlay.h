@@ -48,6 +48,7 @@ typedef struct {
     bool bCrtEnabled;   /* Real CRT (scanline) effect */
     int  nCrtScanlines; /* scanline visibility, 0..95 (%) */
     bool bDebug;        /* show emulator debug/log output on the terminal */
+    bool bRtcLocalTime; /* RTC reports host local time (true) or UTC (false) */
     bool bGifFfmpeg;    /* optimize recorded GIFs through ffmpeg */
     int  nGifWidth;     /* recorded GIF width (320/480/640) */
     int  nGifFps;       /* recorded GIF frame rate (10/20/25) */

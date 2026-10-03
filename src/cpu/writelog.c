@@ -8,22 +8,22 @@
 #include "sysconfig.h"
 #include "sysdeps.h"
 
-#ifndef WINUAE_FOR_HATARI
-bool bCpuWriteLog = true;
+#include "log.h"
 
+/* Previous: the CPU core emits a lot of informational output (memory map,
+ * CPU build, MMU fixups, ...). Gate it behind the 1989 "Debugging" toggle so
+ * the terminal stays quiet by default. */
 void write_log (const char *fmt, ...)
 {
 	va_list ap;
 
-	if (!bCpuWriteLog)
+	if (!Log_DebugEnabled())
 		return;
 
 	va_start (ap, fmt);
 	vfprintf (stderr, fmt, ap);
 	va_end (ap);
 }
-
-#endif
 
 void f_out (void *f, const TCHAR *format, ...)
 {

@@ -33,6 +33,9 @@ extern time_t      Timing_GetUnixTime(void);
 extern void        Timing_SetUnixTime(time_t now);
 extern struct tm*  Timing_GetUnixTimeStruct(void);
 extern void        Timing_SetUnixTimeStruct(struct tm* now);
+/* Select whether the emulated RTC reports the host's local wall-clock time
+ * (true, default) or UTC (false). */
+extern void        Timing_SetLocalTime(bool local);
 extern void        Timing_Hardclock(int expected, int actual);
 extern void        Timing_BlankCount(int src, bool state);
 extern const char* Timing_Report(uint64_t realTime, uint64_t hostTime);

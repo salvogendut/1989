@@ -78,6 +78,9 @@ typedef enum
 extern void Log_Default(void);
 extern void Log_SetLevels(void);
 extern void Log_SetDebugEnabled(bool enabled);
+/* True while the 1989 "Debugging" toggle is enabled. Used to gate the CPU
+ * core's write_log() console output. */
+extern bool Log_DebugEnabled(void);
 extern int Log_Init(void);
 extern int Log_SetAlertLevel(int level);
 extern void Log_UnInit(void);

@@ -42,6 +42,7 @@ static bool         currentIsRealtime;
 static uint64_t     hardClockExpected;
 static uint64_t     hardClockActual;
 static time_t       unixTimeStart;
+static bool         useLocalTime = true;
 static lock_t       timeLock;
 static uint64_t     saveTime;
 
@@ -144,12 +145,16 @@ void Timing_SetUnixTime(time_t now) {
 
 struct tm* Timing_GetUnixTimeStruct(void) {
 	time_t tmp = Timing_GetUnixTime();
-	return gmtime(&tmp);
+	return useLocalTime ? localtime(&tmp) : gmtime(&tmp);
 }
 
 void Timing_SetUnixTimeStruct(struct tm* now) {
-	time_t tmp = timegm(now);
+	time_t tmp = useLocalTime ? mktime(now) : timegm(now);
 	Timing_SetUnixTime(tmp);
+}
+
+void Timing_SetLocalTime(bool local) {
+	useLocalTime = local;
 }
 
 void Timing_Hardclock(int expected, int actual) {

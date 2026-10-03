@@ -41,8 +41,8 @@ The overlay opens with **F9** and is driven entirely from the keyboard:
 
 Machine model (NeXT Computer, NeXTcube, NeXTcube Turbo, NeXTstation,
 NeXTstation Turbo/Color/Turbo Color), RAM size, CPU clock, FPU, DSP, MMU,
-ADB, boot device, the **Tinker** master switch (gates the Advanced tab), an
-About box, and a "Reset defaults" action.
+ADB, the **Tinker** master switch (gates the Advanced tab), an About box,
+and a "Reset defaults" action.
 
 ### Media tab
 
@@ -65,9 +65,9 @@ Shown only while **Tinker** is enabled in General:
 - **GIF resolution / GIF frame rate / GIF encoder** — capture settings; the
   encoder is either the built-in one or an FFmpeg optimize pass (when built
   with ffmpeg).
-- **Notifications**, **Debugging** (terminal log output), **Fullscreen**,
-  **Status bar**, **Title bar**, **DRAM test**, **Verbose boot** and an
-  About box.
+- **Notifications**, **Debugging** (terminal log output), **RTC clock**
+  (host local time or UTC), **Fullscreen**, **Status bar**, **Title bar**,
+  **DRAM test**, **Verbose boot** and an About box.
 
 ## LED bar
 

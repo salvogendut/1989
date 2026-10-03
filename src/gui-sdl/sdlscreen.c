@@ -14,6 +14,7 @@ const char SDLscreen_fileid[] = "Previous sdlscreen.c";
 #include "sdlscreen.h"
 #include "statusbar.h"
 #include "sdlstatusbar.h"
+#include "sdlgui.h"
 #include "event.h"
 #include "dimension.hpp"
 #include "nd_sdl.hpp"
@@ -632,6 +633,11 @@ void Screen_Reset(void) {
 
 		/* Clear UI with mask */
 		SDL_FillSurfaceRect(sdlscrn, NULL, mask);
+
+		/* Keep the SDL GUI screen pointer valid even when the legacy
+		 * statusbar is disabled (it used to be set by Statusbar_Init).
+		 * The missing-file / alert dialogs depend on it. */
+		SDLGui_SetScreen(sdlscrn);
 
 		/* Allocate buffer for copy routines */
 		if (uiBuffer) {

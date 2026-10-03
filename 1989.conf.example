@@ -135,6 +135,8 @@ bCrtEnabled = FALSE
 nCrtScanlines = 35
 # Show emulator debug/log output on the terminal (Advanced > Debugging).
 bDebug = FALSE
+# RTC reports the host's local wall-clock time (TRUE) or UTC (FALSE).
+bRtcLocalTime = TRUE
 # Optimize recorded GIFs through ffmpeg when available.
 bGifFfmpeg = FALSE
 nGifWidth = 480

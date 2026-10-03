@@ -482,8 +482,9 @@ extern void mallocemu_free (void *ptr);
 #endif
 
 #ifdef WINUAE_FOR_HATARI
-//#define write_log(...) Log_Printf(LOG_DEBUG, __VA_ARGS__)
-#define write_log printf
+/* Previous: route the CPU core's console output through write_log() so it
+ * can be gated by the 1989 "Debugging" toggle (see cpu/writelog.c). */
+extern void write_log(const char *, ...) __attribute__ ((format (printf, 1, 2)));
 #elif __GNUC__ - 1 > 1 || __GNUC_MINOR__ - 1 > 6
 extern void write_log(const TCHAR *, ...);
 extern void write_logx(const TCHAR *, ...);

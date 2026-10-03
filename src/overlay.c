@@ -23,6 +23,7 @@
 #include "snd.h"
 #include "main.h"
 #include "sdlscreen.h"
+#include "timing.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -53,6 +54,7 @@ static const struct Config_Tag configs_UI89[] = {
     { "bCrtEnabled", Bool_Tag,  &UI89Config_.bCrtEnabled },
     { "nCrtScanlines", Int_Tag, &UI89Config_.nCrtScanlines },
     { "bDebug",      Bool_Tag,  &UI89Config_.bDebug },
+    { "bRtcLocalTime", Bool_Tag, &UI89Config_.bRtcLocalTime },
     { "bGifFfmpeg",  Bool_Tag,  &UI89Config_.bGifFfmpeg },
     { "nGifWidth",   Int_Tag,   &UI89Config_.nGifWidth },
     { "nGifFps",     Int_Tag,   &UI89Config_.nGifFps },
@@ -71,6 +73,7 @@ void overlay_config_load(void) {
     UI89Config_.bCrtEnabled = false;
     UI89Config_.nCrtScanlines = 35;
     UI89Config_.bDebug     = false;
+    UI89Config_.bRtcLocalTime = true;
     UI89Config_.bGifFfmpeg = false;
     UI89Config_.nGifWidth  = 480;
     UI89Config_.nGifFps    = 25;
@@ -79,6 +82,7 @@ void overlay_config_load(void) {
         input_config(sConfigFileName, configs_UI89, "[UI89]");
     notify_set_mode((NotifyMode)UI89Config_.nNotifyMode);
     overlay_apply_log_level();
+    Timing_SetLocalTime(UI89Config_.bRtcLocalTime);
 }
 
 void overlay_config_save(void) {
@@ -129,7 +133,6 @@ enum {
     GEN_DSP,
     GEN_MMU,
     GEN_ADB,
-    GEN_BOOTDEV,
     GEN_TINKER,
     GEN_ABOUT,
     GEN_RESET,
@@ -170,6 +173,7 @@ enum {
     ADV_GIF_ENCODER,
     ADV_NOTIFICATIONS,
     ADV_DEBUG,
+    ADV_RTC_CLOCK,
     ADV_FULLSCREEN,
     ADV_STATUSBAR,
     ADV_TITLEBAR,
@@ -525,13 +529,6 @@ static void overlay_activate(void) {
                         !ConfigureParams.System.bADB;
                     overlay_apply_reset("ADB CHANGED - COLD RESET");
                     break;
-                case GEN_BOOTDEV: {
-                    BOOT_DEVICE b = ConfigureParams.Boot.nBootDevice;
-                    b = (BOOT_DEVICE)(((int)b + 1) % 5);
-                    ConfigureParams.Boot.nBootDevice = b;
-                    overlay_apply_reset("BOOT DEVICE CHANGED - COLD RESET");
-                    break;
-                }
                 case GEN_TINKER:
                     UI89Config_.bTinker = !UI89Config_.bTinker;
                     if (!UI89Config_.bTinker && g_ov.section == OV_ADVANCED)
@@ -667,6 +664,14 @@ static void overlay_activate(void) {
                     overlay_config_save();
                     notify_post(UI89Config_.bDebug
                                 ? "DEBUG OUTPUT ON" : "DEBUG OUTPUT OFF");
+                    break;
+                case ADV_RTC_CLOCK:
+                    UI89Config_.bRtcLocalTime = !UI89Config_.bRtcLocalTime;
+                    Timing_SetLocalTime(UI89Config_.bRtcLocalTime);
+                    overlay_config_save();
+                    notify_post(UI89Config_.bRtcLocalTime
+                                ? "RTC CLOCK: LOCAL TIME"
+                                : "RTC CLOCK: UTC");
                     break;
                 case ADV_FULLSCREEN:
                     if (bInFullScreen)
@@ -905,8 +910,6 @@ void overlay_render(SDL_Renderer *r) {
                  g_ov.row == GEN_MMU); y += OV_LINE_H;
         draw_row(r, panel_w, y, "ADB", ConfigureParams.System.bADB ? "On" : "Off",
                  g_ov.row == GEN_ADB); y += OV_LINE_H;
-        draw_row(r, panel_w, y, "Boot device", boot_string(s1, sizeof(s1)),
-                 g_ov.row == GEN_BOOTDEV); y += OV_LINE_H;
         draw_row(r, panel_w, y, "Tinker", UI89Config_.bTinker ? "On" : "Off",
                  g_ov.row == GEN_TINKER); y += OV_LINE_H;
         draw_row(r, panel_w, y, "About", "Program details", g_ov.row == GEN_ABOUT);
@@ -989,6 +992,9 @@ void overlay_render(SDL_Renderer *r) {
                  g_ov.row == dr); y += OV_LINE_H; dr++;
         draw_row(r, panel_w, y, "Debugging",
                  UI89Config_.bDebug ? "On" : "Off",
+                 g_ov.row == dr); y += OV_LINE_H; dr++;
+        draw_row(r, panel_w, y, "RTC clock",
+                 UI89Config_.bRtcLocalTime ? "Local time" : "UTC",
                  g_ov.row == dr); y += OV_LINE_H; dr++;
         draw_row(r, panel_w, y, "Fullscreen", bInFullScreen ? "On" : "Off",
                  g_ov.row == dr); y += OV_LINE_H; dr++;
