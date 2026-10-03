@@ -1,6 +1,6 @@
 # 1989 — NeXT (Motorola 68K) emulator
 
-![1989 icon](icons/1989.png)
+![1989](1989.png)
 
 1989 is an open-source, work-in-progress emulator of the NeXT family of
 Motorola 68K based workstations, written in C/C++ with an SDL3 desktop
