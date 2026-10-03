@@ -33,6 +33,9 @@ typedef enum {
     OV_DIALOG_SCSI1,
     OV_DIALOG_SCSI2,
     OV_DIALOG_SCSI3,
+    OV_DIALOG_SCSI4,
+    OV_DIALOG_SCSI5,
+    OV_DIALOG_SCSI6,
     OV_DIALOG_FLOPPY0,
     OV_DIALOG_FLOPPY1,
     OV_DIALOG_MO0,
@@ -94,5 +97,8 @@ void overlay_save_config(void);
 
 /* Refresh the activity-LED enable/colour state from ConfigureParams. */
 void overlay_update_leds(void);
+
+/* Name of the currently selected machine model (e.g. "NeXT Computer"). */
+const char *overlay_machine_name(void);
 
 #endif /* PREV_OVERLAY_H */

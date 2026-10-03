@@ -37,13 +37,14 @@ The overlay opens with **F9** and is driven entirely from the keyboard:
 | `Up/Down`    | Move the selection                        |
 | `Enter`      | Toggle / choose the selected row          |
 | `Delete`     | Clear (eject) the selected media entry    |
+| `N`          | New blank image for the selected media row|
 | `Esc` / `F9` | Close (settings are saved)                |
 
-Changes that reset the emulated machine (machine model, RAM, CPU/FPU/DSP/MMU,
-hardware extensions, boot device) or that swap media ask for confirmation
-first, then are **staged**: nothing is applied to the running machine until
-you close the overlay and confirm saving. Closing asks whether to save the
-changes to `1989.conf`; Cancel discards them (no reset is needed).
+Changes are **staged**: the running machine is untouched until you close the
+overlay and confirm saving, so nothing happens while you are still choosing.
+Closing asks whether to save the changes to `1989.conf` (mentioning that
+saving will reset the machine when a model/hardware or media change was
+made); Cancel discards them — no reset is needed.
 
 ### General tab
 
@@ -54,9 +55,12 @@ and a "Reset defaults" action.
 
 ### Media tab
 
-Boot device and the attached media: up to four SCSI targets, two floppy
-drives and two magneto-optical drives. `Enter` on an empty media row opens a
-native file picker; `Enter` on a filled row ejects the media.
+Boot device and the attached media: up to seven SCSI targets (0–6), two
+floppy drives and two magneto-optical drives. `Enter` on an empty media row opens a
+native file picker; `Enter` on a filled row ejects the media. `N` on a media
+row creates a new blank image: pick the size (1–32 GB for hard disks, the
+usual capacities for floppies and magneto-optical), choose a `.img` filename
+and the image is created (zero-filled) and attached. `Delete` clears the row.
 
 ### Extensions tab
 

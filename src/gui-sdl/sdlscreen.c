@@ -259,7 +259,8 @@ static void Screen89_RenderExtras(SDL_Renderer *r) {
 	                   (float)FUNCTION_KEY_BAR_H };
 	SDL_RenderFillRect(r, &band);
 
-	const char *model = "1989";
+	char model[64];
+	snprintf(model, sizeof(model), "1989 %s", overlay_machine_name());
 	const char *keys =
 	    "  F1=menu  F4=screenshot  F5=reset  F6=gif  F9=options  "
 	    "F11=fullscreen  F12=quit";
@@ -307,6 +308,9 @@ static bool Screen_SingleRepaint(void) {
 	}
 
 	if (updateScreen) {
+		/* Force black so the fullscreen letterbox bars are black, not the
+		 * leftover draw colour. */
+		SDL_SetRenderDrawColor(sdlRenderer, 0, 0, 0, 255);
 		SDL_RenderClear(sdlRenderer);
 		/* Render NeXT framebuffer texture (with optional CRT scanlines) */
 		SDL_RenderTexture(sdlRenderer, fbTexture, NULL, &fbRect);
@@ -343,6 +347,7 @@ static bool Screen_GroupRepaint(void) {
 	}
 	
 	if (updateScreen) {
+		SDL_SetRenderDrawColor(sdlRenderer, 0, 0, 0, 255);
 		SDL_RenderClear(sdlRenderer);
 		/* Render NeXT framebuffer texture */
 		for (i = 0; i < NUM_MONITORS; i++) {

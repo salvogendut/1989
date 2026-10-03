@@ -72,6 +72,9 @@ static const struct Config_Tag configs_UI89[] = {
     { "szLastDir9",  String_Tag, UI89Config_.szLastDir[9] },
     { "szLastDir10", String_Tag, UI89Config_.szLastDir[10] },
     { "szLastDir11", String_Tag, UI89Config_.szLastDir[11] },
+    { "szLastDir12", String_Tag, UI89Config_.szLastDir[12] },
+    { "szLastDir13", String_Tag, UI89Config_.szLastDir[13] },
+    { "szLastDir14", String_Tag, UI89Config_.szLastDir[14] },
     { NULL, Error_Tag, NULL }
 };
 
@@ -160,6 +163,9 @@ enum {
     MED_SCSI1,
     MED_SCSI2,
     MED_SCSI3,
+    MED_SCSI4,
+    MED_SCSI5,
+    MED_SCSI6,
     MED_FLOPPY0,
     MED_FLOPPY1,
     MED_MO0,
@@ -219,10 +225,6 @@ static struct {
     int       confirm_kind;   /* OV_CONFIRM_* */
     bool      confirm_ok;     /* true = OK selected, false = Cancel */
 
-    /* Pending change awaiting confirmation. */
-    OvSection pending_section;
-    int       pending_row;
-
     /* True once a change has been made in this overlay session. */
     bool      dirty;
     /* Staged changes that need applying when the overlay is saved. */
@@ -233,13 +235,44 @@ static struct {
     OvDialogKind dialog_kind;
     bool         dialog_ready;
     char         dialog_path[FILENAME_MAX];
+
+    /* "N = new" size chooser for media entries. */
+    bool         choice_visible;
+    OvDialogKind choice_kind;    /* media entry being created */
+    int          choice_index;   /* selected size */
+    long long    new_size;       /* pending blank image size in bytes */
 } g_ov;
+
+/* Sizes offered by "N = new" per media type. */
+typedef struct {
+    const char *label;
+    long long   bytes;
+} OvNewSize;
+
+static const OvNewSize new_scsi_sizes[] = {
+    { "1 GB",  1073741824LL },
+    { "2 GB",  2147483648LL },
+    { "4 GB",  4294967296LL },
+    { "8 GB",  8589934592LL },
+    { "16 GB", 17179869184LL },
+    { "32 GB", 34359738368LL },
+};
+static const OvNewSize new_floppy_sizes[] = {
+    { "400 KB",  409600 },
+    { "720 KB",  737280 },
+    { "1.44 MB", 1474560 },
+    { "2.88 MB", 2949120 },
+};
+static const OvNewSize new_mo_sizes[] = {
+    { "128 MB", 134217728 },
+    { "230 MB", 241172480 },
+    { "640 MB", 671088640 },
+    { "1.3 GB", 1363148800LL },
+};
 
 enum {
     OV_CONFIRM_NONE = 0,
     OV_CONFIRM_QUIT,    /* quit the emulator */
-    OV_CONFIRM_RESET,   /* apply a pending hard-reset change */
-    OV_CONFIRM_MEDIA,   /* apply a pending boot/media change */
     OV_CONFIRM_SAVE     /* save (or discard) changes when closing */
 };
 
@@ -323,17 +356,31 @@ static const char *scsi_label(int i) {
     return buf;
 }
 
+/* Elide the leading directories of a long image path so the row hints stay
+ * visible. */
+static const char *media_path(const char *path, char *buf, size_t size) {
+    size_t n = strlen(path);
+    if (n <= 30) {
+        snprintf(buf, size, "%s", path);
+    } else {
+        snprintf(buf, size, "...%s", path + n - 27);
+    }
+    return buf;
+}
+
 static const char *scsi_value(int i, char *buf, size_t size) {
     if (!ConfigureParams.SCSI.target[i].bDiskInserted)
-        snprintf(buf, size, "<none>");
+        snprintf(buf, size, "[empty]  Enter=load, N=new, Del=clear");
     else {
+        char pbuf[64];
         const char *type = ConfigureParams.SCSI.target[i].nDeviceType == SD_CD
                            ? "CD" :
                            ConfigureParams.SCSI.target[i].nDeviceType == SD_FLOPPY
                            ? "FLOPPY" : "DISK";
-        snprintf(buf, size, "%s %s%s", type,
-                 ConfigureParams.SCSI.target[i].szImageName[0]
+        snprintf(buf, size, "%s %s%s  Enter=eject, Del=clear", type,
+                 media_path(ConfigureParams.SCSI.target[i].szImageName[0]
                     ? ConfigureParams.SCSI.target[i].szImageName : "(unnamed)",
+                    pbuf, sizeof(pbuf)),
                  ConfigureParams.SCSI.target[i].bWriteProtected ? " [WP]" : "");
     }
     return buf;
@@ -341,23 +388,29 @@ static const char *scsi_value(int i, char *buf, size_t size) {
 
 static const char *floppy_value(int i, char *buf, size_t size) {
     if (!ConfigureParams.Floppy.drive[i].bDiskInserted)
-        snprintf(buf, size, "<none>");
-    else
-        snprintf(buf, size, "%s%s",
-                 ConfigureParams.Floppy.drive[i].szImageName[0]
+        snprintf(buf, size, "[empty]  Enter=load, N=new, Del=clear");
+    else {
+        char pbuf[64];
+        snprintf(buf, size, "%s%s  Enter=eject, Del=clear",
+                 media_path(ConfigureParams.Floppy.drive[i].szImageName[0]
                     ? ConfigureParams.Floppy.drive[i].szImageName : "(unnamed)",
+                    pbuf, sizeof(pbuf)),
                  ConfigureParams.Floppy.drive[i].bWriteProtected ? " [WP]" : "");
+    }
     return buf;
 }
 
 static const char *mo_value(int i, char *buf, size_t size) {
     if (!ConfigureParams.MO.drive[i].bDiskInserted)
-        snprintf(buf, size, "<none>");
-    else
-        snprintf(buf, size, "%s%s",
-                 ConfigureParams.MO.drive[i].szImageName[0]
+        snprintf(buf, size, "[empty]  Enter=load, N=new, Del=clear");
+    else {
+        char pbuf[64];
+        snprintf(buf, size, "%s%s  Enter=eject, Del=clear",
+                 media_path(ConfigureParams.MO.drive[i].szImageName[0]
                     ? ConfigureParams.MO.drive[i].szImageName : "(unnamed)",
+                    pbuf, sizeof(pbuf)),
                  ConfigureParams.MO.drive[i].bWriteProtected ? " [WP]" : "");
+    }
     return buf;
 }
 
@@ -398,6 +451,11 @@ void overlay_update_leds(void) {
 	leds_set_enabled(LED_ND, ConfigureParams.Dimension.board[0].bEnabled);
 }
 
+/* Name of the currently selected machine model. */
+const char *overlay_machine_name(void) {
+	return machine_name();
+}
+
 /* ------------------------------------------------------------------ */
 /* file dialogs                                                        */
 
@@ -405,8 +463,12 @@ static void overlay_file_callback(void *userdata, const char * const *files,
                                   int filter) {
     (void)userdata;
     (void)filter;
-    if (!files || !files[0]) return;
-    snprintf(g_ov.dialog_path, sizeof(g_ov.dialog_path), "%s", files[0]);
+    /* Publish even a cancelled dialog (empty path) so a pending "N = new"
+     * request cannot linger and hijack the next file dialog. */
+    if (!files || !files[0])
+        g_ov.dialog_path[0] = '\0';
+    else
+        snprintf(g_ov.dialog_path, sizeof(g_ov.dialog_path), "%s", files[0]);
     /* The callback may run on another thread: publish the path before the
      * ready flag. */
     SDL_MemoryBarrierRelease();
@@ -426,6 +488,8 @@ static void open_file_dialog(OvDialogKind kind) {
     const char *location = NULL;
     g_ov.dialog_kind = kind;
     g_ov.dialog_ready = false;
+    g_ov.new_size = 0;
+    g_ov.choice_visible = false;
     if (kind == OV_DIALOG_ROM030 || kind == OV_DIALOG_ROM040 ||
         kind == OV_DIALOG_ROMTURBO)
         filters = rom_filters;
@@ -512,6 +576,115 @@ static void set_mo_image(int i, const char *path) {
     g_ov.dirty = true;
 }
 
+/* Map a Media row to its file-dialog kind. */
+static OvDialogKind media_row_dialog(int row) {
+    if (row >= MED_SCSI0 && row <= MED_SCSI6)
+        return (OvDialogKind)(OV_DIALOG_SCSI0 + (row - MED_SCSI0));
+    if (row >= MED_FLOPPY0 && row <= MED_FLOPPY1)
+        return (OvDialogKind)(OV_DIALOG_FLOPPY0 + (row - MED_FLOPPY0));
+    if (row >= MED_MO0 && row <= MED_MO1)
+        return (OvDialogKind)(OV_DIALOG_MO0 + (row - MED_MO0));
+    return OV_DIALOG_NONE;
+}
+
+/* Sizes offered by "N = new" for a media entry, or NULL if it cannot be
+ * created. */
+static const OvNewSize *overlay_new_sizes(OvDialogKind kind, int *count) {
+    if (kind >= OV_DIALOG_SCSI0 && kind <= OV_DIALOG_SCSI6) {
+        *count = (int)(sizeof(new_scsi_sizes) / sizeof(new_scsi_sizes[0]));
+        return new_scsi_sizes;
+    }
+    if (kind == OV_DIALOG_FLOPPY0 || kind == OV_DIALOG_FLOPPY1) {
+        *count = (int)(sizeof(new_floppy_sizes) / sizeof(new_floppy_sizes[0]));
+        return new_floppy_sizes;
+    }
+    if (kind == OV_DIALOG_MO0 || kind == OV_DIALOG_MO1) {
+        *count = (int)(sizeof(new_mo_sizes) / sizeof(new_mo_sizes[0]));
+        return new_mo_sizes;
+    }
+    return NULL;
+}
+
+/* "N" on a Media row: open the size chooser. */
+static void overlay_new_media(void) {
+    OvDialogKind kind;
+    int count = 0;
+
+    if (g_ov.section != OV_MEDIA)
+        return;
+    kind = media_row_dialog(g_ov.row);
+    if (!overlay_new_sizes(kind, &count))
+        return;
+    g_ov.choice_visible = true;
+    g_ov.choice_kind = kind;
+    g_ov.choice_index = 0;
+}
+
+/* Size chosen: remember it and open the save dialog for the new image. */
+static void overlay_choice_accept(void) {
+    static const SDL_DialogFileFilter filters[] = {
+        { "Disk images", "img;IMG;sd;SD;dsk;DSK" },
+        { "All files", "*" },
+    };
+    int count = 0;
+    const OvNewSize *sizes = overlay_new_sizes(g_ov.choice_kind, &count);
+    const char *location = NULL;
+
+    g_ov.choice_visible = false;
+    if (!sizes || g_ov.choice_index < 0 || g_ov.choice_index >= count)
+        return;
+    g_ov.new_size = sizes[g_ov.choice_index].bytes;
+    g_ov.dialog_kind = g_ov.choice_kind;
+    g_ov.dialog_ready = false;
+    if (g_ov.choice_kind > OV_DIALOG_NONE &&
+        g_ov.choice_kind < OV_DIALOG_COUNT &&
+        UI89Config_.szLastDir[g_ov.choice_kind][0] &&
+        File_DirExists(UI89Config_.szLastDir[g_ov.choice_kind]))
+        location = UI89Config_.szLastDir[g_ov.choice_kind];
+    SDL_ShowSaveFileDialog(overlay_file_callback, NULL, sdlWindow, filters, 2,
+                           location);
+}
+
+/* Create a blank (zero-filled) image and attach it to the media entry. */
+static void overlay_create_media(OvDialogKind kind, const char *path,
+                                 long long size) {
+    static const char zeros[65536];
+    char final[FILENAME_MAX];
+    const char *base;
+    FILE *f;
+    long long remaining = size;
+
+    snprintf(final, sizeof(final), "%s", path);
+    base = strrchr(final, '/');
+    base = base ? base + 1 : final;
+    if (!strchr(base, '.') && strlen(final) + 4 < sizeof(final))
+        strcat(final, ".img");
+
+    f = fopen(final, "wb");
+    if (!f) {
+        notify_post("COULD NOT CREATE IMAGE");
+        return;
+    }
+    while (remaining > 0) {
+        size_t chunk = remaining > (long long)sizeof(zeros)
+                       ? sizeof(zeros) : (size_t)remaining;
+        if (fwrite(zeros, 1, chunk, f) != chunk) {
+            fclose(f);
+            notify_post("COULD NOT CREATE IMAGE");
+            return;
+        }
+        remaining -= (long long)chunk;
+    }
+    fclose(f);
+
+    if (kind >= OV_DIALOG_SCSI0 && kind <= OV_DIALOG_SCSI6)
+        set_scsi_image(kind - OV_DIALOG_SCSI0, final);
+    else if (kind == OV_DIALOG_FLOPPY0 || kind == OV_DIALOG_FLOPPY1)
+        set_floppy_image(kind - OV_DIALOG_FLOPPY0, final);
+    else if (kind == OV_DIALOG_MO0 || kind == OV_DIALOG_MO1)
+        set_mo_image(kind - OV_DIALOG_MO0, final);
+}
+
 static void set_rom_path(OvDialogKind kind, const char *path) {
     if (!path) return;
     switch (kind) {
@@ -536,49 +709,7 @@ static void set_rom_path(OvDialogKind kind, const char *path) {
 /* ------------------------------------------------------------------ */
 /* row actions                                                         */
 
-/* Which confirmation a row needs before it is applied (0 = none). */
-static int overlay_row_confirm(OvSection s, int row) {
-    switch (s) {
-    case OV_GENERAL:
-        switch (row) {
-        case GEN_MACHINE:
-        case GEN_RAM:
-        case GEN_CPUCLOCK:
-        case GEN_FPU:
-        case GEN_DSP:
-        case GEN_MMU:
-        case GEN_ADB:
-        case GEN_RESET:
-            return OV_CONFIRM_RESET;
-        default:
-            return OV_CONFIRM_NONE;
-        }
-    case OV_MEDIA:
-        return OV_CONFIRM_MEDIA;
-    case OV_EXTENSIONS:
-        switch (row) {
-        case EXT_ND:
-        case EXT_PRINTER:
-        case EXT_ETHERNET:
-        case EXT_TABLET:
-            return OV_CONFIRM_RESET;
-        default:
-            return OV_CONFIRM_NONE;
-        }
-    case OV_ADVANCED:
-        switch (adv_logical_row(row)) {
-        case ADV_DRAMTEST:
-        case ADV_VERBOSE:
-            return OV_CONFIRM_RESET;
-        default:
-            return OV_CONFIRM_NONE;
-        }
-    default:
-        return OV_CONFIRM_NONE;
-    }
-}
-
-static void overlay_activate_now(void) {
+static void overlay_activate(void) {
     /* Mark the session dirty unless the row is purely informational. */
     if (!(g_ov.section == OV_GENERAL && g_ov.row == GEN_ABOUT) &&
         !(g_ov.section == OV_ADVANCED &&
@@ -656,7 +787,7 @@ static void overlay_activate_now(void) {
                 b = (BOOT_DEVICE)(((int)b + 1) % 5);
                 ConfigureParams.Boot.nBootDevice = b;
                 overlay_apply_reset("BOOT DEVICE CHANGED - COLD RESET");
-            } else if (g_ov.row >= MED_SCSI0 && g_ov.row <= MED_SCSI3) {
+            } else if (g_ov.row >= MED_SCSI0 && g_ov.row <= MED_SCSI6) {
                 int i = g_ov.row - MED_SCSI0;
                 if (ConfigureParams.SCSI.target[i].bDiskInserted)
                     set_scsi_image(i, NULL);
@@ -809,7 +940,7 @@ static void overlay_activate_now(void) {
 static void overlay_clear_media(void) {
     if (g_ov.section != OV_MEDIA)
         return;
-    if (g_ov.row >= MED_SCSI0 && g_ov.row <= MED_SCSI3) {
+    if (g_ov.row >= MED_SCSI0 && g_ov.row <= MED_SCSI6) {
         int i = g_ov.row - MED_SCSI0;
         if (ConfigureParams.SCSI.target[i].bDiskInserted)
             set_scsi_image(i, NULL);
@@ -825,20 +956,6 @@ static void overlay_clear_media(void) {
         return;
     }
     g_ov.dirty = true;
-}
-
-/* Enter on the current row: apply immediately, or ask first for changes
- * that reset the machine or swap media. */
-static void overlay_activate(void) {
-    int kind = overlay_row_confirm(g_ov.section, g_ov.row);
-    if (kind != OV_CONFIRM_NONE) {
-        g_ov.pending_section = g_ov.section;
-        g_ov.pending_row = g_ov.row;
-        g_ov.confirm_kind = kind;
-        g_ov.confirm_ok = true;
-        return;
-    }
-    overlay_activate_now();
 }
 
 /* ------------------------------------------------------------------ */
@@ -946,25 +1063,22 @@ static void overlay_render_confirm(SDL_Renderer *r) {
         "All unsaved data will be lost.",
         "Do you really want to quit?"
     };
-    static const char *const reset_lines[] = {
-        "This change needs a hard reset of",
-        "the emulated machine. Continue?"
-    };
-    static const char *const media_lines[] = {
-        "Changing the boot device or media",
-        "resets the machine. Continue?"
-    };
     static const char *const save_lines[] = {
         "Save the changes to 1989.conf?",
         "Cancel discards them."
     };
+    static const char *const save_reset_lines[] = {
+        "Saving resets the emulated machine.",
+        "Save the changes?"
+    };
+    static const char *const save_media_lines[] = {
+        "Saving reloads the attached media.",
+        "Save the changes?"
+    };
     const char *const *lines = quit_lines;
-    if (g_ov.confirm_kind == OV_CONFIRM_RESET)
-        lines = reset_lines;
-    else if (g_ov.confirm_kind == OV_CONFIRM_MEDIA)
-        lines = media_lines;
-    else if (g_ov.confirm_kind == OV_CONFIRM_SAVE)
-        lines = save_lines;
+    if (g_ov.confirm_kind == OV_CONFIRM_SAVE)
+        lines = g_ov.need_reset ? save_reset_lines :
+                g_ov.need_media ? save_media_lines : save_lines;
     const int nlines = 2;
     int text_w = 0;
     for (int i = 0; i < nlines; i++) {
@@ -1007,9 +1121,78 @@ static void overlay_render_confirm(SDL_Renderer *r) {
     SDL_SetRenderScale(r, 1.0f, 1.0f);
 }
 
+/* Render the "N = new" size chooser: a small centred panel listing the
+ * available image sizes for the selected media entry. */
+static void overlay_render_choice(SDL_Renderer *r) {
+    int rw, rh, count = 0;
+    const OvNewSize *sizes;
+    const char *title;
+
+    overlay_get_render_size(r, &rw, &rh);
+    if (rw <= 0 || rh <= 0) return;
+    sizes = overlay_new_sizes(g_ov.choice_kind, &count);
+    if (!sizes || count <= 0) return;
+
+    if (g_ov.choice_kind >= OV_DIALOG_SCSI0 &&
+        g_ov.choice_kind <= OV_DIALOG_SCSI6)
+        title = "New hard disk image";
+    else if (g_ov.choice_kind == OV_DIALOG_FLOPPY0 ||
+             g_ov.choice_kind == OV_DIALOG_FLOPPY1)
+        title = "New floppy image";
+    else
+        title = "New magneto-optical image";
+
+    float scale = OV_SCALE;
+    if ((float)rw / scale < 360.0f) scale = (float)rw / 360.0f;
+    if ((float)rh / scale < (float)(count * 30 + 120))
+        scale = (float)rh / (float)(count * 30 + 120);
+    if (scale <= 0.0f) return;
+    SDL_SetRenderScale(r, scale, scale);
+    int lw = (int)(rw / scale);
+    int lh = (int)(rh / scale);
+
+    int panel_w = 320;
+    int panel_h = 24 + 16 + 12 + count * 30 + 16 + 8;
+    float px = (float)(lw - panel_w) * 0.5f;
+    float py = (float)(lh - panel_h) * 0.5f;
+
+    SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(r, 0, 0, 0, 160);
+    SDL_FRect dim = { 0, 0, (float)lw, (float)lh };
+    SDL_RenderFillRect(r, &dim);
+
+    SDL_SetRenderDrawColor(r, 0x19, 0x20, 0x34, 255);
+    SDL_FRect box = { px, py, (float)panel_w, (float)panel_h };
+    SDL_RenderFillRect(r, &box);
+    SDL_SetRenderDrawColor(r, 0x89, 0xA3, 0xCB, 255);
+    SDL_RenderRect(r, &box);
+
+    SDL_SetRenderDrawColor(r, 0xF0, 0xF0, 0xF0, 255);
+    SDL_RenderDebugText(r, px + 16, py + 16, title);
+    SDL_SetRenderDrawColor(r, 0x89, 0xA3, 0xCB, 255);
+    SDL_RenderDebugText(r, px + 16, py + 32, "Choose the image size:");
+
+    for (int i = 0; i < count; i++) {
+        bool sel = (i == g_ov.choice_index);
+        draw_confirm_button(r, px + 24, py + 56 + i * 30,
+                            panel_w - 48, 22, sizes[i].label, sel);
+    }
+
+    SDL_SetRenderDrawColor(r, 0x89, 0xA3, 0xCB, 255);
+    SDL_RenderDebugText(r, px + 16, py + (float)panel_h - 18,
+                        "Enter=create  Esc=cancel");
+
+    SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_NONE);
+    SDL_SetRenderScale(r, 1.0f, 1.0f);
+}
+
 void overlay_render(SDL_Renderer *r) {
     if (g_ov.confirm_kind != OV_CONFIRM_NONE) {
         overlay_render_confirm(r);
+        return;
+    }
+    if (g_ov.choice_visible) {
+        overlay_render_choice(r);
         return;
     }
     if (!g_ov.visible) return;
@@ -1080,7 +1263,7 @@ void overlay_render(SDL_Renderer *r) {
     } else if (g_ov.section == OV_MEDIA) {
         draw_row(r, panel_w, y, "Boot device", boot_string(s1, sizeof(s1)),
                  g_ov.row == MED_BOOT); y += OV_LINE_H;
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 7; i++) {
             draw_row(r, panel_w, y, scsi_label(i),
                      scsi_value(i, vbuf, sizeof(vbuf)), g_ov.row == MED_SCSI0 + i);
             y += OV_LINE_H;
@@ -1284,6 +1467,8 @@ static void overlay_apply_pending(void) {
 static void overlay_discard(void) {
     ConfigureParams = g_saved_params;
     UI89Config_ = g_saved_ui89;
+    g_ov.new_size = 0;
+    g_ov.choice_visible = false;
     Log_SetDebugEnabled(UI89Config_.bDebug);
     Timing_SetLocalTime(UI89Config_.bRtcLocalTime);
     notify_set_mode((NotifyMode)UI89Config_.nNotifyMode);
@@ -1323,12 +1508,6 @@ bool overlay_handle_event(const SDL_Event *ev) {
             if (kind == OV_CONFIRM_QUIT) {
                 if (ok)
                     Main_RequestQuit(false);
-            } else if (kind == OV_CONFIRM_RESET || kind == OV_CONFIRM_MEDIA) {
-                if (ok) {
-                    g_ov.section = g_ov.pending_section;
-                    g_ov.row = g_ov.pending_row;
-                    overlay_activate_now();
-                }
             } else if (kind == OV_CONFIRM_SAVE) {
                 if (ok) {
                     overlay_apply_pending();
@@ -1345,6 +1524,22 @@ bool overlay_handle_event(const SDL_Event *ev) {
                 overlay_close_now();
             }
             g_ov.confirm_kind = OV_CONFIRM_NONE;
+        }
+        return true;
+    }
+
+    /* "N = new" size chooser. */
+    if (g_ov.choice_visible) {
+        int count = 0;
+        overlay_new_sizes(g_ov.choice_kind, &count);
+        if (sc == SDL_SCANCODE_UP) {
+            if (g_ov.choice_index > 0) g_ov.choice_index--;
+        } else if (sc == SDL_SCANCODE_DOWN) {
+            if (g_ov.choice_index < count - 1) g_ov.choice_index++;
+        } else if (sc == SDL_SCANCODE_RETURN) {
+            overlay_choice_accept();
+        } else if (sc == SDL_SCANCODE_ESCAPE) {
+            g_ov.choice_visible = false;
         }
         return true;
     }
@@ -1402,6 +1597,9 @@ bool overlay_handle_event(const SDL_Event *ev) {
         case SDL_SCANCODE_DELETE:
             overlay_clear_media();
             break;
+        case SDL_SCANCODE_N:
+            overlay_new_media();
+            break;
         case SDL_SCANCODE_ESCAPE:
             overlay_close();
             break;
@@ -1420,11 +1618,23 @@ void overlay_tick(void) {
 
     remember_dir(kind, g_ov.dialog_path);
 
+    if (g_ov.new_size > 0) {
+        if (g_ov.dialog_path[0])
+            overlay_create_media(kind, g_ov.dialog_path, g_ov.new_size);
+        g_ov.new_size = 0;
+        return;
+    }
+    if (!g_ov.dialog_path[0])
+        return;
+
     switch (kind) {
         case OV_DIALOG_SCSI0:
         case OV_DIALOG_SCSI1:
         case OV_DIALOG_SCSI2:
         case OV_DIALOG_SCSI3:
+        case OV_DIALOG_SCSI4:
+        case OV_DIALOG_SCSI5:
+        case OV_DIALOG_SCSI6:
             set_scsi_image(kind - OV_DIALOG_SCSI0, g_ov.dialog_path);
             break;
         case OV_DIALOG_FLOPPY0:
