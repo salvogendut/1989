@@ -843,18 +843,19 @@ void Screen_ReturnFromFullScreen(void) {
  * Set mouse grab.
  */
 void Screen_SetMouseGrab(bool grab) {
-	/* If emulation is active, set the mouse cursor mode now: */
+	/* If emulation is active, set the mouse cursor mode now.
+	 * Only relative mouse mode is used (like the sibling emulators); the
+	 * keyboard/mouse window grabs are deliberately not used because they
+	 * make Wayland compositors pop up the "shortcuts inhibited" prompt. */
 	if (grab) {
 		if (bEmulationActive) {
 			Screen_CenterCursor(); /* Cursor must be inside window */
 			SDL_SetWindowRelativeMouseMode(sdlWindow, true);
-			SDL_SetWindowKeyboardGrab(sdlWindow, true);
-			SDL_SetWindowMouseGrab(sdlWindow, true);
 			if (ConfigureParams.Mouse.bEnableAutoGrab) {
-				Screen_SetTitle("Mouse is locked. Ctrl-click to release.");
+				Screen_SetTitle("Mouse is locked. Ctrl+Enter to release.");
 			} else {
 				char message[64];
-				
+
 				snprintf(message, sizeof(message), "Mouse is locked. Press ctrl-alt-%s to release.", 
 						 Keymap_GetKeyName(ConfigureParams.Shortcut.withModifier[SHORTCUT_MOUSEGRAB]));
 				Screen_SetTitle(message);
@@ -862,8 +863,6 @@ void Screen_SetMouseGrab(bool grab) {
 		}
 	} else {
 		SDL_SetWindowRelativeMouseMode(sdlWindow, false);
-		SDL_SetWindowKeyboardGrab(sdlWindow, false);
-		SDL_SetWindowMouseGrab(sdlWindow, false);
 		Screen_SetTitle(NULL);
 	}
 }

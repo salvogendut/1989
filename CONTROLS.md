@@ -94,6 +94,7 @@ sibling style (red machine name, grey `key=action` list):
 
 ## Mouse
 
-While running, the emulated machine captures the host mouse. **Alt+M** grabs
-and releases it (the cursor is released automatically whenever the F9 overlay
-is open).
+Clicking into the window captures the host mouse (relative mode). Press
+**Ctrl+Enter** to release it again; **Alt+M** also toggles capture, and the
+cursor is released automatically whenever the F9 overlay or the quit
+confirmation is open.

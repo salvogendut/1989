@@ -326,20 +326,14 @@ void GuiEvent_EventHandler(void) {
 						}
 					}
 				}
+				/* Clicking into the window captures the mouse (relative
+				 * mode); Ctrl+Enter releases it again. */
+				if (!bGrabMouse && ConfigureParams.Mouse.bEnableAutoGrab &&
+				    event.button.button == SDL_BUTTON_LEFT) {
+					bGrabMouse = true;
+					Screen_SetMouseGrab(true);
+				}
 				if (event.button.button == SDL_BUTTON_LEFT) {
-					if (ConfigureParams.Mouse.bEnableAutoGrab) {
-						if (bGrabMouse) {
-							if (SDL_GetModState() & SDL_KMOD_CTRL) {
-								bGrabMouse = false;
-								Screen_SetMouseGrab(bGrabMouse);
-								break;
-							}
-						} else {
-							bGrabMouse = true;
-							Screen_SetMouseGrab(bGrabMouse);
-							break;
-						}
-					}
 #ifdef ENABLE_RENDERING_THREAD
 					Keymap_MouseDown(true);
 #else
@@ -399,6 +393,14 @@ void GuiEvent_EventHandler(void) {
 				if (overlay_handle_event(&event)) {
 					Screen_Repaint();
 					continue;
+				}
+				/* Ctrl+Enter releases the captured mouse (sibling
+				 * convention); don't pass Enter to the NeXT. */
+				if (bGrabMouse && event.key.scancode == SDL_SCANCODE_RETURN &&
+				    (event.key.mod & SDL_KMOD_CTRL)) {
+					bGrabMouse = false;
+					Screen_SetMouseGrab(false);
+					break;
 				}
 				if (event.key.scancode == SDL_SCANCODE_F4) {
 					Capture_Screenshot();
