@@ -527,6 +527,11 @@ int main(int argc, char *argv[])
 		Main_Loop();
 	}
 
+	/* Persist the final configuration. Overlay selections are saved as
+	 * they happen; this is a safety net for anything else. */
+	Configuration_Save();
+	overlay_config_save();
+
 	/* Stop recording */
 	Grab_Stop();
 	if (Capture_GifActive())

@@ -16,6 +16,7 @@
 #include "log.h"
 #include "mo.h"
 #include "notify.h"
+#include "file.h"
 #include "paths.h"
 #include "reset.h"
 #include "scsi.h"
@@ -60,6 +61,17 @@ static const struct Config_Tag configs_UI89[] = {
     { "nGifWidth",   Int_Tag,   &UI89Config_.nGifWidth },
     { "nGifFps",     Int_Tag,   &UI89Config_.nGifFps },
     { "nNotifyMode", Int_Tag,   &UI89Config_.nNotifyMode },
+    { "szLastDir1",  String_Tag, UI89Config_.szLastDir[1] },
+    { "szLastDir2",  String_Tag, UI89Config_.szLastDir[2] },
+    { "szLastDir3",  String_Tag, UI89Config_.szLastDir[3] },
+    { "szLastDir4",  String_Tag, UI89Config_.szLastDir[4] },
+    { "szLastDir5",  String_Tag, UI89Config_.szLastDir[5] },
+    { "szLastDir6",  String_Tag, UI89Config_.szLastDir[6] },
+    { "szLastDir7",  String_Tag, UI89Config_.szLastDir[7] },
+    { "szLastDir8",  String_Tag, UI89Config_.szLastDir[8] },
+    { "szLastDir9",  String_Tag, UI89Config_.szLastDir[9] },
+    { "szLastDir10", String_Tag, UI89Config_.szLastDir[10] },
+    { "szLastDir11", String_Tag, UI89Config_.szLastDir[11] },
     { NULL, Error_Tag, NULL }
 };
 
@@ -374,6 +386,9 @@ static void overlay_file_callback(void *userdata, const char * const *files,
     (void)filter;
     if (!files || !files[0]) return;
     snprintf(g_ov.dialog_path, sizeof(g_ov.dialog_path), "%s", files[0]);
+    /* The callback may run on another thread: publish the path before the
+     * ready flag. */
+    SDL_MemoryBarrierRelease();
     g_ov.dialog_ready = true;
 }
 
@@ -387,13 +402,43 @@ static void open_file_dialog(OvDialogKind kind) {
         { "All files", "*" },
     };
     const SDL_DialogFileFilter *filters = image_filters;
+    const char *location = NULL;
     g_ov.dialog_kind = kind;
     g_ov.dialog_ready = false;
     if (kind == OV_DIALOG_ROM030 || kind == OV_DIALOG_ROM040 ||
         kind == OV_DIALOG_ROMTURBO)
         filters = rom_filters;
+    /* Start in the last directory browsed for this entry, if any. */
+    if (kind > OV_DIALOG_NONE && kind < OV_DIALOG_COUNT &&
+        UI89Config_.szLastDir[kind][0] &&
+        File_DirExists(UI89Config_.szLastDir[kind]))
+        location = UI89Config_.szLastDir[kind];
     SDL_ShowOpenFileDialog(overlay_file_callback, NULL, sdlWindow, filters, 2,
-                           NULL, false);
+                           location, false);
+}
+
+/* Remember the directory of the file just selected for a media entry, so
+ * the next browse for that same entry starts there. */
+static void remember_dir(OvDialogKind kind, const char *path) {
+    char dir[FILENAME_MAX];
+    char *slash;
+
+    if (kind <= OV_DIALOG_NONE || kind >= OV_DIALOG_COUNT || !path || !path[0])
+        return;
+    snprintf(dir, sizeof(dir), "%s", path);
+    slash = strrchr(dir, '/');
+    if (!slash)
+        return;
+    if (slash == dir)
+        slash[1] = '\0';   /* keep the root slash */
+    else
+        *slash = '\0';
+    if (!File_DirExists(dir))
+        return;
+    if (strcmp(UI89Config_.szLastDir[kind], dir) == 0)
+        return;
+    snprintf(UI89Config_.szLastDir[kind], FILENAME_MAX, "%s", dir);
+    overlay_config_save();
 }
 
 /* ------------------------------------------------------------------ */
@@ -1070,6 +1115,8 @@ void overlay_quit(void) {
     /* nothing to tear down */
 }
 
+
+
 bool overlay_is_visible(void) {
     return g_ov.visible;
 }
@@ -1180,9 +1227,12 @@ bool overlay_handle_event(const SDL_Event *ev) {
 
 void overlay_tick(void) {
     if (!g_ov.dialog_ready) return;
+    SDL_MemoryBarrierAcquire();
     g_ov.dialog_ready = false;
     OvDialogKind kind = g_ov.dialog_kind;
     g_ov.dialog_kind = OV_DIALOG_NONE;
+
+    remember_dir(kind, g_ov.dialog_path);
 
     switch (kind) {
         case OV_DIALOG_SCSI0:

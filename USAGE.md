@@ -19,7 +19,8 @@ overlay has four tabs:
 - **General**: machine type, RAM, CPU clock, FPU, DSP, MMU, ADB and the
   **Tinker** switch.
 - **Media**: boot device and the attached SCSI / floppy / magneto-optical
-  media.
+  media. The file picker remembers the last directory used for each entry
+  and every selection is written to `1989.conf`.
 - **Extensions**: NeXTdimension, printer, Ethernet, tablet and microphone.
 - **Advanced**: display options (smoothing, Real CRT with scanlines), GIF
   capture settings (resolution, frame rate, built-in or FFmpeg encoder),

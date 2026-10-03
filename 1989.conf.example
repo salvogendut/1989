@@ -144,3 +144,16 @@ nWindowScale = 0
 nGifWidth = 480
 nGifFps = 25
 nNotifyMode = 1
+# Last directory browsed for each media entry (szLastDir1..szLastDir11),
+# maintained automatically by the F9 overlay.
+szLastDir1 =
+szLastDir2 =
+szLastDir3 =
+szLastDir4 =
+szLastDir5 =
+szLastDir6 =
+szLastDir7 =
+szLastDir8 =
+szLastDir9 =
+szLastDir10 =
+szLastDir11 =
