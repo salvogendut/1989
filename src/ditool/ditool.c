@@ -11,6 +11,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include <ctype.h>
+#include <stdbool.h>
 #include <fcntl.h>
 #define __USE_XOPEN_EXTENDED 1 /* required for Linux */
 #include <ftw.h>
@@ -825,3 +826,7 @@ int main(int argc, const char* argv[]) {
     printf("---- done.\n");
     return 0;
 }
+
+/* The 1989 emulator gates slirp/RPC output behind Log_DebugEnabled();
+ * ditool is a console tool, so keep its diagnostics. */
+bool Log_DebugEnabled(void) { return true; }

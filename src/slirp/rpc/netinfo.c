@@ -23,6 +23,7 @@
  * THE SOFTWARE.
  */
 #include <slirp.h>
+#include "slirp_log.h"
 #include <stdlib.h>
 
 #include "rpc.h"
@@ -410,7 +411,7 @@ void netinfo_add_host(const char* name, uint32_t ip_addr) {
     
     snprintf(mount, sizeof(mount), "%s:/", name);
     
-    printf("[NETINFO] Adding '%s' to NetInfo database '%s'.\n", name, network->tag);
+    slirp_printf("[NETINFO] Adding '%s' to NetInfo database '%s'.\n", name, network->tag);
     
     /* Add child network:/machines/name */
     node = ni_find_from_key_val(network->root->children, "name", "machines");
@@ -438,7 +439,7 @@ void netinfo_remove_host(const char* name) {
     
     snprintf(mount, sizeof(mount), "%s:/", name);
     
-    printf("[NETINFO] Removing '%s' from NetInfo database '%s'.\n", name, network->tag);
+    slirp_printf("[NETINFO] Removing '%s' from NetInfo database '%s'.\n", name, network->tag);
     
     node = ni_find_from_key_val(network->root->children, "name", "machines");
     if (node) ni_node_remove_child(&node->children, "name", name);
@@ -466,7 +467,7 @@ void netinfo_build_nidb(void) {
     network->id_map = NULL;
     network->root   = NULL;
     
-    printf("[NETINFO] Creating NetInfo database '%s'.\n", nidb->tag);
+    slirp_printf("[NETINFO] Creating NetInfo database '%s'.\n", nidb->tag);
     
     /* Configure some strings */
     vfscpy(system_type, "NeXT", sizeof(system_type));
@@ -535,7 +536,7 @@ void netinfo_build_nidb(void) {
 
 void netinfo_delete_nidb(void) {
     if (nidb) {
-        printf("[NETINFO] Deleting NetInfo database '%s'.\n", nidb->tag);
+        slirp_printf("[NETINFO] Deleting NetInfo database '%s'.\n", nidb->tag);
         ni_node_delete(&nidb->root);
         free(nidb);
         nidb = NULL;
@@ -644,12 +645,12 @@ static struct ni_node_t* ni_node_find(struct ni_node_t* node, struct ni_id_t* ni
 static void ni_log(struct rpc_t* rpc, struct nidb_t* ni, const char *format, ...) {
     va_list vargs;
     
-    if (rpc->log)
+    if (rpc->log && Log_DebugEnabled())
     {
         va_start(vargs, format);
-        printf("[%s:RPC:%s:%d:%s] ", rpc->hostname, rpc->name, rpc->proc, ni->tag);
+        slirp_printf("[%s:RPC:%s:%d:%s] ", rpc->hostname, rpc->name, rpc->proc, ni->tag);
         vprintf(format, vargs);
-        printf("\n");
+        slirp_printf("\n");
         va_end(vargs);
     }
 }
@@ -779,7 +780,7 @@ static int proc_parent(struct rpc_t* rpc, struct nidb_t* ni) {
     }
     
 #if DBG
-    printf("%s (%s)\n", dbg, status_to_string(status));
+    slirp_printf("%s (%s)\n", dbg, status_to_string(status));
 #endif
     return RPC_SUCCESS;
 }
@@ -826,7 +827,7 @@ static int proc_read(struct rpc_t* rpc, struct nidb_t* ni) {
     }
     
 #if DBG
-    printf("%s (%s)\n", dbg, status_to_string(status));
+    slirp_printf("%s (%s)\n", dbg, status_to_string(status));
 #endif
     return RPC_SUCCESS;
 }
@@ -875,7 +876,7 @@ static int proc_children(struct rpc_t* rpc, struct nidb_t* ni) {
     }
     
 #if DBG
-    printf("%s (%s)\n", dbg, status_to_string(status));
+    slirp_printf("%s (%s)\n", dbg, status_to_string(status));
 #endif
     return RPC_SUCCESS;
 }
@@ -932,7 +933,7 @@ static int proc_lookup(struct rpc_t* rpc, struct nidb_t* ni) {
     }
     
 #if DBG
-    printf("%s (%s)\n", dbg, status_to_string(status));
+    slirp_printf("%s (%s)\n", dbg, status_to_string(status));
 #endif
     
     id_map_delete(&idmap);
@@ -990,7 +991,7 @@ static int proc_list(struct rpc_t* rpc, struct nidb_t* ni) {
     }
     
 #if DBG
-    printf("%s (%s)\n", dbg, status_to_string(status));
+    slirp_printf("%s (%s)\n", dbg, status_to_string(status));
 #endif
     
     return RPC_SUCCESS;
@@ -1052,7 +1053,7 @@ static int proc_readprop(struct rpc_t* rpc, struct nidb_t* ni) {
     }
     
 #if DBG
-    printf("%s (%s)\n", dbg, status_to_string(status));
+    slirp_printf("%s (%s)\n", dbg, status_to_string(status));
 #endif
     
     return RPC_SUCCESS;
@@ -1103,7 +1104,7 @@ static int proc_listprops(struct rpc_t* rpc, struct nidb_t* ni) {
     }
     
 #if DBG
-    printf("%s (%s)\n", dbg, status_to_string(status));
+    slirp_printf("%s (%s)\n", dbg, status_to_string(status));
 #endif
     ni_val_delete(&names);
 
@@ -1234,7 +1235,7 @@ static int proc_lookupread(struct rpc_t* rpc, struct nidb_t* ni) {
     }
     
 #if DBG
-    printf("%s (%s)\n", dbg, status_to_string(status));
+    slirp_printf("%s (%s)\n", dbg, status_to_string(status));
 #endif
     
     id_map_delete(&idmap);

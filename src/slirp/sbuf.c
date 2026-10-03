@@ -6,6 +6,7 @@
  */
 
 #include <stdlib.h>
+#include "slirp_log.h"
 #include <slirp.h>
 
 /* Done as a macro in socket.h */

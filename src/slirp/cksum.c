@@ -31,6 +31,7 @@
  */
 
 #include <slirp.h>
+#include "slirp_log.h"
 #include <stdint.h> /* for uintptr_t */
 
 /*

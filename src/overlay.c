@@ -834,10 +834,25 @@ static void draw_confirm_button(SDL_Renderer *r, float x, float y, int w,
                         y + ((float)h - 8.0f) * 0.5f, label);
 }
 
+/* Return the renderer's logical (presentation) size. Under a logical
+ * presentation (fullscreen letterbox, windowed stretch) render coordinates
+ * are in that space, not in output pixels; using the output size would push
+ * centred dialogs off-screen in fullscreen. */
+static void overlay_get_render_size(SDL_Renderer *r, int *w, int *h) {
+    SDL_RendererLogicalPresentation mode;
+    if (SDL_GetRenderLogicalPresentation(r, w, h, &mode) && *w > 0 && *h > 0)
+        return;
+    if (!SDL_GetRenderOutputSize(r, w, h)) {
+        *w = 0;
+        *h = 0;
+    }
+}
+
 /* Happy-years style modal confirmation (dark panel, dimmed backdrop). */
 static void overlay_render_confirm(SDL_Renderer *r) {
     int rw, rh;
-    if (!SDL_GetRenderOutputSize(r, &rw, &rh)) return;
+    overlay_get_render_size(r, &rw, &rh);
+    if (rw <= 0 || rh <= 0) return;
 
     float scale = OV_SCALE;
     if ((float)rw / scale < 520.0f) scale = (float)rw / 520.0f;
@@ -901,7 +916,8 @@ void overlay_render(SDL_Renderer *r) {
     if (!g_ov.visible) return;
 
     int rw, rh;
-    if (!SDL_GetRenderOutputSize(r, &rw, &rh)) return;
+    overlay_get_render_size(r, &rw, &rh);
+    if (rw <= 0 || rh <= 0) return;
 
     int rows = section_rows();
     int panel_h = 48 + rows * OV_LINE_H + 42;

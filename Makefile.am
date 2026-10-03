@@ -295,6 +295,7 @@ noinst_HEADERS = \
 	src/includes/gifcap.h
 	src/includes/ffmpeg_gif.h
 	src/includes/capture.h
+	src/slirp/slirp_log.h
 	src/slirp/bootp.h
 	src/slirp/ctl.h
 	src/slirp/icmp_var.h

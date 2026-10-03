@@ -31,6 +31,7 @@
  */
 
 #include "slirp.h"
+#include "slirp_log.h"
 #include "ip_icmp.h"
 #include "rpc/dns.h"
 #include "rpc/rpc.h"

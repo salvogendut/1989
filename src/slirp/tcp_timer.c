@@ -31,6 +31,7 @@
  */
 
 #include <slirp.h>
+#include "slirp_log.h"
 
 int	tcp_keepidle = TCPTV_KEEP_IDLE;
 int	tcp_keepintvl = TCPTV_KEEPINTVL;

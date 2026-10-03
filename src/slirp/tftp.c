@@ -23,6 +23,7 @@
  */
 
 #include <slirp.h>
+#include "slirp_log.h"
 #include "configuration.h"
 #include "rpc/rpc.h"
 

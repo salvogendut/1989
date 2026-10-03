@@ -7,6 +7,7 @@
  */
 
 #include <slirp.h>
+#include "slirp_log.h"
 
 FILE *dfd = NULL;
 #ifdef DEBUG

@@ -23,6 +23,7 @@
  * THE SOFTWARE.
  */
 #include <slirp.h>
+#include "slirp_log.h"
 #include <stdlib.h>
 
 #include "rpc.h"
@@ -111,27 +112,27 @@ static void rpc_read_auth(struct rpc_t* rpc) {
             auth->gids[i] = xdr_read_long(m_in);
         }
 #if DBG
-        printf("UNIX TIME:   %d\n", auth->time);
-        printf("UNIX NAME:   %s\n", auth->machine);
-        printf("UNIX UID:    %d\n", auth->uid);
-        printf("UNIX GID:    %d\n", auth->gid);
-        printf("UNIX LEN:    %d\n", auth->len);
-        printf("UNIX GIDS:   [");
+        slirp_printf("UNIX TIME:   %d\n", auth->time);
+        slirp_printf("UNIX NAME:   %s\n", auth->machine);
+        slirp_printf("UNIX UID:    %d\n", auth->uid);
+        slirp_printf("UNIX GID:    %d\n", auth->gid);
+        slirp_printf("UNIX LEN:    %d\n", auth->len);
+        slirp_printf("UNIX GIDS:   [");
         for (i = 0; i < auth->len; i++) {
-            printf("%d%s", auth->gids[i], i == auth->len - 1 ? "" : ", ");
+            slirp_printf("%d%s", auth->gids[i], i == auth->len - 1 ? "" : ", ");
         }
-        printf("]\n");
+        slirp_printf("]\n");
 #endif
         vfs_set_process_uid_gid(rpc->ft->vfs, auth->uid, auth->gid);
     } else {
         if (rpc->auth.flavor != RPC_AUTH_NONE) {
-            printf("[RPC] Authentication type %d not supported.\n", rpc->auth.flavor);
+            slirp_printf("[RPC] Authentication type %d not supported.\n", rpc->auth.flavor);
         }
         len = xdr_read_skip(m_in, len);
         vfs_set_process_uid_gid(rpc->ft->vfs, 0, 0);
     }
     if (len) {
-        printf("[RPC] Authentication decode error.\n");
+        slirp_printf("[RPC] Authentication decode error.\n");
     }
 }
 
@@ -152,11 +153,11 @@ static void rpc_input(struct csocket_t* cs) {
     rpc->prot  = (cs->m_nType == SOCK_STREAM) ? IPPROTO_TCP : IPPROTO_UDP;
     
 #if DBG
-    printf("RPC LEN = %d, DATA:\n", m_in->size);
+    slirp_printf("RPC LEN = %d, DATA:\n", m_in->size);
     for (int i = 0; i < m_in->size; i++) {
-        printf("%02x ", m_in->data[i]);
+        slirp_printf("%02x ", m_in->data[i]);
     }
-    printf("\n");
+    slirp_printf("\n");
 #endif
     
     rpc->xid = xdr_read_long(m_in);
@@ -172,14 +173,14 @@ static void rpc_input(struct csocket_t* cs) {
             rpc->auth.flavor = xdr_read_long(m_in);
             rpc->auth.length = xdr_read_long(m_in);
 #if DBG
-            printf("RPC XID:     %08x\n", rpc->xid);
-            printf("RPC MSG:     %d\n",   rpc->msg);
-            printf("RPC VERSION: %d\n",   rpc->rpcvers);
-            printf("RPC PROG:    %d\n",   rpc->prog);
-            printf("RPC PROGVER: %d\n",   rpc->vers);
-            printf("RPC PROC:    %d\n",   rpc->proc);
-            printf("RPC AUTH:    %d\n",   rpc->auth.flavor);
-            printf("RPC AUTHLEN: %d\n",   rpc->auth.length);
+            slirp_printf("RPC XID:     %08x\n", rpc->xid);
+            slirp_printf("RPC MSG:     %d\n",   rpc->msg);
+            slirp_printf("RPC VERSION: %d\n",   rpc->rpcvers);
+            slirp_printf("RPC PROG:    %d\n",   rpc->prog);
+            slirp_printf("RPC PROGVER: %d\n",   rpc->vers);
+            slirp_printf("RPC PROC:    %d\n",   rpc->proc);
+            slirp_printf("RPC AUTH:    %d\n",   rpc->auth.flavor);
+            slirp_printf("RPC AUTHLEN: %d\n",   rpc->auth.length);
 #endif
             rpc_read_auth(rpc);
             
@@ -187,8 +188,8 @@ static void rpc_input(struct csocket_t* cs) {
             rpc->verif.length = xdr_read_long(m_in);
             xdr_read_skip(m_in, rpc->verif.length);
 #if DBG
-            printf("RPC VERIF:   %d\n", rpc->verif.flavor);
-            printf("RPC VERLEN:  %d\n", rpc->verif.length);
+            slirp_printf("RPC VERIF:   %d\n", rpc->verif.flavor);
+            slirp_printf("RPC VERLEN:  %d\n", rpc->verif.length);
 #endif
             /* RPC Reply */    
             xdr_write_long(m_out, RPC_MSG_ACCEPTED); /* Message */
@@ -207,7 +208,7 @@ static void rpc_input(struct csocket_t* cs) {
                 xdr_write_long(m_out, rpc->low);
                 xdr_write_long(m_out, rpc->high);
             } else if (status == RPC_PROG_UNAVAIL) {
-                printf("[%s:RPC:%d:%d] Program not registered\n", rpc->hostname, rpc->prog, rpc->proc);
+                slirp_printf("[%s:RPC:%d:%d] Program not registered\n", rpc->hostname, rpc->prog, rpc->proc);
             } else if (status == RPC_GARBAGE_ARGS) {
                 rpc_log(rpc, "Procedure cannot decode input (garbage args)");
             } else if (status == RPC_PROC_UNAVAIL) {
@@ -216,22 +217,22 @@ static void rpc_input(struct csocket_t* cs) {
                 rpc_log(rpc, "Unused data in buffer (%d bytes)", m_in->size);
             }
         } else { /* RPC version is not 2 */
-            printf("[%s:RPC] Version mismatch (%d)\n", rpc->hostname, rpc->rpcvers);
+            slirp_printf("[%s:RPC] Version mismatch (%d)\n", rpc->hostname, rpc->rpcvers);
             xdr_write_long(m_out, RPC_MSG_DENIED); /* Message */
             xdr_write_long(m_out, RPC_MISMATCH); /* Status */
             xdr_write_long(m_out, 2); /* Min version */
             xdr_write_long(m_out, 2); /* Max version */
         }
 #if DBG
-        printf("RPC OUT = %d, DATA:\n", m_out->size);
+        slirp_printf("RPC OUT = %d, DATA:\n", m_out->size);
         for (int i = 0; i < m_out->size; i++) {
-            printf("%02x ", (m_out->data - m_out->size)[i]);
+            slirp_printf("%02x ", (m_out->data - m_out->size)[i]);
         }
-        printf("\n");
+        slirp_printf("\n");
 #endif
         csocket_send(cs);
     } else { /* Do not reply if message type is not CALL */
-        printf("[%s:RPC] %s received\n", rpc->hostname, rpc->msg == RPC_REPLY ? "Reply" : "Unknown message");
+        slirp_printf("[%s:RPC] %s received\n", rpc->hostname, rpc->msg == RPC_REPLY ? "Reply" : "Unknown message");
     }
     
     host_mutex_unlock(rpc->lock);
@@ -285,16 +286,16 @@ static void print_about(void) {
         char hostname[NAME_HOST_MAX];
         gethostname(hostname, sizeof(hostname));
         hostname[NAME_HOST_MAX-1] = '\0';
-        printf("[NFSD] Starting local NFS daemon on '%s':\n", hostname);
+        slirp_printf("[NFSD] Starting local NFS daemon on '%s':\n", hostname);
         
-        printf("[NFSD] Network File System server\n");
-        printf("[NFSD] Copyright (C) 2005 Ming-Yang Kao\n");
-        printf("[NFSD] Edited in 2011 by ZeWaren\n");
-        printf("[NFSD] Edited in 2013 by Alexander Schneider (Jankowfsky AG)\n");
-        printf("[NFSD] Edited in 2014 2015 by Yann Schepens\n");
-        printf("[NFSD] Edited in 2016 by Peter Philipp (Cando Image GmbH), Marc Harding\n");
-        printf("[NFSD] Mostly rewritten in 2019-2021 by Simon Schubiger for Previous NeXT emulator\n");
-        printf("[NFSD] Rewritten in C in 2025 by Andreas Grabher\n");
+        slirp_printf("[NFSD] Network File System server\n");
+        slirp_printf("[NFSD] Copyright (C) 2005 Ming-Yang Kao\n");
+        slirp_printf("[NFSD] Edited in 2011 by ZeWaren\n");
+        slirp_printf("[NFSD] Edited in 2013 by Alexander Schneider (Jankowfsky AG)\n");
+        slirp_printf("[NFSD] Edited in 2014 2015 by Yann Schepens\n");
+        slirp_printf("[NFSD] Edited in 2016 by Peter Philipp (Cando Image GmbH), Marc Harding\n");
+        slirp_printf("[NFSD] Mostly rewritten in 2019-2021 by Simon Schubiger for Previous NeXT emulator\n");
+        slirp_printf("[NFSD] Rewritten in C in 2025 by Andreas Grabher\n");
     }
     show = 0;
 }
@@ -315,7 +316,7 @@ void rpc_add_program(struct rpc_t* rpc, struct rpc_prog_t* prog) {
         if (prog->sock) {
             local_port = rpc_tcp_to_local(rpc, prog->port);
             if (local_port) {
-                printf("[RPC] %s daemon stopping (TCP: %d -> %d).\n", prog->name, prog->port, local_port);
+                slirp_printf("[RPC] %s daemon stopping (TCP: %d -> %d).\n", prog->name, prog->port, local_port);
                 rpc_tcp_port_unmap(rpc, prog->port);
             }
             local_port = tcpsocket_open(prog->sock, prog->port);
@@ -324,21 +325,21 @@ void rpc_add_program(struct rpc_t* rpc, struct rpc_prog_t* prog) {
                     prog->port = local_port;
                 }
                 rpc_tcp_port_map(rpc, prog->port, local_port);
-                printf("[RPC] %s daemon started (TCP: %d -> %d).\n", prog->name, prog->port, local_port);
+                slirp_printf("[RPC] %s daemon started (TCP: %d -> %d).\n", prog->name, prog->port, local_port);
             } else {
-                printf("[RPC] %s daemon start failed.\n", prog->name);
+                slirp_printf("[RPC] %s daemon start failed.\n", prog->name);
                 tcpsocket_close(prog->sock);
                 prog->sock = tcpsocket_uninit(prog->sock);
             }
         } else {
-            printf("[RPC] Socket initialisation failed.");
+            slirp_printf("[RPC] Socket initialisation failed.");
         }
     } else {
         prog->sock = udpsocket_init(rpc_input, rpc);
         if (prog->sock) {
             local_port = rpc_udp_to_local(rpc, prog->port);
             if (local_port) {
-                printf("[RPC] %s daemon stopping (UDP: %d -> %d).\n", prog->name, prog->port, local_port);
+                slirp_printf("[RPC] %s daemon stopping (UDP: %d -> %d).\n", prog->name, prog->port, local_port);
                 rpc_udp_port_unmap(rpc, prog->port);
             }
             local_port = udpsocket_open(prog->sock, prog->port);
@@ -347,14 +348,14 @@ void rpc_add_program(struct rpc_t* rpc, struct rpc_prog_t* prog) {
                     prog->port = local_port;
                 }
                 rpc_udp_port_map(rpc, prog->port, local_port);
-                printf("[RPC] %s daemon started (UDP: %d -> %d).\n", prog->name, prog->port, local_port);
+                slirp_printf("[RPC] %s daemon started (UDP: %d -> %d).\n", prog->name, prog->port, local_port);
             } else {
-                printf("[RPC] %s daemon start failed.\n", prog->name);
+                slirp_printf("[RPC] %s daemon start failed.\n", prog->name);
                 udpsocket_close(prog->sock);
                 prog->sock = udpsocket_uninit(prog->sock);
             }
         } else {
-            printf("[RPC] Socket initialisation failed.");
+            slirp_printf("[RPC] Socket initialisation failed.");
         }
     }
 }
@@ -414,11 +415,11 @@ static struct rpc_t* rpc_server[EN_MAX_SHARES];
 
 static void rpc_start_server(struct rpc_t* rpc, const char* path, const char* name, uint32_t addr) {
     if (rpc->ft) {
-        printf("[RPC] '%s' already running.\n", rpc->hostname);
+        slirp_printf("[RPC] '%s' already running.\n", rpc->hostname);
         return;
     }
     if (rpc_copy_hostname(rpc->hostname, name, sizeof(rpc->hostname)) == 0) {
-        printf("[RPC] Startup failed for '%s' (no valid host name).\n", name);
+        slirp_printf("[RPC] Startup failed for '%s' (no valid host name).\n", name);
         return;
     }
     
@@ -430,7 +431,7 @@ static void rpc_start_server(struct rpc_t* rpc, const char* path, const char* na
         char addrstr[16];
         struct rpc_prog_t* prog;
         
-        printf("[RPC] Starting '%s' at %s, exporting '%s'.\n", rpc->hostname, 
+        slirp_printf("[RPC] Starting '%s' at %s, exporting '%s'.\n", rpc->hostname, 
                rpc_ip_str(addrstr, addr, 4, sizeof(addrstr)), path);
         
         rpc->lock = host_mutex_create();
@@ -444,14 +445,14 @@ static void rpc_start_server(struct rpc_t* rpc, const char* path, const char* na
         }
         nibind_init(rpc);
     } else {
-        printf("[RPC] Startup failed for '%s', exporting '%s'.\n", rpc->hostname, path);
+        slirp_printf("[RPC] Startup failed for '%s', exporting '%s'.\n", rpc->hostname, path);
     }
 }
 
 static void rpc_stop_server(struct rpc_t* rpc) {
     if (rpc) {
         if (rpc->ft) {
-            printf("[RPC] Stopping '%s'.\n", rpc->hostname);
+            slirp_printf("[RPC] Stopping '%s'.\n", rpc->hostname);
 
             rpc_remove_all_programs(rpc);
             nibind_uninit(rpc);
@@ -514,20 +515,20 @@ static void rpc_broadcast_start(void) {
         if (broadcasthost.udp) {
             broadcasthost.udp_port = udpsocket_open(broadcasthost.udp, PORT_RPC);
             if (broadcasthost.udp_port) {
-                printf("[RPC] Broadcast enabled (UDP: %d -> %d).\n", PORT_RPC, broadcasthost.udp_port);
+                slirp_printf("[RPC] Broadcast enabled (UDP: %d -> %d).\n", PORT_RPC, broadcasthost.udp_port);
             } else {
-                printf("[RPC] Broadcast startup failed.\n");
+                slirp_printf("[RPC] Broadcast startup failed.\n");
                 rpc_broadcast_stop();
             }
         } else {
-            printf("[RPC] Broadcast UDP socket initialisation failed.\n");
+            slirp_printf("[RPC] Broadcast UDP socket initialisation failed.\n");
         }
     }
 }
 
 static int rpc_check_nfs(struct rpc_t* rpc, const char* path, const char* name) {
     if (access(path, F_OK | R_OK) < 0) {
-        printf("[RPC] Cannot access directory '%s'. NFS startup canceled for '%s'.\n", path, name);
+        slirp_printf("[RPC] Cannot access directory '%s'. NFS startup canceled for '%s'.\n", path, name);
         return -1;
     } else if (ft_is_inited(rpc->ft)) {
         if (ft_path_changed(rpc->ft, path)) {
@@ -669,7 +670,7 @@ void rpc_udp_map_to_local_port(struct in_addr* ipNBO, uint16_t* dportNBO) {
     if (dport == PORT_RPC && (ipNBO->s_addr == htonl(CTL_NET | ~(uint32_t)CTL_NET_MASK) ||
                               ipNBO->s_addr == htonl(CTL_NET | ~(uint32_t)CTL_CLASS_MASK(CTL_NET)))) {
         char addrstr[INET_ADDRSTRLEN];
-        printf("[RPC] Broadcast to %s, port %d\n", inet_ntop(AF_INET, ipNBO, addrstr, sizeof(addrstr)), dport);
+        slirp_printf("[RPC] Broadcast to %s, port %d\n", inet_ntop(AF_INET, ipNBO, addrstr, sizeof(addrstr)), dport);
         port = broadcasthost.udp_port;
     } else {
         struct rpc_t* rpc = rpc_find_server(htonl(ipNBO->s_addr));
@@ -716,12 +717,12 @@ const char* rpc_ip_str(char* buf, uint32_t addr, int count, size_t maxsize) {
 void rpc_log(struct rpc_t* rpc, const char *format, ...) {
     va_list vargs;
     
-    if (rpc->log)
+    if (rpc->log && Log_DebugEnabled())
     {
         va_start(vargs, format);
-        printf("[%s:RPC:%s:%d] ", rpc->hostname, rpc->name, rpc->proc);
+        slirp_printf("[%s:RPC:%s:%d] ", rpc->hostname, rpc->name, rpc->proc);
         vprintf(format, vargs);
-        printf("\n");
+        slirp_printf("\n");
         va_end(vargs);
     }
 }

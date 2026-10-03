@@ -23,6 +23,7 @@
  * THE SOFTWARE.
  */
 #include "config.h"
+#include "slirp_log.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -264,7 +265,7 @@ size_t vfs_to_host_path(struct vfs_t* vfs, struct path_t* path) {
     char vfs_path[MAXPATHLEN];
     
     if (!vfs_path_is_absolute(path->vfs)) {
-        printf("path is not absolute\n");
+        slirp_printf("path is not absolute\n");
         strcpy(path->host, "");
         return 0;
     }
@@ -497,7 +498,7 @@ void vfs_set_sattr(struct vfs_t* vfs, const struct path_t* path, struct sattr_t*
 #else
     if (setxattr(path->host, NFSD_ATTRS, buffer, strlen(buffer), 0, XATTR_NOFOLLOW) != 0)
 #endif
-        printf("setxattr(%s) failed\n", path->host);
+        slirp_printf("setxattr(%s) failed\n", path->host);
 #endif
 }
 
@@ -562,7 +563,7 @@ uint64_t vfs_get_fhandle(const struct path_t* path) {
         }
 #endif
     } else {
-        printf("No file handle for %s\n", path->vfs);
+        slirp_printf("No file handle for %s\n", path->vfs);
     }
     
     return result;

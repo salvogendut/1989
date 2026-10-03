@@ -23,6 +23,7 @@
  * THE SOFTWARE.
  */
 #include <slirp.h>
+#include "slirp_log.h"
 
 #include "rpc.h"
 #include "bootparam.h"

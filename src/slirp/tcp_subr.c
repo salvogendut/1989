@@ -40,6 +40,7 @@
 
 #define WANT_SYS_IOCTL_H
 #include <stdlib.h>
+#include "slirp_log.h"
 #include <slirp.h>
 
 #include "rpc/rpc.h"
@@ -416,7 +417,7 @@ int tcp_fconnect(struct socket *so)
     /* We don't care what port we get */
     ret = connect(s,(struct sockaddr *)&addr,sizeof (addr));
     if(ret < 0)
-        printf("[SLIRP:TCP] connect()ing, addr.sin_port=%d, addr.sin_addr.s_addr=%.16s res=%d,err=%s\n",
+        slirp_printf("[SLIRP:TCP] connect()ing, addr.sin_port=%d, addr.sin_addr.s_addr=%.16s res=%d,err=%s\n",
                   ntohs(addr.sin_port), inet_ntop(AF_INET, &addr.sin_addr, addrstr, sizeof(addrstr)), ret, strerror(errno));
 
     /*

@@ -1,4 +1,5 @@
 #include "configuration.h"
+#include "slirp_log.h"
 #include "slirp.h"
 #include "rpc/rpc.h"
 
@@ -51,7 +52,7 @@ static int get_dns_addr(struct in_addr *pdns_addr)
     }
 	
     if ((ret = GetNetworkParams(FixedInfo, &BufLen)) != ERROR_SUCCESS) {
-        printf("GetNetworkParams failed. ret = %08x\n", (u_int)ret );
+        slirp_printf("GetNetworkParams failed. ret = %08x\n", (u_int)ret );
         if (FixedInfo) {
             GlobalFree(FixedInfo);
             FixedInfo = NULL;
@@ -63,12 +64,12 @@ static int get_dns_addr(struct in_addr *pdns_addr)
     inet_aton(pIPAddr->IpAddress.String, &tmp_addr);
     *pdns_addr = tmp_addr;
 #if 0
-    printf( "DNS Servers:\n" );
-    printf( "DNS Addr:%s\n", pIPAddr->IpAddress.String );
+    slirp_printf( "DNS Servers:\n" );
+    slirp_printf( "DNS Addr:%s\n", pIPAddr->IpAddress.String );
     
     pIPAddr = FixedInfo -> DnsServerList.Next;
     while ( pIPAddr ) {
-            printf( "DNS Addr:%s\n", pIPAddr ->IpAddress.String );
+            slirp_printf( "DNS Addr:%s\n", pIPAddr ->IpAddress.String );
             pIPAddr = pIPAddr ->Next;
     }
 #endif

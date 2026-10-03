@@ -23,6 +23,7 @@
  * THE SOFTWARE.
  */
 #include <slirp.h>
+#include "slirp_log.h"
 #include <stdlib.h>
 #include <inttypes.h>
 #ifndef _WIN32

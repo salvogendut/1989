@@ -39,6 +39,7 @@
  */
 
 #include <stdarg.h>
+#include "slirp_log.h"
 #include <stddef.h>
 #include <stdbool.h>
 #include <sys/types.h>

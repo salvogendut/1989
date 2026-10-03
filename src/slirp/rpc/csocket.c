@@ -23,6 +23,7 @@
  * THE SOFTWARE.
  */
 #include <slirp.h>
+#include "slirp_log.h"
 #include <stdlib.h>
 
 #include "csocket.h"
@@ -110,9 +111,9 @@ void csocket_send(struct csocket_t* cs) {
         nBytes = sendto(cs->m_Socket, (const char *)cs->m_Output->head, cs->m_Output->size, 0, (struct sockaddr *)&cs->m_RemoteAddr, sizeof(struct sockaddr));
     
     if (nBytes < 0)
-        perror("[RPC] Socket send");
+        slirp_perror("[RPC] Socket send");
     else if (nBytes != cs->m_Output->size)
-        perror("[RPC] Socket send, size mismatch");
+        slirp_perror("[RPC] Socket send, size mismatch");
 }
 
 void csocket_run(struct csocket_t* cs) {
@@ -127,7 +128,7 @@ void csocket_run(struct csocket_t* cs) {
             nBytes = recvfrom(cs->m_Socket, (recv_data_t*)cs->m_Input->head, cs->m_Input->capacity, 0, (struct sockaddr *)&cs->m_RemoteAddr, &nSize);
         }
         if (nBytes == 0) {
-            perror("[RPC] Socket closed");
+            slirp_perror("[RPC] Socket closed");
             break;
         }
         else if (nBytes == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
@@ -150,7 +151,7 @@ void csocket_run(struct csocket_t* cs) {
                     } while (nBytes < nLen && (nExtra > 0 || (nExtra == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))));
                     
                     if (nExtra <= 0) {
-                        perror("[RPC] Missing data");
+                        slirp_perror("[RPC] Missing data");
                         break;
                     }
                 }
@@ -162,7 +163,7 @@ void csocket_run(struct csocket_t* cs) {
                 cs->m_pListener(cs); /* notify listener */
         } else {
             if (errno != EBADF) {
-                perror("[RPC] Socket receive");
+                slirp_perror("[RPC] Socket receive");
             }
             break;
         }

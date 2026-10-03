@@ -39,6 +39,7 @@
  */
 
 #include <slirp.h>
+#include "slirp_log.h"
 
 u_int16_t ip_id;
 

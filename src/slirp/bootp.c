@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  */
 #include <slirp.h>
+#include "slirp_log.h"
 #include <unistd.h>
 #include "ctl.h"
 

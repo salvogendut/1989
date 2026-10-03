@@ -23,6 +23,7 @@
  * THE SOFTWARE.
  */
 #include <slirp.h>
+#include "slirp_log.h"
 #include <stdlib.h>
 
 #include "rpc.h"
@@ -41,7 +42,7 @@ static void ft_add(struct ft_t* ft, uint64_t fhandle, const char* path) {
     while (*entry) {
         if ((*entry)->fhandle == fhandle) {
             if (strcmp((*entry)->path, path)) {
-                printf("FILE TABLE ENTRY PATH CHANGED: %s->%s\n", (*entry)->path, path);
+                slirp_printf("FILE TABLE ENTRY PATH CHANGED: %s->%s\n", (*entry)->path, path);
                 free((*entry)->path);
                 (*entry)->path = strdup(path);
             }

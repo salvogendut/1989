@@ -23,6 +23,7 @@
  * THE SOFTWARE.
  */
 #include <slirp.h>
+#include "slirp_log.h"
 #include <stdlib.h>
 
 #include "rpc.h"
@@ -46,7 +47,7 @@ const struct nireg_t ni_register_template[] =
 static void ni_register_program(struct ni_prog_t* prog) {
     prog->udp_port = prog->udp_prog->port;
     prog->tcp_port = prog->tcp_prog->port;
-    printf("[NETINFOBIND] Registering '%s' at udp:%d, tcp:%d\n", prog->tag, prog->udp_port, prog->tcp_port);
+    slirp_printf("[NETINFOBIND] Registering '%s' at udp:%d, tcp:%d\n", prog->tag, prog->udp_port, prog->tcp_port);
 }
 #endif
 
@@ -70,7 +71,7 @@ static void ni_register_add(struct rpc_t* rpc, struct nireg_t* nireg) {
     nireg->udp_port = nireg->udp_prog->port;
     nireg->tcp_port = nireg->tcp_prog->port;
     
-    printf("[NETINFOBIND] Registering '%s' at udp:%d, tcp:%d\n", nidb->tag, nireg->udp_port, nireg->tcp_port);
+    slirp_printf("[NETINFOBIND] Registering '%s' at udp:%d, tcp:%d\n", nidb->tag, nireg->udp_port, nireg->tcp_port);
 
     while (*entry) {
         entry = &(*entry)->next;

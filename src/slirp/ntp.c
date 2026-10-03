@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  */
 #include <slirp.h>
+#include "slirp_log.h"
 
 #define    JAN_1970    2208988800
 

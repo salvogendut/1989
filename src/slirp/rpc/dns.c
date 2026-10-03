@@ -23,6 +23,7 @@
  * THE SOFTWARE.
  */
 #include <slirp.h>
+#include "slirp_log.h"
 #include <stdlib.h>
 #include <ctype.h>
 
@@ -77,7 +78,7 @@ static void vdns_add_record(struct vdns_record_t* rec, uint32_t addr) {
             entry = &(*entry)->next;
             continue;
         }
-        printf("[DNS] Duplicate record (%d) %s\n", rec->type, rec->key);
+        slirp_printf("[DNS] Duplicate record (%d) %s\n", rec->type, rec->key);
         free((*entry)->rec->key);
         free((*entry)->rec);
         (*entry)->rec  = rec;
@@ -235,11 +236,11 @@ static struct vdns_record_t* vdns_query(uint8_t* data, size_t size) {
     char qname[1024];
     char domain[256];
     if (size > sizeof(qname)) {
-        printf("[DNS] query too long (%d)\n", (int)size);
+        slirp_printf("[DNS] query too long (%d)\n", (int)size);
         return NULL;
     }
     vdns_rec_type qtype = to_dot(qname, data, size);
-    printf("[DNS] query(%d) '%s'\n", qtype, qname);
+    slirp_printf("[DNS] query(%d) '%s'\n", qtype, qname);
     
     if (qtype < 0) return NULL;
     
@@ -300,7 +301,7 @@ static void vdns_input(struct csocket_t* pSocket) {
         msg_write_word(msg,  8, 0); /* NSCOUNT */
         msg_write_word(msg, 10, 0); /* ARCOUNT */
         
-        printf("[DNS] no record found.\n");
+        slirp_printf("[DNS] no record found.\n");
     } else {
         /*
          1... .... .... .... = Response: Message is a response
@@ -334,7 +335,7 @@ static void vdns_input(struct csocket_t* pSocket) {
             msg_write_long(msg, n, 60);           /* TTL */
             n += 4;
             
-            printf("[DNS] reply '%s' -> %s\n", rec->key, rpc_ip_str(addrstr, rec->inaddr, 4, sizeof(addrstr)));
+            slirp_printf("[DNS] reply '%s' -> %s\n", rec->key, rpc_ip_str(addrstr, rec->inaddr, 4, sizeof(addrstr)));
             switch(rec->type) {
                 case REC_A:
                 case REC_PTR:
@@ -344,12 +345,12 @@ static void vdns_input(struct csocket_t* pSocket) {
                     n += rec->size;
                     break;
                 default:
-                    printf("[DNS] unknown query:%d ('%s')\n", rec->type, rec->key);
+                    slirp_printf("[DNS] unknown query:%d ('%s')\n", rec->type, rec->key);
                     break;
             }
         } else {
             msg_write_word(msg, 6, 0); /* no answers */
-            printf("[DNS] no record found.\n");
+            slirp_printf("[DNS] no record found.\n");
         }
     }
     
@@ -359,13 +360,13 @@ static void vdns_input(struct csocket_t* pSocket) {
     
 #if DBG
     for (int i = 0; i < n; i++) {
-        printf("%02x ", msg[i]);
+        slirp_printf("%02x ", msg[i]);
     }
-    printf("\n");
+    slirp_printf("\n");
     for (int i = 0; i < m_out->size; i++) {
-        printf("%02x ", m_out->data[i]);
+        slirp_printf("%02x ", m_out->data[i]);
     }
-    printf("\n");
+    slirp_printf("\n");
 #endif
     
     csocket_send(pSocket);
@@ -381,13 +382,13 @@ void vdns_init(void) {
     if (vdns.udp) {
         vdns.local_port = udpsocket_open(vdns.udp, PORT_DNS);
         if (vdns.local_port) {
-            printf("[DNS] started (UDP: %d -> %d).\n", PORT_DNS, vdns.local_port);
+            slirp_printf("[DNS] started (UDP: %d -> %d).\n", PORT_DNS, vdns.local_port);
         } else {
-            printf("[DNS] start failed.\n");
+            slirp_printf("[DNS] start failed.\n");
             vdns_uninit();
         }
     } else {
-        printf("[DNS] Socket initialisation failed.\n");
+        slirp_printf("[DNS] Socket initialisation failed.\n");
         host_mutex_destroy(vdns.mutex);
     }
 
@@ -397,7 +398,7 @@ void vdns_init(void) {
         hostname[NAME_HOST_MAX-1] = '\0';
         vfscat(hostname, NAME_DOMAIN, sizeof(hostname));
         
-        printf("[DNS] Creating database.\n");
+        slirp_printf("[DNS] Creating database.\n");
         
         addRecord(0x7F000001,        "localhost");
         addRecord(CTL_NET|CTL_ALIAS, hostname);
@@ -413,14 +414,14 @@ void vdns_uninit(void) {
         vdns.udp = udpsocket_uninit(vdns.udp);
         host_mutex_destroy(vdns.mutex);
     }
-    printf("[DNS] Deleting database.\n");
+    slirp_printf("[DNS] Deleting database.\n");
     vdns_delete_db();
 }
 
 void vdns_add_rec(const char* name, uint32_t addr) {
     char addrstr[16];
     char hostname[NAME_HOST_MAX];
-    printf("[DNS] Adding record for %s: '%s'.\n", rpc_ip_str(addrstr, addr, 4, sizeof(addrstr)), name);
+    slirp_printf("[DNS] Adding record for %s: '%s'.\n", rpc_ip_str(addrstr, addr, 4, sizeof(addrstr)), name);
     vfscpy(hostname, name, sizeof(hostname));
     vfscat(hostname, NAME_DOMAIN, sizeof(hostname));
     addRecord(addr, hostname);
@@ -428,7 +429,7 @@ void vdns_add_rec(const char* name, uint32_t addr) {
 
 void vdns_remove_rec(uint32_t addr) {
     char addrstr[16];
-    printf("[DNS] Removing record for %s.\n", rpc_ip_str(addrstr, addr, 4, sizeof(addrstr)));
+    slirp_printf("[DNS] Removing record for %s.\n", rpc_ip_str(addrstr, addr, 4, sizeof(addrstr)));
     vdns_remove_records(addr);
 }
 

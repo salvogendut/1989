@@ -16,6 +16,7 @@
  */
 
 #include <stdlib.h>
+#include "slirp_log.h"
 #include <slirp.h>
 
 struct	mbuf *mbutl;

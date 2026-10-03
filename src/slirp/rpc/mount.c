@@ -23,6 +23,7 @@
  * THE SOFTWARE.
  */
 #include <slirp.h>
+#include "slirp_log.h"
 #include <stdlib.h>
 #include <inttypes.h>
 
@@ -54,7 +55,7 @@ static void mnt_add(struct mount_t** entry, char* name, char* path) {
             entry = &(*entry)->next;
             continue;
         }
-        printf("[RPC] Note: rmtab duplicate entry for '%s' from %s.\n", path, name);
+        slirp_printf("[RPC] Note: rmtab duplicate entry for '%s' from %s.\n", path, name);
         return;
     }
     *entry = (struct mount_t*)malloc(sizeof(struct mount_t));
