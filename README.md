@@ -7,7 +7,8 @@ Motorola 68K based workstations, written in C/C++ with an SDL3 desktop
 interface. It is built by integrating the code base of the
 [Previous](https://previous.sourceforge.net/) NeXT emulator (itself derived
 from Hatari) into the scaffolding conventions shared by the sibling
-"happy years" emulators (1983, 1984, 1985, 1986).
+"happy years" emulators (1983, 1984, 1985, 1986). In its current form 1989
+is essentially a fork of Previous.
 
 ## Emulated machines
 
