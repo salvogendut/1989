@@ -709,9 +709,19 @@ void Screen_Reset(void) {
  */
 void Screen_Init(void) {
 	int i;
+	int win_w = width;
+	int win_h = height;
+
+	/* Open at the saved window scale: creating the window at the right
+	 * size is reliable on Wayland, where a resize request made right
+	 * after creation can be overridden by the compositor. */
+	if (UI89Config_.nWindowScale > 0) {
+		win_w = width * UI89Config_.nWindowScale / 100;
+		win_h = height * UI89Config_.nWindowScale / 100;
+	}
 
 	SDL_WindowFlags flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY;
-	if (SDL_CreateWindowAndRenderer(PROG_NAME, width, height, flags, &sdlWindow, &sdlRenderer) == false) {
+	if (SDL_CreateWindowAndRenderer(PROG_NAME, win_w, win_h, flags, &sdlWindow, &sdlRenderer) == false) {
 		Main_ErrorExit("Failed to create window and renderer:", SDL_GetError(), -1);
 	}
 #ifdef ENABLE_RENDERING_THREAD
@@ -939,18 +949,6 @@ void Screen_SaveWindowScale(void) {
 	if (pct > 200)
 		pct = 200;
 	UI89Config_.nWindowScale = pct;
-}
-
-/*-----------------------------------------------------------------------*/
-/**
- * Apply the saved window scale (nWindowScale). Called once after the user
- * configuration is loaded, since the first screen init runs before it.
- */
-void Screen_ApplyWindowScale(void) {
-	if (bInFullScreen || UI89Config_.nWindowScale <= 0)
-		return;
-	SDL_SetWindowSize(sdlWindow, width * UI89Config_.nWindowScale / 100,
-	                  height * UI89Config_.nWindowScale / 100);
 }
 
 /*-----------------------------------------------------------------------*/

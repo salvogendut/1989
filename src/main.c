@@ -334,6 +334,11 @@ static bool Main_Init(void) {
 	}
 	Log_Printf(LOG_INFO, PROG_NAME ", compiled on:  " __DATE__ ", " __TIME__ "\n");
 
+	/* Load the 1989 UI settings before the window is created so it can be
+	 * opened at the saved scale (a later resize is ignored by some
+	 * Wayland compositors). */
+	overlay_config_load();
+
 	/* Init user interface */
 	UI_Init();
 
@@ -341,7 +346,6 @@ static bool Main_Init(void) {
 	notify_init();
 	overlay_init();
 	overlay_update_leds();
-	Screen_ApplyWindowScale();
 
 	/* First run: create the main configuration file (1989.conf) with the
 	 * current defaults, matching the sibling emulators. */

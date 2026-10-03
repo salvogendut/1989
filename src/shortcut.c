@@ -32,10 +32,12 @@ static void ShortCut_FullScreen(void)
 	if (!bInFullScreen)
 	{
 		Screen_EnterFullScreen();
+		ConfigureParams.Screen.bFullScreen = true;
 	}
 	else
 	{
 		Screen_ReturnFromFullScreen();
+		ConfigureParams.Screen.bFullScreen = false;
 	}
 }
 

@@ -28,10 +28,6 @@ extern void Screen_SizeChanged(void);
 extern void Screen_ScaleWindow(int dir);
 /* Store the current window scale in the UI config (for the exit save). */
 extern void Screen_SaveWindowScale(void);
-/* Apply the saved window scale (nWindowScale); call once after the config
- * is loaded. */
-extern void Screen_ApplyWindowScale(void);
-
 extern void Screen_Init(void);
 extern void Screen_UnInit(void);
 

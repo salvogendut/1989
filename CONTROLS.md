@@ -21,6 +21,10 @@ fullscreen.
 Quitting shows a confirmation in the same overlay style as the F9 panel:
 `Left`/`Right` selects OK or Cancel, `Enter` confirms and `Esc` cancels.
 
+The window scale and the fullscreen state are stored in `1989.conf`
+(`nWindowScale` in `[UI89]`, `bFullScreen` in `[Screen]`) and restored on the
+next start.
+
 The legacy configurable shortcuts still work (Alt+O opens the old options
 dialog, Alt+G screenshot, Alt+R sound recording, Alt+M mouse grab, Alt+C
 cold reset, Alt+P pause, Alt+D m68k debugger, Alt+I i860 debugger, Alt+Q
