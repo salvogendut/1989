@@ -439,7 +439,7 @@ dist_pixmaps_DATA = icons/1989.png
 # Files shipped in the dist tarball but not built (license, docs, examples).
 EXTRA_DIST = LICENSE README.md ROMS.md Development.md USAGE.md CONTROLS.md INSTALL.md \
 	ROADMAP.md docs/STATUS.md docs/ROMV66-0001E-02588.ASM \
-	1989.conf.example 1989.spec 1989.png \
+	1989.conf.example 1989.spec 1989.png 1989-logo.png \
 	roms/README \
 	src/ditool_cpp/compat.h \
 	src/ditool_cpp/DiskImage.h \
