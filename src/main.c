@@ -527,11 +527,6 @@ int main(int argc, char *argv[])
 		Main_Loop();
 	}
 
-	/* Persist the final configuration. Overlay selections are saved as
-	 * they happen; this is a safety net for anything else. */
-	Configuration_Save();
-	overlay_config_save();
-
 	/* Stop recording */
 	Grab_Stop();
 	if (Capture_GifActive())
@@ -539,6 +534,13 @@ int main(int argc, char *argv[])
 
 	/* Return from full screen */
 	Screen_ReturnFromFullScreen();
+
+	/* Persist the final configuration (overlay selections are saved as
+	 * they happen; this records the current window scale and acts as a
+	 * safety net for anything else). */
+	Screen_SaveWindowScale();
+	Configuration_Save();
+	overlay_config_save();
 
 	/* Un-init emulation system */
 	overlay_quit();

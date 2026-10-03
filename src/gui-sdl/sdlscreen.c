@@ -920,6 +920,24 @@ void Screen_ScaleWindow(int dir) {
 
 /*-----------------------------------------------------------------------*/
 /**
+ * Store the current window scale in the UI config so it is persisted when
+ * the configuration is saved on exit (covers manual window resizes too).
+ */
+void Screen_SaveWindowScale(void) {
+	int w, h, pct;
+
+	if (width <= 0 || !SDL_GetWindowSize(sdlWindow, &w, &h))
+		return;
+	pct = (w * 100 + width / 2) / width;
+	if (pct < 25)
+		pct = 25;
+	if (pct > 200)
+		pct = 200;
+	UI89Config_.nWindowScale = pct;
+}
+
+/*-----------------------------------------------------------------------*/
+/**
  * Apply the saved window scale (nWindowScale). Called once after the user
  * configuration is loaded, since the first screen init runs before it.
  */
