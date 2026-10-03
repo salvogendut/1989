@@ -1044,7 +1044,7 @@ uint8_t SCSIdisk_Send_Message(void) {
 
 void SCSIdisk_Receive_Command(uint8_t *cdb, uint8_t identify) {
     uint8_t lun = 0;
-    leds_ping(LED_SCSI);
+    leds_ping_scsi(SCSIbus.target);
     
     /* Get logical unit number */
     if (identify&MSG_IDENTIFY_MASK) { /* If identify message is valid */

@@ -22,6 +22,7 @@ const char Change_fileid[] = "Previous change.c";
 #include "reset.h"
 #include "screen.h"
 #include "statusbar.h"
+#include "overlay.h"
 #include "video.h"
 #include "hatari-glue.h"
 #include "scsi.h"
@@ -356,6 +357,8 @@ void Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 
 	/* update statusbar info (CPU, MHz, mem etc) */
 	Statusbar_UpdateInfo();
+	/* Keep the activity-LED bar in sync with the attached media. */
+	overlay_update_leds();
 	Dprintf("done.\n");
 }
 

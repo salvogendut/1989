@@ -389,6 +389,8 @@ void overlay_update_leds(void) {
 	leds_set_enabled(LED_DSP,
 	                 ConfigureParams.System.nDSPType != DSP_TYPE_NONE);
 	leds_set_enabled(LED_SCSI, true);
+	for (int i = 0; i < ESP_MAX_DEVS; i++)
+		leds_set_scsi_present(i, ConfigureParams.SCSI.target[i].bDiskInserted);
 	leds_set_enabled(LED_FLOPPY, true);
 	leds_set_enabled(LED_MO, true);
 	leds_set_enabled(LED_NET, ConfigureParams.Ethernet.bEthernetConnected);

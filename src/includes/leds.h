@@ -3,8 +3,9 @@
  * Categories (color coded):
  *   68K CPU     - grey / white (with CPU clock label)
  *   DSP 56001   - dark blue / bright blue
- *   SCSI disk   - dark red / bright red
- *   Floppy      - dark green / bright green
+ *   SCSI disk   - dark green / bright green (one lamp per attached target
+ *                 when more than one disk is in use)
+ *   Floppy      - dark red / bright red
  *   Magneto-opt - dark cyan / bright cyan
  *   Ethernet    - dark yellow / bright yellow
  *   Sound       - dark purple / bright magenta
@@ -30,6 +31,10 @@ extern "C" {
 
 #define LED_GLOW_MS   120
 
+/* Number of SCSI targets that can get their own lamp when several disks are
+ * attached (matches ESP_MAX_DEVS). */
+#define LED_SCSI_TARGETS 7
+
 typedef enum {
     LED_CPU = 0,
     LED_DSP,
@@ -46,8 +51,13 @@ typedef enum {
 void leds_set_enabled(LedId id, bool enabled);
 /* Update the CPU clock label (MHz) shown beside the CPU lamp. */
 void leds_set_cpu_frequency(unsigned mhz);
+/* Mark a SCSI target as attached. When more than one target is attached the
+ * single SCSI lamp is replaced by one lamp per target ("SCSI 0", ...). */
+void leds_set_scsi_present(int target, bool present);
 /* Signal one frame of activity for the given LED. */
 void leds_ping(LedId id);
+/* Signal one frame of activity for a SCSI target's lamp. */
+void leds_ping_scsi(int target);
 
 /* Render the LED bar across (x,y,w,h) in logical window coordinates. */
 void leds_render(SDL_Renderer *r, int x, int y, int w, int h);

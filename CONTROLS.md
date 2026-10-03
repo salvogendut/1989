@@ -83,8 +83,9 @@ The dark strip at the very bottom of the window shows activity LEDs:
 
 - **68K** grey/white CPU activity (with clock label)
 - **DSP** blue — DSP 56001 host I/O
-- **SCSI** red — SCSI disk transfers
-- **FLOPPY** green — floppy controller I/O
+- **SCSI** green — SCSI disk transfers (one lamp per attached target,
+  labelled `SCSI 0`, `SCSI 1`, ... when more than one disk is in use)
+- **FLOPPY** red — floppy controller I/O
 - **MAG-OPT** cyan — magneto-optical drive activity
 - **ETHERNET** yellow — network traffic
 - **SOUND** purple — audio generation
