@@ -23,6 +23,7 @@ extern void Screen_BlitDimension(uint32_t* vram, SDL_Texture* tex);
 extern void Screen_Blank(SDL_Texture* tex);
 
 extern bool Screen_Repaint(void);
+extern void Screen_RequestRepaint(void);
 extern void Screen_SizeChanged(void);
 /* Step the window scale up (+1) or down (-1), keeping the aspect ratio. */
 extern void Screen_ScaleWindow(int dir);

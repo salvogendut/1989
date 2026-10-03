@@ -29,6 +29,7 @@ const char Main_fileid[] = "Previous main.c";
 #include "statusbar.h"
 #include "str.h"
 #include "overlay.h"
+#include "ui_config.h"
 #include "leds.h"
 #include "notify.h"
 #include "capture.h"
@@ -310,7 +311,7 @@ static void Main_Loop(void) {
  */
 static bool Main_StartMenu(void) {
 	/* Boot straight into emulation; the config dialog is only shown at
-	 * startup when the user explicitly enabled it (F12 opens it anytime). */
+	 * startup when the user explicitly enabled it (F1 opens it anytime). */
 	if (ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup) {
 		Dialog_DoProperty();
 	}
@@ -337,7 +338,7 @@ static bool Main_Init(void) {
 	/* Load the 1989 UI settings before the window is created so it can be
 	 * opened at the saved scale (a later resize is ignored by some
 	 * Wayland compositors). */
-	overlay_config_load();
+	UI89_Load();
 
 	/* Init user interface */
 	UI_Init();
@@ -351,7 +352,7 @@ static bool Main_Init(void) {
 	 * current defaults, matching the sibling emulators. */
 	if (!File_Exists(sConfigFileName)) {
 		Configuration_Save();
-		overlay_config_save();
+		UI89_Save();
 	}
 
 	/* Init emulation */
@@ -539,12 +540,11 @@ int main(int argc, char *argv[])
 	/* Return from full screen */
 	Screen_ReturnFromFullScreen();
 
-	/* Persist the final configuration (overlay selections are saved as
-	 * they happen; this records the current window scale and acts as a
+	/* Persist the final configuration (accepted overlay changes are saved on close; this records the current window scale and acts as a
 	 * safety net for anything else). */
 	Screen_SaveWindowScale();
 	Configuration_Save();
-	overlay_config_save();
+	UI89_Save();
 
 	/* Un-init emulation system */
 	overlay_quit();

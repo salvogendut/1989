@@ -1,47 +1,45 @@
 # Roadmap
 
-1989 is built by integrating the Previous 4.3 NeXT emulator into the shared
-SDL3 "happy years" scaffolding. The machine emulation itself comes from
-Previous and is mature; the project work is about matching the sibling
-conventions and polishing the experience.
+1989 integrates the Previous 4.3 core with the shared SDL3 desktop experience.
+The [interface inventory](docs/INTERFACE.md) is the checklist for F1 migration.
 
-## Milestone 0 — Scaffolding and integration (done)
+## Implemented
 
-- [x] Project scaffolding mirroring the sibling emulators (autotools, SDL3,
-      desktop/metainfo/icons, man page, packaging).
-- [x] Previous 4.3 code base integrated under `src/`.
-- [x] Autotools build replacing Previous's CMake build, with the checked-in
-      generated CPU sources.
-- [x] ROM install layout (`$(pkgdatadir)/roms`) with `ROM_INSTALL_DIR`
-      fallback and a source-tree `roms/` lookup.
-- [x] First successful native build (`autoreconf`/`configure`/`make`), tests,
-      and `make dist`; emulator boots the ROM monitor and runs its loop.
-- [ ] Boot a NeXTstep image to a usable desktop.
+- Previous core, checked-in generated CPU sources and Autotools native build.
+- Firmware/resource installation, desktop integration, RPM/Debian/macOS
+  packaging scaffolding and `ditool`.
+- F9 General/Media/Extensions/Advanced tabs, activity LEDs and function hints.
+- Private settings drafts; Save/Discard; shared restart policy; confirmed
+  F5 restart; per-drive removable-media updates in F9 and F1.
+- Live display/audio/network-connection/tablet/printer settings; boot options
+  saved for the next boot without automatically resetting the guest.
+- Window/fullscreen persistence, relative mouse capture, clipboard typing.
+- PPM/GIF capture, optional FFmpeg optimization, CRT, notifications.
+- Native image/ROM pickers, SCSI type and media protection, exclusive sparse
+  blank-image creation, and tests for edit/apply/file-picker boundaries.
 
-## Milestone 1 — Happy-years UI (in progress)
+## Next interface work
 
-- [x] F9 options overlay with General / Media / Extensions / Advanced tabs
-      (Advanced gated by the General "Tinker" switch).
-- [x] Activity LED bar and function-key hint strip at the bottom of the
-      window, with pings from the device emulation.
-- [x] Function keys: F4 screenshot (PPM), F6 GIF capture, F9 overlay,
-      F11 fullscreen.
-- [x] Toast notifications (screen/console/off).
-- [x] Boot straight into emulation (no startup config dialog).
-- [ ] GIF-capture polish: webp/AVI parity, optional ffmpeg optimize pass.
-- [ ] Browser (Emscripten/WASM) frontend using the shared web scaffolding.
-- [ ] Test suite growth: config parsing, ROM loading, CPU core self-tests.
+- Migrate keyboard/mouse mapping and sensitivity, NFS/network detail,
+  printer paper/output settings and full NeXTdimension configuration.
+- Add custom RAM banks/speed and the remaining boot diagnostic controls.
+- Replace legacy missing-file dialogs, alerts and config import/export.
+- Match hardware-specific media restrictions and second-MO-drive guidance
+  throughout F9; validate created images against supported guest formats.
+- Provide a separate save-for-next-launch workflow for hardware changes.
+- Run FFmpeg post-processing asynchronously; extend capture beyond GIF.
+- Improve UI-only coverage on macOS/Windows and native file-dialog backends.
 
-## Milestone 2 — Polish
+## Compatibility and distribution
 
-- [ ] Flatpak manifest (`io.github.salvogendut.Emulator1989.yml`).
-- [ ] Continuous integration builds.
-- [ ] Documentation of the NeXT hardware matrix in `docs/STATUS.md`.
+- Validate a usable NeXTstep desktop and disk operations across machine
+  variants; component tests alone do not establish OS compatibility.
+- Grow ROM, CPU and device integration tests.
+- Browser/Emscripten frontend (`web/` is currently a placeholder).
+- Flatpak manifest and continuous integration builds.
 
 ## Upstream alignment
 
-Keep `src/` close to the Previous 4.3 tree to ease merging upstream fixes.
-Containerized changes are limited to `paths.c` (config dir name), `rom.c`
-(`Rom_GetDefaultPath`), `configuration.c` (startup dialog default), branding
-strings, and the new happy-years UI modules (`overlay.c`, `leds.c`,
-`notify.c`, `capture.c`, `gifcap.c`).
+Keep emulator changes separate from desktop policy. `settings.c` owns apply
+classification, `change.c` owns runtime subsystem changes, and overlay drawing,
+media IO and UI persistence have their own modules. See [Development.md](Development.md).

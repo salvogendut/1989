@@ -1,13 +1,12 @@
 # 1989 configuration
-# This is the main configuration file. On first run 1989 creates
-# ~/.config/1989/1989.conf with these defaults; edit it there (or copy this
-# example) or use the F9 overlay / F1 options dialog.
+# Example keys for ~/.config/1989/1989.conf (created on first run).
+# This is a partial example; the generated file includes all defaults.
+# Edit while the emulator is closed, or use F9 / the F1 legacy dialog.
 # All paths may be absolute or relative to the current working directory.
 
 [System]
-# 0 = NeXT Computer (68030 Cube), 1 = NeXTcube, 2 = NeXTcube Turbo,
-# 3 = NeXTstation, 4 = NeXTstation Turbo, 5 = NeXTstation Color,
-# 6 = NeXTstation Turbo Color, 7 = NeXTdimension Graphics Board
+# 0 = NeXT Computer (68030), 1 = NeXTcube (68040), 2 = NeXTstation.
+# Turbo and Color are separate flags; NeXTdimension is configured separately.
 nMachineType = 0
 bColor = 0
 bTurbo = 0
@@ -19,27 +18,28 @@ nCpuLevel = 3
 nCpuFreq = 25
 bCompatibleCpu = 0
 bRealtime = 0
-nDSPType = 0
+nDSPType = 2
 bDSPMemoryExpansion = 0
-n_FPUType = 0
+n_FPUType = 68882
 bCompatibleFPU = 1
+# Retained for config compatibility; the NeXT core always enables the MMU.
 bMMU = 1
 
 [Memory]
-nMemoryBankSize0 = 4
-nMemoryBankSize1 = 4
-nMemoryBankSize2 = 4
-nMemoryBankSize3 = 4
-nMemorySpeed = 0
+nMemoryBankSize0 = 16
+nMemoryBankSize1 = 16
+nMemoryBankSize2 = 16
+nMemoryBankSize3 = 16
+nMemorySpeed = 1
 
 [Boot]
 nBootDevice = 0
-bEnableDRAMTest = 1
-bEnablePot = 0
-bEnableSoundTest = 0
-bEnableSCSITest = 0
+bEnableDRAMTest = 0
+bEnablePot = 1
+bEnableSoundTest = 1
+bEnableSCSITest = 1
 bLoopPot = 0
-bVerbose = 0
+bVerbose = 1
 bExtendedPot = 0
 bVisible = 0
 
@@ -66,7 +66,7 @@ bWriteProtected0 = 0
 # ... targets 1..6 follow the same pattern
 
 [Floppy]
-# 400k, 720k, 1440k (and 2.88M) floppy images
+# 720 KiB, 1.44 MiB or 2.88 MiB raw floppy images
 szImageName0 =
 bDriveConnected0 = 0
 bDiskInserted0 = 0
@@ -74,15 +74,21 @@ bWriteProtected0 = 0
 # ... drives 1..3 follow the same pattern
 
 [MagnetoOptical]
-# Magneto-optical disk image (sd)
-szImageName =
-bDiskInserted = 0
-bWriteProtected = 0
+# Previous-compatible MO image; repeat with suffix 1 for the second drive.
+szImageName0 =
+bDriveConnected0 = 0
+bDiskInserted0 = 0
+bWriteProtected0 = 0
 
 [Ethernet]
-# Networking: 0 = disabled, 1 = SLiRP user-mode NAT, 2 = pcap (if built with pcap)
-nEthernetType = 0
-nPort = 0
+bEthernetConnected = 0
+bTwistedPair = 0
+# 0 = SLiRP, 1 = pcap (requires build support).
+nHostInterface = 0
+szInterfaceName =
+bNetworkTime = 0
+# NFS directory/name keys are szNFSPathName0..3 and szNFSHostName0..3.
+# Keep the generated first share path or select a valid directory in F1.
 
 [Sound]
 bEnableSound = 1
@@ -96,7 +102,7 @@ nGroupModePos2 = -1
 nGroupModePos3 = -1
 nSingleModeSlot = 0
 bFullScreen = 0
-bShowStatusbar = 1
+bShowStatusbar = 0
 bShowTitlebar = 1
 
 [ShortcutsWithoutModifiers]
@@ -106,7 +112,7 @@ kQuit = F12
 kColdReset = F5
 
 [ShortcutsWithModifiers]
-# Modifier + key. Default modifier is Alt.
+# Modifier + key. The modifier is Ctrl+Alt.
 kOptions = O
 kFullScreen = F
 kMouseMode = M
@@ -123,8 +129,9 @@ kStatusbar = B
 kTitlebar = T
 
 [Log]
-bEnableLog = 0
-bEnableTrace = 0
+sLogFileName = stderr
+sTraceFileName = stderr
+bConfirmQuit = 1
 
 [UI89]
 # Happy-years UI settings (F9 overlay).
@@ -144,7 +151,7 @@ nWindowScale = 0
 nGifWidth = 480
 nGifFps = 25
 nNotifyMode = 1
-# Last directory browsed for each media entry (szLastDir1..szLastDir11),
+# Last directory browsed for each media entry (szLastDir1..szLastDir14),
 # maintained automatically by the F9 overlay.
 szLastDir1 =
 szLastDir2 =
@@ -157,3 +164,6 @@ szLastDir8 =
 szLastDir9 =
 szLastDir10 =
 szLastDir11 =
+szLastDir12 =
+szLastDir13 =
+szLastDir14 =

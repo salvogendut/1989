@@ -8,7 +8,7 @@ CPPFLAGS ?= -I../src -I../src/includes -I../src/cpu -I../src/debug \
 SDL3_CFLAGS ?= $(shell pkg-config --cflags sdl3)
 SDL3_LIBS ?= $(shell pkg-config --libs sdl3)
 
-TESTS = test-str test-paste
+TESTS = test-str test-paste test-settings test-overlay
 
 all: $(TESTS) test-headers test-capture
 
@@ -20,6 +20,16 @@ test-paste: test_paste.c ../src/paste.c ../src/includes/paste.h \
 	../src/gui-sdl/sdlkeymap.h ../config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) \
 		test_paste.c ../src/paste.c $(SDL3_LIBS) -o $@
+
+test-settings: test_settings.c ui_test_support.c ui_test_support.h ../src/settings.c ../src/change.c ../src/includes/settings.h ../config.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) -ffunction-sections -fdata-sections \
+		test_settings.c ui_test_support.c ../src/settings.c ../src/change.c -Wl,--gc-sections -o $@
+
+UI_SOURCES = ../src/overlay.c ../src/overlay_view.c ../src/overlay_media.c ../src/settings.c ../src/change.c
+
+test-overlay: test_overlay.c ui_test_support.c ui_test_support.h $(UI_SOURCES) ../src/includes/overlay.h ../src/includes/settings.h ../config.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) -DTEST_OVERLAY -ffunction-sections -fdata-sections \
+		test_overlay.c ui_test_support.c $(UI_SOURCES) $(SDL3_LIBS) -Wl,--gc-sections -o $@
 
 # Compile-time sanity: pulls in the core headers as compiled by the emulator.
 test-headers: test_headers.c ../config.h

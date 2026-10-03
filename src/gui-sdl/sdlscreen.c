@@ -24,6 +24,7 @@ const char SDLscreen_fileid[] = "Previous sdlscreen.c";
 #include "leds.h"
 #include "notify.h"
 #include "overlay.h"
+#include "ui_config.h"
 #include "capture.h"
 
 
@@ -48,6 +49,7 @@ static int height = NeXT_SCRN_H;
 static SDL_Renderer* sdlRenderer;
 static SDL_Texture*  uiTexture;
 static SDL_Texture*  fbTexture;
+static SDL_AtomicInt repaintExtras;
 static SDL_Texture*  groupTexture[NUM_MONITORS];
 static SDL_FRect     uiRect;
 static SDL_FRect     fbRect;
@@ -262,7 +264,7 @@ static void Screen89_RenderExtras(SDL_Renderer *r) {
 	char model[64];
 	snprintf(model, sizeof(model), "1989 %s", overlay_machine_name());
 	const char *keys =
-	    "  F1=menu  F4=screenshot  F5=reset  F6=gif  F9=options  "
+	    "  F1=legacy  F4=screenshot  F5=reset  F6=gif  F9=options  "
 	    "F11=fullscreen  F12=quit";
 	float text_w = (float)(strlen(model) + strlen(keys)) * 8.0f;
 	float scale = text_w > (float)width - 12.0f
@@ -293,12 +295,12 @@ static void Screen89_RenderExtras(SDL_Renderer *r) {
 /*
  Blits the NeXT framebuffer to the fbTexture, blends with the GUI surface and shows it.
  */
-static bool Screen_SingleRepaint(void) {
-	bool updateScreen = false;
+static bool Screen_SingleRepaint(bool force) {
+	bool updateScreen = force;
 
 	/* Blit the NeXT framebuffer to texture */
 	if (bEmulationActive) {
-		updateScreen = blitScreen(ConfigureParams.Screen.nSingleModeSlot, fbTexture);
+		updateScreen |= blitScreen(ConfigureParams.Screen.nSingleModeSlot, fbTexture);
 	}
 
 	/* Copy UI surface to texture */
@@ -325,8 +327,8 @@ static bool Screen_SingleRepaint(void) {
 	return updateScreen;
 }
 
-static bool Screen_GroupRepaint(void) {
-	bool updateScreen = false;
+static bool Screen_GroupRepaint(bool force) {
+	bool updateScreen = force;
 	int i;
 	
 	/* Blit the NeXT framebuffer to texture */
@@ -366,11 +368,21 @@ static bool Screen_GroupRepaint(void) {
 	return updateScreen;
 }
 
+void Screen_RequestRepaint(void) {
+    SDL_SetAtomicInt(&repaintExtras, 1);
+}
+
 bool Screen_Repaint(void) {
-	if (initScreenMode == SCREEN_GROUP) {
-		return Screen_GroupRepaint();
+	bool force = SDL_SetAtomicInt(&repaintExtras, 0) != 0;
+	SDL_ScaleMode mode = UI89Config_.bSmoothing ? SDL_SCALEMODE_LINEAR : SDL_SCALEMODE_NEAREST;
+	if (fbTexture) SDL_SetTextureScaleMode(fbTexture, mode);
+	for (int i = 0; i < NUM_MONITORS; i++) {
+		if (groupTexture[i]) SDL_SetTextureScaleMode(groupTexture[i], mode);
 	}
-	return Screen_SingleRepaint();
+	if (initScreenMode == SCREEN_GROUP) {
+		return Screen_GroupRepaint(force);
+	}
+	return Screen_SingleRepaint(force);
 }
 
 #ifdef ENABLE_RENDERING_THREAD
@@ -929,7 +941,7 @@ void Screen_ScaleWindow(int dir) {
 		pct = 200;
 
 	UI89Config_.nWindowScale = pct;
-	overlay_config_save();
+	UI89_Save();
 	SDL_SetWindowSize(sdlWindow, width * pct / 100, height * pct / 100);
 }
 

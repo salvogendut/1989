@@ -14,8 +14,10 @@ const char ShortCut_fileid[] = "Hatari shortcut.c";
 #include "grab.h"
 #include "reset.h"
 #include "screen.h"
+#include "sdlscreen.h"
 #include "configuration.h"
 #include "shortcut.h"
+#include "overlay.h"
 #include "debugui.h"
 #include "snd.h"
 #include "statusbar.h"
@@ -169,10 +171,8 @@ void ShortCut_ActKey(void)
 		ShortCut_MouseGrab();          /* Toggle mouse grab */
 		break;
 	 case SHORTCUT_COLDRESET:
-		Main_PauseEmulation(false);
-		if (Reset_Cold())              /* Reset emulator with 'cold' (clear all) */
-			Main_RequestQuit(false);
-		Main_UnPauseEmulation();
+		overlay_confirm_reset();
+		Screen_RequestRepaint();
 		break;
 	 case SHORTCUT_SCREENSHOT:
 		Grab_Screen();                 /* Grab screenshot */

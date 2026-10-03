@@ -1,88 +1,89 @@
 # Development notes for 1989
 
-This document tracks how the project is organized and how the upstream
-"Previous" code base is integrated into the shared "happy years" scaffolding.
+1989 builds Previous 4.3's C/C++ emulation core through Autotools and adapts
+its SDL3 frontend to the sibling emulator conventions. Keep machine-core
+changes contained so upstream fixes remain practical to merge.
 
-## Layout
+## Structure
 
-```
-configure.ac        autotools build configuration (SDL3, libpng, ...)
-Makefile.am         single-Makefile build for the 1989 and ditool binaries
-src/                the Previous 4.3 emulation core, integrated as-is
-  main.c ...        NeXT machine, I/O memory, SCSI, floppy, Ethernet, sound
-  includes/         core headers
-  overlay.c/h       F9 options overlay (General/Media/Extensions/Advanced)
-  leds.c/h          activity LED bar at the bottom of the window
-  notify.c/h        fading toast notifications
-  gifcap.c/h        in-tree GIF89a encoder (LZW)
-  ffmpeg_gif.c/h    optional FFmpeg GIF optimization pass
-  capture.c/h       screenshot (PPM) and GIF recording helpers
-  gui-sdl/          SDL3 GUI: legacy options dialogs, screen, keyboard
-  cpu/              WinUAE m68k CPU core (checked-in generated sources)
-  debug/            m68k/i860 debuggers and logging
-  softfloat/        soft-float support for the 68040 FPU
-  dsp/              Motorola DSP56001 emulation
-  dimension/        NeXTdimension i860 board emulation (C++)
-  slirp/            SLiRP user-mode network stack (+ NFS RPC)
-  ditool/           C port of the NeXT disk image tool
-  ditool_cpp/       newer C++ ditool (reference only, not built)
-roms/               NeXT firmware images (from the Previous distribution)
-disks/              blank floppy/hard-disk image templates
-icons/              hicolor PNG set generated from the Previous bitmap
-docs/               machine/ROM reference material
-tests/              build smoke tests (str, capture/GIF)
-web/                (placeholder) future Emscripten/WASM frontend
-```
+- `configure.ac`, `Makefile.am`: SDL3, optional PNG/pcap/readline/FFmpeg,
+  generated configuration, `1989` and the C `ditool` companion, installation
+  and distribution. Generated CPU sources are checked in.
+- `src/main.c`: initialization, configuration load/save, emulation lifecycle.
+- `src/gui-sdl/sdlevent.c`: SDL events and host shortcuts. On Linux, ordinary
+  guest input crosses a queue to the emulation thread.
+- `src/gui-sdl/sdlscreen.c`: framebuffer composition, filtering/CRT, status
+  and activity strips, overlay presentation. UI redraw can be requested
+  independently of framebuffer updates, including while paused.
+- `src/cpu`, `softfloat`, `dsp`, `dimension`, and the device modules: machine
+  emulation inherited from Previous. `slirp/rpc` is the built C RPC/NFS
+  implementation; `slirp/nfs` and `ditool_cpp` retain reference C++ sources.
+- `roms`, `disks`, `icons`, `packaging`: firmware, blank-image templates,
+  desktop artwork and distribution scripts. `web/` is a placeholder.
 
-## Happy-years UI conventions
+## Options architecture
 
-1989 follows the sibling emulator (1983-1986) conventions:
+| Module | Responsibility |
+| --- | --- |
+| `overlay.c` | Sections/rows, keyboard navigation, edit-session and confirmation flow |
+| `overlay_view.c` | Stateless SDL drawing of copied rows, tabs, choices and dialogs; no device/configuration calls |
+| `overlay_media.c` | Native-picker handoff, media draft updates, image validation and exclusive sparse-file creation |
+| `ui_config.c` | Load/save/apply `[UI89]` desktop preferences |
+| `settings.c` | Private machine draft, merge with live state, restart policy and per-target media application |
+| `change.c` | Apply configuration to runtime subsystems; shared by F9 and the legacy dialog |
 
-- **F9 options overlay** (`overlay.c`): tabbed panel drawn on the SDL
-  renderer just before present. Reads/writes the existing `ConfigureParams`
-  plus a small `[UI89]` config section (Tinker, GIF, notifications) managed
-  in `overlay.c` via `cfgopts`.
-- **LED activity bar** (`leds.c`): dark strip at the bottom of the window,
-  centred LEDs pinged from the device emulation (`leds_ping`). A
-  function-key hint strip sits above it.
-- **Toast notifications** (`notify.c`): fading messages, tri-state mode.
-- **Function keys**: F4 screenshot, F6 GIF, F9 overlay, F11 fullscreen.
-  The legacy F12 options dialog and Alt+... shortcuts remain available.
+The overlay never writes `ConfigureParams` while navigating. It snapshots
+configuration briefly under pause, edits its own machine/UI copies, then
+pauses again to apply a confirmed change. Unedited groups and individual
+media targets are merged from live state so a guest eject during editing is
+not undone. Discard has no runtime undo path because it has no runtime effects.
 
-The bottom strips reserve `FUNCTION_KEY_BAR_H + LED_BAR_H` window rows below
-the legacy status bar (`Screen_Reset` in `gui-sdl/sdlscreen.c`); the overlay,
-LEDs, toasts and GIF capture are rendered by `Screen89_RenderExtras()` before
-`SDL_RenderPresent`.
+Restart decisions compare the resulting configuration, rather than trusting
+flags set by individual row handlers. Boot options are saved for the next
+boot. Network connection, tablet, printer, sound and display changes update
+their own subsystems. Machine hardware and fixed-disk changes require explicit
+confirmation. Live removable-media changes call the selected drive's
+insert/eject functions; never reset every storage controller to apply one image.
+The legacy dialog stages media as well and uses this same application path.
 
-## Integration notes
+Native file callbacks publish a result under an SDL spinlock and hold no
+pointer to an edit session. Only one request may be outstanding. Closing the
+panel invalidates the result; cancelled/late results cannot edit a later
+session. File creation never truncates an existing path. A created file is
+an independent host artifact and remains when the panel draft is discarded.
 
-- The upstream project builds with CMake; 1989 builds the same sources with
-  autotools so it shares the conventions of the sibling emulators. The
-  generated CPU files (`cpu/cpuemu_31.c`, `cpu/cpuemu_32.c`,
-  `cpu/cpustbl.c`, `cpu/cpudefs.c`) are used as checked in — no `gencpu`/
-  `build68k` code generation step is required.
-- `config.h` is produced by `./configure` (see `configure.ac`) and mirrors
-  the macros the upstream CMake `config.h` provided (`HAVE_*`,
-  `ENABLE_DSP_EMU`, `ENABLE_TRACING`, `BIN2DATADIR`, ...).
-- The install-time ROM path is exposed as `ROM_INSTALL_DIR`
-  (`$(pkgdatadir)/roms`); `Rom_GetDefaultPath()` in `src/rom.c` falls back
-  to it when a firmware image is not found in the data directory. This is a
-  small, contained addition on top of the upstream code.
-- Branding: the binary and package are named `1989`; the user config
-  directory is `~/.config/1989` (`HATARI_HOME_DIR` in `src/paths.c`) and the
-  config file is `1989.conf`. The internal "Previous" identifiers are
-  otherwise kept intact to ease future upstream merges.
+The remaining legacy-menu inventory and user-facing apply rules are in
+[docs/INTERFACE.md](docs/INTERFACE.md). F1, missing-file recovery and legacy
+alerts remain; their full migration is not claimed by this refactor.
+
+## Configuration and resources
+
+Linux configuration lives in `~/.config/1989/1989.conf`; macOS and Windows
+use the corresponding Application Support/AppData paths from `paths.c`.
+`ConfigureParams` and `cfgopts` retain Previous's section/key format;
+`[UI89]` stores the additional desktop preferences. ROM lookup includes the
+configured data directory, installed ROM directory and source-tree `roms/`.
+Internal Previous/Hatari names generally remain in core code.
 
 ## Verification
 
-```bash
-autoreconf -iv && ./configure && make -j"$(nproc)"
+```sh
+autoreconf -iv
+./configure
+make -j"$(nproc)"
 make -C tests check
+make dist
 ```
+
+Settings tests instrument runtime device calls while executing the real
+change/apply code. Overlay tests send key events through the real controller,
+exercise software rendering, reject unconfirmed resets, preserve guest
+ejects, cancel late file-picker results, and check exclusive large-image
+creation. Capture tests use a synthetic framebuffer and real PPM/GIF encoding.
+Tests do not boot NeXTstep or verify host-native dialogs on every platform.
 
 ## Upstream
 
-- Previous 4.3: https://previous.sourceforge.net/ (GPL-2.0-or-later)
-- CPU core: WinUAE m68k emulation
-- NeXTdimension: i860 emulation by Jason Eckhardt
-- `ditool` Virtual File System: MIT (see `src/slirp/rpc/vfs.c`)
+Previous 4.3: https://previous.sourceforge.net/; WinUAE m68k core;
+NeXTdimension i860 emulation by Jason Eckhardt. See the source headers and
+LICENSE for licensing details.

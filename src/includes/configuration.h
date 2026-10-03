@@ -416,6 +416,7 @@ extern char sConfigFileName[FILENAME_MAX];
 
 extern void Configuration_SetDefault(void);
 extern void Configuration_SetSystemDefaults(void);
+extern void Configuration_SetSystemDefaultsFor(CNF_PARAMS *params);
 extern void Configuration_SetDefaultScreen(int slot);
 extern int  Configuration_GetScreenFromPos(int pos);
 extern int  Configuration_SingleColorScreen(void);

@@ -92,7 +92,9 @@ void notify_render(struct SDL_Renderer *r) {
             }
 
     int rw, rh;
-    SDL_GetRenderOutputSize(r, &rw, &rh);
+    SDL_RendererLogicalPresentation mode;
+    if (!SDL_GetRenderLogicalPresentation(r, &rw, &rh, &mode) || rw <= 0 || rh <= 0)
+        SDL_GetRenderOutputSize(r, &rw, &rh);
     int win_h = (int)(rh / NOTIFY_SCALE);
     SDL_SetRenderScale(r, NOTIFY_SCALE, NOTIFY_SCALE);
 

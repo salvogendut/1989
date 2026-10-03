@@ -152,7 +152,6 @@ void DlgOptical_Main(void)
 							ConfigureParams.MO.drive[0].bDriveConnected = true;
 							modlg[MODLG_CONNECTED0].state |= SG_SELECTED;
 						}
-						MO_Insert(0);
 					}
 				} else {
 					if (DlgAlert_Query(MODLG_EJECT_WARNING)) {
@@ -161,7 +160,6 @@ void DlgOptical_Main(void)
 						modlg[MODLG_INSERT0].txt = "Insert";
 						ConfigureParams.MO.drive[0].szImageName[0] = '\0';
 						dlgname_mo[0][0] = '\0';
-						MO_Eject(0);
 					}
 				}
 				break;
@@ -193,7 +191,6 @@ void DlgOptical_Main(void)
 						}
 						ConfigureParams.MO.drive[1].bDiskInserted = true;
 						modlg[MODLG_INSERT1].txt = "Eject";
-						MO_Insert(1);
 					}
 				} else {
 					if (DlgAlert_Query(MODLG_EJECT_WARNING)) {
@@ -202,7 +199,6 @@ void DlgOptical_Main(void)
 						modlg[MODLG_INSERT1].txt = "Insert";
 						ConfigureParams.MO.drive[1].szImageName[0] = '\0';
 						dlgname_mo[1][0] = '\0';
-						MO_Eject(1);
 					}
 				}
 				break;

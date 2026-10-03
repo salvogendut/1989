@@ -330,9 +330,6 @@ void Dialog_SystemDlg(void)
 	while (but != DLGSYS_EXIT && but != SDLGUI_QUIT
 		   && but != SDLGUI_ERROR && !bQuitProgram);
 	
-  
-	/* Obsolete */
-	ConfigureParams.System.bCompatibleCpu = 1;
-	ConfigureParams.System.bCompatibleFPU = 1;
-	ConfigureParams.System.bMMU = 1;
+
+    /* Visiting this dialog must not silently change CPU/FPU/MMU settings. */
 }

@@ -80,6 +80,11 @@ static SGOBJ flpdlg[] =
 /**
  * Show and process the floppy dialog.
  */
+static bool DlgFloppy_ValidImage(const char *path) {
+    off_t size = File_Length(path);
+    return size == 737280 || size == 1474560 || size == 2949120;
+}
+
 void DlgFloppy_Main(void)
 {
 	int but;
@@ -146,7 +151,7 @@ void DlgFloppy_Main(void)
 				if (!ConfigureParams.Floppy.drive[0].bDiskInserted) {
 					if (SDLGui_FileConfSelect(dlgname_flp[0], ConfigureParams.Floppy.drive[0].szImageName,
 											  flpdlg[FLPDLG_DISKNAME0].w, &ConfigureParams.Floppy.drive[0].bWriteProtected, false)) {
-						if (Floppy_Insert(0)) {
+						if (!DlgFloppy_ValidImage(ConfigureParams.Floppy.drive[0].szImageName)) {
 							DlgAlert_Notice(FLPDLG_BADSIZE_ERROR);
 							ConfigureParams.Floppy.drive[0].bWriteProtected = false;
 							ConfigureParams.Floppy.drive[0].szImageName[0] = '\0';
@@ -167,7 +172,6 @@ void DlgFloppy_Main(void)
 						flpdlg[FLPDLG_INSERT0].txt = "Insert";
 						ConfigureParams.Floppy.drive[0].szImageName[0] = '\0';
 						dlgname_flp[0][0] = '\0';
-						Floppy_Eject(0);
 					}
 				}
 				break;
@@ -188,7 +192,7 @@ void DlgFloppy_Main(void)
 				if (!ConfigureParams.Floppy.drive[1].bDiskInserted) {
 					if (SDLGui_FileConfSelect(dlgname_flp[1], ConfigureParams.Floppy.drive[1].szImageName,
 											  flpdlg[FLPDLG_DISKNAME1].w, &ConfigureParams.Floppy.drive[1].bWriteProtected, false)) {
-						if (Floppy_Insert(1)) {
+						if (!DlgFloppy_ValidImage(ConfigureParams.Floppy.drive[1].szImageName)) {
 							DlgAlert_Notice(FLPDLG_BADSIZE_ERROR);
 							ConfigureParams.Floppy.drive[1].bWriteProtected = false;
 							ConfigureParams.Floppy.drive[1].szImageName[0] = '\0';
@@ -209,7 +213,6 @@ void DlgFloppy_Main(void)
 						flpdlg[FLPDLG_INSERT1].txt = "Insert";
 						ConfigureParams.Floppy.drive[1].szImageName[0] = '\0';
 						dlgname_flp[1][0] = '\0';
-						Floppy_Eject(1);
 					}
 				}
 				break;

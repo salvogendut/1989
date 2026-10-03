@@ -3,7 +3,6 @@
 1989 \- NeXT (Motorola 68030/68040) emulator
 .SH SYNOPSIS
 .B 1989
-[\fIoptions\fR]
 .SH DESCRIPTION
 .B 1989
 is a work-in-progress emulator of the NeXT family of Motorola 68K based
@@ -13,14 +12,12 @@ built on the "Previous" NeXT emulator code base: the m68k core comes from
 WinUAE, and the i860 NeXTdimension emulation from Jason Eckhardt, all
 rendered through an SDL3 desktop interface.
 .SH OPTIONS
-.TP
-\fB\-\-help\fR
-Show brief command-line help and exit.
+There are no per-run machine or media command-line options.
 .PP
 All machine configuration (machine type, RAM, ROM paths, disk images,
 networking, sound, screen mode, shortcut keys) is stored in the per-user
 configuration file and edited through the SDL options dialog, opened with
-\fBF12\fR (or \fBAlt+O\fR).
+\fBF9\fR, with remaining legacy controls under \fBF1\fR (or \fBCtrl+Alt+O\fR).
 .SH KEYS
 1989 follows the shared "happy years" conventions: an F9 options overlay, an
 activity LED bar at the bottom of the window, and dedicated F-keys.
@@ -35,7 +32,7 @@ F9 overlay).
 Save a screenshot (PPM).
 .TP
 .B F5
-Reset the emulated machine.
+Ask before restarting the emulated machine. Shut down NeXT first.
 .TP
 .B F6
 Toggle GIF capture.
@@ -48,7 +45,7 @@ Tinker on - Advanced tabs).
 Toggle fullscreen.
 .TP
 .B F12
-Quit.
+Ask before quitting. Shut down NeXT first.
 .TP
 .B Ctrl++
 Increase the window scale.
@@ -59,26 +56,27 @@ Decrease the window scale.
 .B Ctrl+Enter
 Release the captured mouse (click into the window to capture it).
 .TP
-.B Alt+O / Alt+F / Alt+M / Alt+C / Alt+G / Alt+R
+.B Ctrl+Alt+O / Ctrl+Alt+F / Ctrl+Alt+M / Ctrl+Alt+C / Ctrl+Alt+G / Ctrl+Alt+R
 Options dialog / fullscreen / mouse grab / cold reset / screenshot / sound
 recording.
 .TP
-.B Alt+P / Alt+D / Alt+I / Alt+B / Alt+T
+.B Ctrl+Alt+P / Ctrl+Alt+D / Ctrl+Alt+I / Ctrl+Alt+B / Ctrl+Alt+T
 Pause / m68k debugger / i860 debugger / status bar / title bar.
 .PP
 While the overlay is open, use Left/Right to switch tabs, Up/Down to select
-a row, Enter to toggle or choose, and Esc or F9 to close (settings are
-saved).
+a row and Enter to change a draft setting. Esc or F9 opens Save/Discard.
+Esc in that confirmation returns to editing. Hardware and fixed-disk
+changes require explicit restart confirmation; boot options apply next boot.
+In Media, T changes SCSI type, W changes write protection, N creates a blank
+image and Delete clears media. Existing images are never overwritten.
 .SH FILES
 .TP
 .I ~/.config/1989/1989.conf
 Main configuration file, created with defaults on first run and written by
-the options overlay / dialog. A legacy
-.I ~/.previous
-directory is used if the new one is absent.
+the options overlay / dialog and on exit.
 .TP
-.I ~/.config/1989/
-Default directory for screenshots and recordings.
+.I ./
+Working directory used for F4 screenshots and F6 GIF recordings.
 .TP
 .I $pkgdatadir/roms
 Install-time location of the NeXT firmware images (see
@@ -87,5 +85,5 @@ Install-time location of the NeXT firmware images (see
 .SH SEE ALSO
 .BR SDL3 (3)
 .SH BUGS
-This is scaffolding work based on the upstream "Previous" 4.3 emulator.
-See DEVELOPMENT.md for the integration status and roadmap.
+Based on Previous 4.3. Legacy-menu migration is incomplete.
+See Development.md and docs/INTERFACE.md for integration status and remaining controls.

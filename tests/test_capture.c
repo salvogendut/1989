@@ -6,7 +6,7 @@
 #include "grab.h"
 #include "screen.h"
 #include "notify.h"
-#include "overlay.h"
+#include "ui_config.h"
 
 /* capture.c reads the GIF-encoder choice from the UI config; provide it
  * without linking the whole overlay. */

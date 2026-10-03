@@ -207,7 +207,6 @@ void DlgSCSI_Main(void)
 							ConfigureParams.SCSI.target[GET_TARGET(but)].bDiskInserted = false;
 							ConfigureParams.SCSI.target[GET_TARGET(but)].szImageName[0] = '\0';
 							scsidlg[PUT_BUTTON(GET_TARGET(but),SCSIDLG_NAME)].txt[0] = '\0';
-							SCSI_Eject(GET_TARGET(but));
 						}
 					} else if (SDLGui_FileConfSelect(dlgname_scsi[GET_TARGET(but)],
 												 ConfigureParams.SCSI.target[GET_TARGET(but)].szImageName,
@@ -216,9 +215,6 @@ void DlgSCSI_Main(void)
 						ConfigureParams.SCSI.target[GET_TARGET(but)].bDiskInserted = true;
 						if (ConfigureParams.SCSI.target[GET_TARGET(but)].nDeviceType == SD_NONE) {
 							ConfigureParams.SCSI.target[GET_TARGET(but)].nDeviceType = SD_HARDDISK;
-						}
-						if (ConfigureParams.SCSI.target[GET_TARGET(but)].nDeviceType != SD_HARDDISK) {
-							SCSI_Insert(GET_TARGET(but));
 						}
 					}
 					DlgSCSI_DrawDevtypeSelect();

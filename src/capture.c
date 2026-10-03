@@ -4,7 +4,7 @@
 #include "grab.h"
 #include "screen.h"
 #include "configuration.h"
-#include "overlay.h"
+#include "ui_config.h"
 #include "main.h"
 #include "notify.h"
 

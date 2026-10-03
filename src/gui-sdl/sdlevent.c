@@ -22,6 +22,7 @@ const char SDLevent_fileid[] = "Previous sdlevent.c";
 #include "tablet.h"
 #include "dimension.hpp"
 #include "overlay.h"
+#include "ui_config.h"
 #include "capture.h"
 #include "notify.h"
 #include "paste.h"
@@ -283,19 +284,28 @@ void GuiEvent_EventHandler(void) {
 		/* Process pending options-overlay file-dialog results. */
 		overlay_tick();
 		paste_tick();
-		notify_tick(20);
+        static Uint64 last_notify;
+        Uint64 now = SDL_GetTicks();
+        if (last_notify) notify_tick((int)SDL_min(now - last_notify, 1000));
+        last_notify = now;
 
 #ifdef ENABLE_RENDERING_THREAD
 		if (bEmulationActive) {
 			events = SDL_PollEvent(&event);
 		} else {
-			events = SDL_WaitEvent(&event);
+			events = SDL_WaitEventTimeout(&event, 16);
 		}
 #else
 		/* While a clipboard paste is running, poll often enough for the
 		 * per-character key steps. */
-		events = SDL_WaitEventTimeout(&event, paste_active() ? 10 : 100);
+		events = SDL_WaitEventTimeout(&event, paste_active() ? 10 : (overlay_is_visible() || overlay_confirm_visible()) ? 16 : 100);
 #endif
+        if (!events && (overlay_is_visible() || overlay_confirm_visible())) {
+            Screen_RequestRepaint();
+#ifndef ENABLE_RENDERING_THREAD
+            Screen_Repaint();
+#endif
+        }
 		if (!events) {
 			/* no events -> if emulation is active or
 			 * user is quitting -> return from function.
@@ -390,14 +400,15 @@ void GuiEvent_EventHandler(void) {
 				break;
 
 			case SDL_EVENT_KEY_DOWN:
-				if (event.key.repeat) {
-					break;
-				}
 				/* 1989 happy-years F-keys + options overlay (F9). */
 				if (overlay_handle_event(&event)) {
+                    Screen_RequestRepaint();
+#ifndef ENABLE_RENDERING_THREAD
 					Screen_Repaint();
+#endif
 					continue;
 				}
+                if (event.key.repeat) break;
 				/* Ctrl+Enter releases the captured mouse (sibling
 				 * convention); don't pass Enter to the NeXT. */
 				if (bGrabMouse && event.key.scancode == SDL_SCANCODE_RETURN &&

@@ -1,121 +1,99 @@
 # Controls
 
-1989 follows the "happy years" emulator conventions: an **F9 options
-overlay** with tabbed sections, an activity **LED bar** at the bottom of the
-window, and dedicated F-key shortcuts for screenshot, GIF capture and
-fullscreen.
+1989 uses the shared “happy years” F9 overlay, activity LEDs and function-key
+hint strip. [Interface coverage](docs/INTERFACE.md) lists the controls still
+available only in the F1 legacy menu.
 
-## Emulator function keys
+## Host shortcuts
 
-| Key   | Action                                          |
-|-------|-------------------------------------------------|
-| `F1`  | Legacy options dialog (until fully migrated)    |
-| `F4`  | Screenshot (PPM)                                |
-| `F5`  | Reset                                           |
-| `F6`  | Toggle GIF capture                              |
-| `F9`  | Open / close the options overlay                |
-| `F11` | Toggle fullscreen                               |
-| `F12` | Quit                                            |
-| `Ctrl++` / `Ctrl+-` | Increase / decrease the window scale |
-| `Ctrl+V` | Paste the host clipboard into the emulated keyboard |
+| Key | Action |
+| --- | --- |
+| F1 | Legacy options |
+| F4 | PPM screenshot |
+| F5 | Restart confirmation |
+| F6 | Start/stop GIF recording |
+| F9 | Open/close options |
+| F11 | Fullscreen |
+| F12 | Quit confirmation |
+| Ctrl++ / Ctrl+- | Increase/decrease window scale |
+| Ctrl+V | Type host clipboard text into the guest keyboard |
+| Ctrl+Enter | Release the captured mouse |
 
-Quitting shows a confirmation in the same overlay style as the F9 panel:
-`Left`/`Right` selects OK or Cancel, `Enter` confirms and `Esc` cancels.
+Click in the window to capture the mouse. Opening options or a confirmation
+releases it. Restart and quit initially select **Cancel**; use Left/Right
+and Enter to choose, or Esc to cancel. Shut down NeXT in the guest before
+restarting or quitting.
 
-The window scale and the fullscreen state are stored in `1989.conf`
-(`nWindowScale` in `[UI89]`, `bFullScreen` in `[Screen]`) and restored on the
-next start.
+The configurable legacy shortcuts require **Ctrl+Alt**, not Alt alone:
+O options, F fullscreen, M mouse capture, C restart, G legacy screenshot,
+R AIFF recording, S sound, P pause, D m68k debugger, I i860 debugger,
+Q quit, N display switch, B status bar and T title bar. F1 → Keyboard can
+rebind them. The dedicated F4/F6/F9 and Ctrl+V controls are handled separately.
 
-`Ctrl+V` types the host clipboard into the emulated machine one character at
-a time (with Shift pressed around shifted characters and unmapped bytes
-skipped), like the other happy-years emulators.
+Clipboard paste sends timed key presses with Shift where needed; unsupported
+bytes are skipped. Opening F9 stops an in-progress paste. Window scale and
+fullscreen are restored from `1989.conf` on the next launch.
 
-The legacy configurable shortcuts still work (Alt+O opens the old options
-dialog, Alt+G screenshot, Alt+R sound recording, Alt+M mouse grab, Alt+C
-cold reset, Alt+P pause, Alt+D m68k debugger, Alt+I i860 debugger, Alt+Q
-quit, Alt+B status bar, Alt+T title bar). They can be rebound in the options
-dialog.
+## F9 navigation and saving
 
-## Options overlay (F9)
+| Key | Action |
+| --- | --- |
+| Left/Right | Switch tab |
+| Up/Down | Select a row; holding the key repeats |
+| Enter | Change a setting; load/eject selected media |
+| Delete | Clear selected media |
+| N | Create a blank image for selected media |
+| T | Cycle selected SCSI type: hard disk, CD, floppy |
+| W | Toggle selected media's write protection; CDs stay read-only |
+| Esc / F9 | Close or show Save/Discard confirmation |
 
-The overlay opens with **F9** and is driven entirely from the keyboard:
+Settings are staged in private copies while NeXT keeps running. **Save**
+applies them; **Discard** leaves the running configuration untouched.
+**Esc in the confirmation returns to editing.** A change followed by its
+inverse is a no-op. Hardware and fixed-disk changes show a **Restart**
+confirmation with Discard selected initially. See [apply rules](docs/INTERFACE.md#applying-changes).
 
-| Key          | Action                                    |
-|--------------|-------------------------------------------|
-| `Left/Right` | Switch section (tab)                      |
-| `Up/Down`    | Move the selection                        |
-| `Enter`      | Toggle / choose the selected row          |
-| `Delete`     | Clear (eject) the selected media entry    |
-| `N`          | New blank image for the selected media row|
-| `Esc` / `F9` | Close (settings are saved)                |
+### General
 
-Changes are **staged**: the running machine is untouched until you close the
-overlay and confirm saving, so nothing happens while you are still choosing.
-Closing asks whether to save the changes to `1989.conf` (mentioning that
-saving will reset the machine when a model/hardware or media change was
-made); Cancel discards them — no reset is needed.
+Machine variant, RAM presets, CPU clock, FPU, DSP, MMU status, Turbo ADB, sound output,
+Tinker, About and **Machine defaults**. Machine defaults restores the selected
+model's hardware defaults; it does not clear media or desktop preferences.
 
-### General tab
+### Media
 
-Machine model (NeXT Computer, NeXTcube, NeXTcube Turbo, NeXTstation,
-NeXTstation Turbo/Color/Turbo Color), RAM size, CPU clock, FPU, DSP, MMU,
-ADB, the **Tinker** master switch (gates the Advanced tab), an About box,
-and a "Reset defaults" action.
+Boot device, seven SCSI targets, two floppy and two magneto-optical entries.
+Boot selection is saved for the next boot and does not restart the current OS.
+File pickers remember a directory per entry. Set a SCSI type with T before
+loading an ISO or SCSI floppy image. Fixed hard-disk changes require a restart;
+exchanging media in an already connected removable drive does not.
 
-### Media tab
+Eject/unmount media inside NeXT first. Clearing a floppy or MO image leaves
+the drive connected. Selecting media for an unconnected drive connects it,
+which requires a restart. Drive-disconnection controls remain in F1.
 
-Boot device and the attached media: up to seven SCSI targets (0–6), two
-floppy drives and two magneto-optical drives. `Enter` on an empty media row opens a
-native file picker; `Enter` on a filled row ejects the media. `N` on a media
-row creates a new blank image: pick the size (1–32 GB for hard disks, the
-usual capacities for floppies and magneto-optical), choose a `.img` filename
-and the image is created (zero-filled) and attached. `Delete` clears the row.
+N offers blank hard-disk files of 1–32 GiB, 720 KiB/1.44 MiB/2.88 MiB floppies,
+and MO file-size choices. Creation never overwrites an existing file; choose
+a new name. Files need guest-side formatting, and existing files survive
+Discard. See the [MO format caveat](docs/INTERFACE.md#media-creation-and-remaining-polish).
 
-### Extensions tab
+### Extensions
 
-NeXTdimension board, printer, Ethernet, tablet and microphone. Changes are
-applied with a cold reset.
+First NeXTdimension board, printer connection, Ethernet connection, tablet
+model and microphone. Only NeXTdimension requires a machine restart here.
+Other changes update the affected subsystem when saved.
 
-### Advanced tab
+### Advanced
 
-Shown only while **Tinker** is enabled in General:
+Visible when Tinker is enabled: smoothing, CRT/scanline strength, GIF
+resolution (320/480/640), frame rate (10/20/25), built-in/FFmpeg encoder,
+notifications, debug output, RTC local/UTC, fullscreen, status/title bars,
+DRAM test, verbose boot, 68030/68040/Turbo ROM files and version information.
+Display preferences apply on Save. Boot diagnostics apply on the next boot.
 
-- **Smoothing** — linear framebuffer filtering.
-- **Real CRT** — scanline effect; when on, a **Scanlines** row (0–95 %)
-  controls its visibility.
-- **GIF resolution / GIF frame rate / GIF encoder** — capture settings; the
-  encoder is either the built-in one or an FFmpeg optimize pass (when built
-  with ffmpeg).
-- **Notifications**, **Debugging** (terminal log output), **RTC clock**
-  (host local time or UTC), **Fullscreen**, **Status bar**, **Title bar**,
-  **DRAM test**, **Verbose boot** and an About box.
+## Activity display
 
-## LED bar
-
-The dark strip at the very bottom of the window shows activity LEDs:
-
-- **68K** grey/white CPU activity (with clock label)
-- **DSP** blue — DSP 56001 host I/O
-- **SCSI** green — SCSI disk transfers (one lamp per attached target,
-  labelled `SCSI 0`, `SCSI 1`, ... when more than one disk is in use)
-- **FLOPPY** red — floppy controller I/O
-- **MAG-OPT** cyan — magneto-optical drive activity
-- **ETHERNET** yellow — network traffic
-- **SOUND** purple — audio generation
-- **NEXTDIM** orange — NeXTdimension rendering
-
-An LED glows bright for a short time after each burst of activity, then fades
-back to its idle colour.
-
-## Function-key hint strip
-
-A thin strip above the LED bar reminds you of the shortcuts, in the shared
-sibling style (red machine name, grey `key=action` list):
-`1989  F1=menu  F4=screenshot  F5=reset  F6=gif  F9=options  F11=fullscreen  F12=quit`.
-
-## Mouse
-
-Clicking into the window captures the host mouse (relative mode). Press
-**Ctrl+Enter** to release it again; **Alt+M** also toggles capture, and the
-cursor is released automatically whenever the F9 overlay or the quit
-confirmation is open.
+The bottom LEDs cover 68K CPU (clock label), DSP, SCSI, floppy, MO, Ethernet,
+sound and NeXTdimension. More than one attached SCSI target gets individually
+labelled LEDs. Activity lights briefly brighten after device operations.
+The function-key strip labels F1 as `legacy`, F9 as `options`, F5 as `reset`
+and F12 as `quit`.

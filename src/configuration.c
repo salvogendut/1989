@@ -851,80 +851,84 @@ void Configuration_Apply(bool bReset)
  * Set defaults depending on selected machine type.
  */
 void Configuration_SetSystemDefaults(void) {
-	switch (ConfigureParams.System.nMachineType) {
+    Configuration_SetSystemDefaultsFor(&ConfigureParams);
+}
+
+void Configuration_SetSystemDefaultsFor(CNF_PARAMS *params) {
+	switch (params->System.nMachineType) {
 		case NEXT_CUBE030:
-			ConfigureParams.System.bTurbo = false;
-			ConfigureParams.System.bColor = false;
-			ConfigureParams.System.nCpuLevel = 3;
-			ConfigureParams.System.nCpuFreq = 25;
-			ConfigureParams.System.n_FPUType = FPU_68882;
-			ConfigureParams.System.nDSPType = DSP_TYPE_EMU;
-			ConfigureParams.System.bDSPMemoryExpansion = false;
-			ConfigureParams.System.nSCSI = NCR53C90;
-			ConfigureParams.System.nRTC = MC68HC68T1;
-			ConfigureParams.System.bNBIC = true;
-			ConfigureParams.System.bADB = false;
+			params->System.bTurbo = false;
+			params->System.bColor = false;
+			params->System.nCpuLevel = 3;
+			params->System.nCpuFreq = 25;
+			params->System.n_FPUType = FPU_68882;
+			params->System.nDSPType = DSP_TYPE_EMU;
+			params->System.bDSPMemoryExpansion = false;
+			params->System.nSCSI = NCR53C90;
+			params->System.nRTC = MC68HC68T1;
+			params->System.bNBIC = true;
+			params->System.bADB = false;
 			break;
 
 		case NEXT_CUBE040:
-			ConfigureParams.System.bColor = false;
-			ConfigureParams.System.nCpuLevel = 4;
-			if (ConfigureParams.System.bTurbo) {
-				ConfigureParams.System.nCpuFreq = 33;
-				ConfigureParams.System.nRTC = MCCS1850;
-				ConfigureParams.System.bADB = true;
+			params->System.bColor = false;
+			params->System.nCpuLevel = 4;
+			if (params->System.bTurbo) {
+				params->System.nCpuFreq = 33;
+				params->System.nRTC = MCCS1850;
+				params->System.bADB = true;
 			} else {
-				ConfigureParams.System.nCpuFreq = 25;
-				ConfigureParams.System.nRTC = MC68HC68T1;
-				ConfigureParams.System.bADB = false;
+				params->System.nCpuFreq = 25;
+				params->System.nRTC = MC68HC68T1;
+				params->System.bADB = false;
 			}
-			ConfigureParams.System.n_FPUType = FPU_CPU;
-			ConfigureParams.System.nDSPType = DSP_TYPE_EMU;
-			ConfigureParams.System.bDSPMemoryExpansion = true;
-			ConfigureParams.System.nSCSI = NCR53C90A;
-			ConfigureParams.System.bNBIC = true;
+			params->System.n_FPUType = FPU_CPU;
+			params->System.nDSPType = DSP_TYPE_EMU;
+			params->System.bDSPMemoryExpansion = true;
+			params->System.nSCSI = NCR53C90A;
+			params->System.bNBIC = true;
 			break;
 
 		case NEXT_STATION:
-			ConfigureParams.System.nCpuLevel = 4;
-			if (ConfigureParams.System.bTurbo) {
-				ConfigureParams.System.nCpuFreq = 33;
-				ConfigureParams.System.nRTC = MCCS1850;
-				ConfigureParams.System.bADB = true;
+			params->System.nCpuLevel = 4;
+			if (params->System.bTurbo) {
+				params->System.nCpuFreq = 33;
+				params->System.nRTC = MCCS1850;
+				params->System.bADB = true;
 			} else {
-				ConfigureParams.System.nCpuFreq = 25;
-				ConfigureParams.System.nRTC = MC68HC68T1;
-				ConfigureParams.System.bADB = false;
+				params->System.nCpuFreq = 25;
+				params->System.nRTC = MC68HC68T1;
+				params->System.bADB = false;
 			}
-			ConfigureParams.System.n_FPUType = FPU_CPU;
-			ConfigureParams.System.nDSPType = DSP_TYPE_EMU;
-			ConfigureParams.System.bDSPMemoryExpansion = true;
-			ConfigureParams.System.nSCSI = NCR53C90A;
-			ConfigureParams.System.bNBIC = false;
+			params->System.n_FPUType = FPU_CPU;
+			params->System.nDSPType = DSP_TYPE_EMU;
+			params->System.bDSPMemoryExpansion = true;
+			params->System.nSCSI = NCR53C90A;
+			params->System.bNBIC = false;
 			break;
 		default:
 			break;
 	}
 
-	if (ConfigureParams.System.bTurbo) {
-		ConfigureParams.Memory.nMemoryBankSize[0] = 32;
-		ConfigureParams.Memory.nMemoryBankSize[1] = 32;
-		ConfigureParams.Memory.nMemoryBankSize[2] = 32;
-		ConfigureParams.Memory.nMemoryBankSize[3] = 32;
-	} else if (ConfigureParams.System.bColor) {
-		ConfigureParams.Memory.nMemoryBankSize[0] = 8;
-		ConfigureParams.Memory.nMemoryBankSize[1] = 8;
-		ConfigureParams.Memory.nMemoryBankSize[2] = 8;
-		ConfigureParams.Memory.nMemoryBankSize[3] = 8;
+	if (params->System.bTurbo) {
+		params->Memory.nMemoryBankSize[0] = 32;
+		params->Memory.nMemoryBankSize[1] = 32;
+		params->Memory.nMemoryBankSize[2] = 32;
+		params->Memory.nMemoryBankSize[3] = 32;
+	} else if (params->System.bColor) {
+		params->Memory.nMemoryBankSize[0] = 8;
+		params->Memory.nMemoryBankSize[1] = 8;
+		params->Memory.nMemoryBankSize[2] = 8;
+		params->Memory.nMemoryBankSize[3] = 8;
 	} else {
-		ConfigureParams.Memory.nMemoryBankSize[0] = 16;
-		ConfigureParams.Memory.nMemoryBankSize[1] = 16;
-		if (ConfigureParams.System.nMachineType==NEXT_STATION) {
-			ConfigureParams.Memory.nMemoryBankSize[2] = 0;
-			ConfigureParams.Memory.nMemoryBankSize[3] = 0;
+		params->Memory.nMemoryBankSize[0] = 16;
+		params->Memory.nMemoryBankSize[1] = 16;
+		if (params->System.nMachineType==NEXT_STATION) {
+			params->Memory.nMemoryBankSize[2] = 0;
+			params->Memory.nMemoryBankSize[3] = 0;
 		} else {
-			ConfigureParams.Memory.nMemoryBankSize[2] = 16;
-			ConfigureParams.Memory.nMemoryBankSize[3] = 16;
+			params->Memory.nMemoryBankSize[2] = 16;
+			params->Memory.nMemoryBankSize[3] = 16;
 		}
 	}
 }

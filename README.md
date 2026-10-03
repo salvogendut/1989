@@ -2,53 +2,49 @@
 
 ![1989](1989.png)
 
-1989 is an open-source, work-in-progress emulator of the NeXT family of
-Motorola 68K based workstations, written in C/C++ with an SDL3 desktop
-interface. It is built by integrating the code base of the
-[Previous](https://previous.sourceforge.net/) NeXT emulator (itself derived
-from Hatari) into the scaffolding conventions shared by the sibling
-"happy years" emulators (1983, 1984, 1985, 1986). In its current form 1989
-is essentially a fork of Previous.
+1989 integrates the [Previous](https://previous.sourceforge.net/) 4.3 NeXT
+emulator with the SDL3 desktop conventions of the sibling “happy years”
+emulators (1983, 1984, 1985, 1986). It is a C/C++ fork of Previous, retaining
+its WinUAE m68k core and peripheral emulation, built through Autotools.
 
 ## Emulated machines
 
-- NeXT Computer (original 68030 Cube)
-- NeXTcube
-- NeXTcube Turbo
-- NeXTstation
-- NeXTstation Turbo
-- NeXTstation Color
-- NeXTstation Turbo Color
-- NeXTdimension Graphics Board (i860-based, optional)
+NeXT Computer (68030 Cube), NeXTcube, NeXTcube Turbo, NeXTstation,
+NeXTstation Turbo, NeXTstation Color and NeXTstation Turbo Color, plus the
+optional i860-based NeXTdimension graphics board.
 
-## Highlights
+## Desktop experience
 
-- Motorola 68030/68040 CPU core from the WinUAE m68k emulation core, with
-  MMU and 68882 FPU support and cycle-exact bus emulation for the NeXT I/O
-  subsystem.
-- Monochrome and color NeXT display via SDL3 (4096 x 3072 and 1120 x 832
-  monochrome framebuffer modes, plus the color 1120 x 832 mode).
-- ADB keyboard and mouse, tablet support, DSP 56001 emulation, and the
-  NeXTdimension i860 graphics board emulation.
-- SCSI hard disks, magneto-optical drives, floppy drives, and Ethernet
-  networking through SLiRP user-mode NAT (or pcap when built with it).
-- SDL3 options overlay (F9) with General / Media / Extensions / Advanced
-  tabs, an activity LED bar and function-key hint strip at the bottom of the
-  window, F-key shortcuts for screenshot (F4), GIF capture (F6) and
-  fullscreen (F11).
-- The legacy SDL3 options dialog (F12), m68k and i860 debuggers, and sound
-  recording.
-- A `ditool` companion binary for manipulating NeXT filesystem/disk images.
+- **F9 options overlay** with General, Media, Extensions and Tinker-gated
+  Advanced tabs. Settings use a private draft with Save/Discard confirmation.
+- Display, sound, Ethernet connection, tablet and printer toggles apply
+  without rebooting the machine. Boot options take effect on the next boot.
+- Hardware changes and fixed-disk replacement require an explicit restart
+  confirmation. Removable-media changes touch only the selected drive.
+- SCSI image/type/write-protection controls, floppy and magneto-optical
+  media, native file pickers with remembered directories, and blank images.
+- Activity LEDs, function-key hints, toast notifications, window/fullscreen
+  persistence, optional CRT scanlines and framebuffer filtering.
+- **F4** PPM screenshot, **F6** GIF capture with optional FFmpeg optimization,
+  **F11** fullscreen, **Ctrl+V** clipboard typing, **Ctrl+Enter** mouse release.
+- **F5** confirmed restart and **F12** confirmed quit. Shut down NeXT inside
+  the guest before restarting or quitting, especially with writable disks.
+
+**F1 opens the legacy options menu.** It still provides detailed keyboard,
+mouse, networking/NFS, memory and NeXTdimension settings. See the
+[interface coverage table](docs/INTERFACE.md) for exactly what has and has
+not moved to F9, and [CONTROLS.md](CONTROLS.md) for keyboard controls.
+
+The core includes 68030/68040 CPU, MMU/FPU, DSP56001, monochrome/color
+1120 × 832 video, SCSI, floppy, magneto-optical, sound, SLiRP networking
+(optional pcap), and m68k/i860 debuggers. The companion `ditool` manipulates
+NeXT disk images. See [hardware status](docs/STATUS.md).
 
 ## Quick start
 
-1989 needs the NeXT firmware images; these are the ROM set distributed with
-the upstream Previous project and are included under `roms/` (installed to
-`$(pkgdatadir)/roms`). See [ROMS.md](ROMS.md).
-
 On Fedora:
 
-```bash
+```sh
 sudo dnf install gcc gcc-c++ make autoconf automake libtool pkgconf-pkg-config sdl3-devel
 autoreconf -iv
 ./configure
@@ -56,27 +52,29 @@ make -j"$(nproc)"
 ./1989
 ```
 
-The emulator boots straight into the NeXT ROM monitor/diagnostics. To boot an
-operating system, attach a NeXTstep bootable hard-disk image via the options
-dialog (F12) and select the boot device. See [USAGE.md](USAGE.md) and
-[CONTROLS.md](CONTROLS.md).
+Firmware images supplied with Previous are included in `roms/` and installed
+to `$(pkgdatadir)/roms`; a source-tree run finds `./roms`. See [ROMS.md](ROMS.md).
+The default machine boots the ROM monitor. To boot an OS, choose a compatible
+SCSI image and boot device in F9 → Media, then confirm the required restart.
+See [USAGE.md](USAGE.md) and [INSTALL.md](INSTALL.md).
+
+```sh
+make -C tests check
+```
+
+Tests cover strings, headers, clipboard typing, PPM/GIF capture, settings
+application, and overlay save/discard/restart and file-selection behavior.
+They do not replace testing a running NeXTstep installation.
 
 ## Project status
 
-This is initial scaffolding: the Previous 4.3 code base has been integrated
-and wired into the shared build/desktop/packaging conventions of the sibling
-emulators. See [Development.md](Development.md) for the integration status and
-[ROADMAP.md](ROADMAP.md) for the plan.
-
-## Building from the Previous source
-
-The bulk of the emulation code (CPU core, I/O, GUI, DSP, NeXTdimension,
-SLiRP networking, softfloat, debugger) comes unmodified from the Previous
-project. It is compiled here through the autotools build instead of
-Previous's CMake build; generated CPU sources are used as checked in, so no
-code generation step is needed. See [Development.md](Development.md).
+Native integration and the shared desktop UI are implemented, with interface
+migration and compatibility validation ongoing. The browser frontend is
+planned; `web/` is a placeholder. [Development.md](Development.md) describes
+the module boundaries and [ROADMAP.md](ROADMAP.md) tracks remaining work.
+Generated CPU sources are checked in; no CPU code-generation step is needed.
 
 ## License
 
 GPL-2.0-or-later. See [LICENSE](LICENSE). The `ditool` Virtual File System
-portion is MIT-licensed (see the header of `src/slirp/rpc/vfs.c`).
+portion is MIT-licensed (see `src/slirp/rpc/vfs.c`).

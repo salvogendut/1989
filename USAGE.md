@@ -1,95 +1,71 @@
 # Using 1989
 
-1989 is a dialog-driven emulator: there are no per-run command-line options
-for media or machine setup. Everything is configured through the options
-dialog and stored in the per-user configuration file.
+Run `./1989` from the source tree or the installed binary. Configuration is
+stored in `~/.config/1989/1989.conf` on Linux and created on first run.
+There are no per-run command-line options for machine or media setup.
 
-## First start
+## First boot
 
-Run `./1989` (or the installed binary). The emulator loads the machine ROM
-(see [ROMS.md](ROMS.md)) and boots into the NeXT ROM monitor. If a ROM file
-is missing you are prompted for its location with a file picker.
+The default NeXT Computer boots its ROM monitor. ROMs are found in the data
+or installed ROM directory, or `./roms` for a source-tree run. If a required
+file is missing, a legacy recovery dialog asks for a replacement.
 
-## Configuration
+To boot an OS from the ROM monitor:
 
-Press **F1** (or **Alt+O**) to open the legacy options dialog, or **F9** to
-open the happy-years options overlay (see [CONTROLS.md](CONTROLS.md)). The
-overlay has four tabs:
+1. Open F9 → Media, choose a SCSI target and select a compatible disk image.
+2. Use T to select the correct SCSI type (hard disk or CD for an ISO).
+3. Choose the boot device. Confirm Save/Restart when closing F9.
+4. If only the boot preference changed, F5 explicitly requests a restart.
 
-- **General**: machine type, RAM, CPU clock, FPU, DSP, MMU, ADB and the
-  **Tinker** switch.
-- **Media**: boot device and the attached SCSI / floppy / magneto-optical
-  media. The file picker remembers the last directory used for each entry
-  and every selection is written to `1989.conf`.
-- **Extensions**: NeXTdimension, printer, Ethernet, tablet and microphone.
-- **Advanced**: display options (smoothing, Real CRT with scanlines), GIF
-  capture settings (resolution, frame rate, built-in or FFmpeg encoder),
-  notifications, the Debugging terminal-log toggle, the RTC clock source
-  (host local time or UTC) and window/bar toggles (needs Tinker on).
+With an OS already running, shut it down before confirming a restart or
+replacing a fixed disk. Eject/unmount removable media in the guest first.
+Closing the emulator or resetting the CPU does not perform a guest shutdown.
 
-The main configuration file is `~/.config/1989/1989.conf`; it is created
-with defaults on first run. `1989.conf.example` shows the format. UI-only
-settings (Tinker, GIF, notifications) live in the `[UI89]` section.
+## Options
 
-### Legacy options dialog (F1)
+F9 is the primary interface. General covers machine presets and sound;
+Media covers boot selection and disks; Extensions covers attached devices.
+Enable Tinker in General to see Advanced display, capture, logging, RTC,
+boot-diagnostic and ROM controls.
 
-The full options dialog opened with **F1** covers every machine detail:
-- **System**: machine type (NeXT Computer, NeXTcube, NeXTstation, ...),
-  CPU (68030/68040) level and clock, FPU, MMU, ADB, NBIC, SCSI controller,
-  RTC chip, DSP 56001 emulation.
-- **Memory**: main memory bank sizes (default 4 x 4 MiB = 16 MiB).
-- **ROM**: paths of the 030/040/Turbo firmware images and custom MAC address.
-- **Boot**: boot device and diagnostics/test toggles shown at power-on.
-- **HardDisk / MagnetoOptical / Floppy**: attach disk images. Floppy formats
-  400 KiB, 720 KiB, 1.44 MiB and 2.88 MiB are supported; SCSI targets take
-  `sd`/raw disk images and ISO/ECC optical disk images. Blank images are
-  shipped under `disks/` (`make dist` installs them to `$(pkgdatadir)/disks`).
-- **Ethernet**: SLiRP user-mode networking (NAT) or pcap when built with it.
-- **Sound**: enable/disable sound and the microphone input.
-- **Screen**: window mode, fullscreen, status bar and title bar.
-- **Keyboard / Mouse / Tablet**: input device configuration.
-- **Shortcuts**: rebind the hot keys.
+The panel edits a draft. Save applies routine changes without rebooting;
+Discard leaves the runtime unchanged. Boot preferences apply on the next
+boot. Hardware changes need a separate, clearly labelled restart confirmation.
+See [CONTROLS.md](CONTROLS.md) and the
+[interface inventory](docs/INTERFACE.md) for details.
 
-## Booting NeXTstep
+F1 (also Ctrl+Alt+O) opens the legacy options dialog for custom RAM banks and
+speed, detailed keyboard/mouse controls, network/NFS configuration,
+NeXTdimension boards/displays, printer paper/output directory, and config
+import/export. Its media changes are staged until OK. The legacy Save config
+button explicitly writes to the chosen file.
 
-To boot NeXTstep:
+The default effective memory configuration is 64 MiB on the 68030 Cube.
+Changing machine variants chooses model-specific CPU/RAM defaults.
+`1989.conf.example` illustrates the current keys; `[UI89]` holds additional
+desktop settings. Prefer editing the file while the emulator is closed,
+since accepted UI changes and exit save the runtime configuration.
 
-1. Obtain a NeXTstep install/bootable disk image and attach it as a SCSI
-   target or to a floppy drive.
-2. Make sure the machine type and the ROM match the disk's target machine.
-3. In the options dialog under **Boot**, select the boot device.
-4. Cold reset with **Alt+C** (or change the boot device in the F9 overlay).
+## Networking and peripherals
 
-The diagnostics screens shown by the ROM before the OS takes over can be
-toggled in the **Boot** section.
+The SLiRP backend provides user-mode networking. F9 toggles the connection;
+F1 → Network selects SLiRP/pcap, host interface, guest cable type, custom MAC,
+network time and NFS shares. pcap controls depend on build support.
 
-## Networking
+F9 toggles sound, microphone, tablet and printer connection without restarting
+NeXT. F1 holds mouse sensitivity/key mapping and printer paper/output settings.
+The emulated printer is the NeXT Laser Printer.
 
-With the SLiRP NAT backend the emulated machine gets outbound network access
-through a virtual 10.0.2.x network without host privileges. Configure the
-NeXT side with a static address in that range (or use DHCP if available).
-See the upstream Previous documentation for NFS mounting details.
+## Capture, debuggers and disk tools
 
-## Debuggers
+- F4 writes a PPM screenshot; F6 toggles GIF capture. Advanced selects GIF
+  size, rate and optional FFmpeg optimization. Files go to the working
+  directory. FFmpeg optimization currently runs synchronously when stopping.
+- Ctrl+Alt+G uses the legacy screenshot path (PNG with libpng);
+  Ctrl+Alt+R toggles AIFF sound recording.
+- Ctrl+Alt+D opens the m68k debugger; Ctrl+Alt+I opens the i860 debugger.
+- `ditool -h` describes the companion NeXT image tool. Blank images created
+  in F9 contain no filesystem; they need preparation before use.
 
-- **Alt+D**: m68k debugger.
-- **Alt+I**: i860 (NeXTdimension) debugger.
-
-Both are interactive with a command prompt; `help` lists the commands.
-
-## ditool
-
-`ditool` manipulates NeXT disk images (filesystem creation, file injection,
-netboot image creation). Run `ditool -h` for its usage. It is a port of the
-tool distributed with Previous.
-
-## Screenshots, GIF capture and recording
-
-- **F4**: save a screenshot (PPM `1989-<timestamp>.ppm`).
-- **F6**: toggle GIF capture (`1989-<timestamp>.gif`); resolution and frame
-  rate are set in the overlay's Advanced tab.
-- **Ctrl++ / Ctrl+-**: increase / decrease the window scale.
-- **Alt+G**: legacy screenshot shortcut (PNG when built with libpng).
-- **Alt+R**: legacy sound recording (AIFF).
-
-Files are written to the current working directory by default.
+Window scale, fullscreen, media paths and accepted preferences persist across
+launches. Browser/WASM support remains planned.

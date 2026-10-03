@@ -49,6 +49,10 @@ dist_man1_MANS = 1989.1
 	src/tmc.c \
 	src/video.c \
 	src/overlay.c \
+	src/overlay_media.c \
+	src/overlay_view.c \
+	src/ui_config.c \
+	src/settings.c \
 	src/leds.c \
 	src/notify.c \
 	src/paste.c \
@@ -179,184 +183,194 @@ ditool_SOURCES = \
 	src/slirp/rpc/vfs.c
 
 noinst_HEADERS = \
-	src/cpu/compat.h
-	src/cpu/cpummu030.h
-	src/cpu/cpummu.h
-	src/cpu/cpu_prefetch.h
-	src/cpu/cputbl.h
-	src/cpu/custom.h
-	src/cpu/debug.h
-	src/cpu/debugmem.h
-	src/cpu/disasm.h
-	src/cpu/events.h
-	src/cpu/fpp.h
-	src/cpu/hatari-glue.h
-	src/cpu/maccess.h
-	src/cpu/machdep/m68k.h
-	src/cpu/machdep/rpt.h
-	src/cpu/memory.h
-	src/cpu/mmu_common.h
-	src/cpu/newcpu.h
-	src/cpu/options_cpu.h
-	src/cpu/readcpu.h
-	src/cpu/savestate.h
-	src/cpu/sysconfig.h
-	src/cpu/sysdeps.h
-	src/debug/68kDisass.h
-	src/debug/breakcond.h
-	src/debug/debugcpu.h
-	src/debug/debugdsp.h
-	src/debug/debugInfo.h
-	src/debug/debug_priv.h
-	src/debug/debugui.h
-	src/debug/evaluate.h
-	src/debug/history.h
-	src/debug/log.h
-	src/debug/profile.h
-	src/debug/symbols.h
-	src/debug/vars.h
-	src/dimension/dimension.hpp
-	src/dimension/i860cfg.h
-	src/dimension/i860.hpp
-	src/dimension/nd_mem.hpp
-	src/dimension/nd_nbic.hpp
-	src/dimension/nd_sdl.hpp
-	src/ditool/fsdir.h
-	src/ditool/fs.h
-	src/ditool/im.h
-	src/ditool/inode.h
-	src/ditool/netboot.h
-	src/ditool/part.h
-	src/ditool/ufs.h
-	src/dsp/dsp_core.h
-	src/dsp/dsp_cpu.h
-	src/dsp/dsp_disasm.h
-	src/dsp/dsp.h
-	src/gui-sdl/font10x16.h
-	src/gui-sdl/font5x8.h
-	src/gui-sdl/sdlgui.h
-	src/gui-sdl/sdlkeymap.h
-	src/gui-sdl/sdlscreen.h
-	src/gui-sdl/sdlstatusbar.h
-	src/includes/adb.h
-	src/includes/audio.h
-	src/includes/bmap.h
-	src/includes/cfgopts.h
-	src/includes/change.h
-	src/includes/configuration.h
-	src/includes/cycInt.h
-	src/includes/dialog.h
-	src/includes/dma.h
-	src/includes/endianswap.h
-	src/includes/enet_pcap.h
-	src/includes/enet_slirp.h
-	src/includes/esp.h
-	src/includes/ethernet.h
-	src/includes/event.h
-	src/includes/file_archive.h
-	src/includes/file.h
-	src/includes/floppy.h
-	src/includes/grab.h
-	src/includes/host.h
-	src/includes/ioMem.h
-	src/includes/ioMemTables.h
-	src/includes/keymap.h
-	src/includes/kms.h
-	src/includes/m68000.h
-	src/includes/main.h
-	src/includes/mo.h
-	src/includes/nbic.h
-	src/includes/ncc.h
-	src/includes/NextBus.hpp
-	src/includes/paths.h
-	src/includes/printer.h
-	src/includes/queue.h
-	src/includes/ramdac.h
-	src/includes/reset.h
-	src/includes/rom.h
-	src/includes/rs.h
-	src/includes/rtcnvram.h
-	src/includes/scandir.h
-	src/includes/scc.h
-	src/includes/screen.h
-	src/includes/scsi.h
-	src/includes/shortcut.h
-	src/includes/snd.h
-	src/includes/statusbar.h
-	src/includes/str.h
-	src/includes/sysReg.h
-	src/includes/tablet.h
-	src/includes/timing.h
-	src/includes/tmc.h
-	src/includes/video.h
-	src/includes/vs-fix.h
-	src/includes/overlay.h
-	src/includes/leds.h
-	src/includes/notify.h
-	src/includes/paste.h
-	src/includes/gifcap.h
-	src/includes/ffmpeg_gif.h
-	src/includes/capture.h
-	src/slirp/slirp_log.h
-	src/slirp/bootp.h
-	src/slirp/ctl.h
-	src/slirp/icmp_var.h
-	src/slirp/if.h
-	src/slirp/ip.h
-	src/slirp/ip_icmp.h
-	src/slirp/libslirp.h
-	src/slirp/mbuf.h
-	src/slirp/misc.h
-	src/slirp/nfs/BootparamProg.h
-	src/slirp/nfs/compat.h
-	src/slirp/nfs/CSocket.h
-	src/slirp/nfs/FileTableNFSD.h
-	src/slirp/nfs/MountProg.h
-	src/slirp/nfs/NetInfoBindProg.h
-	src/slirp/nfs/NetInfoProg.h
-	src/slirp/nfs/NFS2Prog.h
-	src/slirp/nfs/nfsd.h
-	src/slirp/nfs/NFSProg.h
-	src/slirp/nfs/PortmapProg.h
-	src/slirp/nfs/RPCProg.h
-	src/slirp/nfs/RPCServer.h
-	src/slirp/nfs/SocketListener.h
-	src/slirp/nfs/TCPServerSocket.h
-	src/slirp/nfs/UDPServerSocket.h
-	src/slirp/nfs/VDNS.h
-	src/slirp/nfs/XDRStream.h
-	src/slirp/ntp.h
-	src/slirp/rip.h
-	src/slirp/rpc/bootparam.h
-	src/slirp/rpc/csocket.h
-	src/slirp/rpc/dns.h
-	src/slirp/rpc/filetable.h
-	src/slirp/rpc/mount.h
-	src/slirp/rpc/netinfobind.h
-	src/slirp/rpc/netinfo.h
-	src/slirp/rpc/nfs.h
-	src/slirp/rpc/portmap.h
-	src/slirp/rpc/rpc.h
-	src/slirp/rpc/tcpsocket.h
-	src/slirp/rpc/udpsocket.h
-	src/slirp/rpc/vfs.h
-	src/slirp/rpc/xdr.h
-	src/slirp/sbuf.h
-	src/slirp/slirp_config.h
-	src/slirp/slirpdebug.h
-	src/slirp/slirp.h
-	src/slirp/slirpmain.h
-	src/slirp/socket.h
-	src/slirp/tcp.h
-	src/slirp/tcpip.h
-	src/slirp/tcp_timer.h
-	src/slirp/tcp_var.h
-	src/slirp/tftp.h
-	src/slirp/udp.h
-	src/softfloat/softfloat_fpsp_tables.h
-	src/softfloat/softfloat.h
-	src/softfloat/softfloat-macros.h
-	src/softfloat/softfloat-specialize.h
+	src/cpu/compat.h \
+	src/cpu/cpummu030.h \
+	src/cpu/cpummu.h \
+	src/cpu/cpu_prefetch.h \
+	src/cpu/cputbl.h \
+	src/cpu/custom.h \
+	src/cpu/debug.h \
+	src/cpu/debugmem.h \
+	src/cpu/disasm.h \
+	src/cpu/events.h \
+	src/cpu/fpp.h \
+	src/cpu/hatari-glue.h \
+	src/cpu/maccess.h \
+	src/cpu/machdep/m68k.h \
+	src/cpu/machdep/rpt.h \
+	src/cpu/memory.h \
+	src/cpu/mmu_common.h \
+	src/cpu/newcpu.h \
+	src/cpu/options_cpu.h \
+	src/cpu/readcpu.h \
+	src/cpu/savestate.h \
+	src/cpu/sysconfig.h \
+	src/cpu/sysdeps.h \
+	src/cpu/uae/attributes.h \
+	src/cpu/uae/likely.h \
+	src/cpu/uae/string.h \
+	src/cpu/uae/time.h \
+	src/cpu/uae/types.h \
+	src/cpu/uae/vm.h \
+	src/debug/68kDisass.h \
+	src/debug/breakcond.h \
+	src/debug/debugcpu.h \
+	src/debug/debugdsp.h \
+	src/debug/debugInfo.h \
+	src/debug/debug_priv.h \
+	src/debug/debugui.h \
+	src/debug/evaluate.h \
+	src/debug/history.h \
+	src/debug/log.h \
+	src/debug/profile.h \
+	src/debug/symbols.h \
+	src/debug/vars.h \
+	src/dimension/dimension.hpp \
+	src/dimension/i860cfg.h \
+	src/dimension/i860.hpp \
+	src/dimension/nd_mem.hpp \
+	src/dimension/nd_nbic.hpp \
+	src/dimension/nd_sdl.hpp \
+	src/ditool/fsdir.h \
+	src/ditool/fs.h \
+	src/ditool/im.h \
+	src/ditool/inode.h \
+	src/ditool/netboot.h \
+	src/ditool/part.h \
+	src/ditool/ufs.h \
+	src/dsp/dsp_core.h \
+	src/dsp/dsp_cpu.h \
+	src/dsp/dsp_disasm.h \
+	src/dsp/dsp.h \
+	src/gui-sdl/font10x16.h \
+	src/gui-sdl/font5x8.h \
+	src/gui-sdl/sdlgui.h \
+	src/gui-sdl/sdlkeymap.h \
+	src/gui-sdl/sdlscreen.h \
+	src/gui-sdl/sdlstatusbar.h \
+	src/includes/adb.h \
+	src/includes/audio.h \
+	src/includes/bmap.h \
+	src/includes/cfgopts.h \
+	src/includes/change.h \
+	src/includes/configuration.h \
+	src/includes/cycInt.h \
+	src/includes/dialog.h \
+	src/includes/dma.h \
+	src/includes/endianswap.h \
+	src/includes/enet_pcap.h \
+	src/includes/enet_slirp.h \
+	src/includes/esp.h \
+	src/includes/ethernet.h \
+	src/includes/event.h \
+	src/includes/file_archive.h \
+	src/includes/file.h \
+	src/includes/floppy.h \
+	src/includes/grab.h \
+	src/includes/host.h \
+	src/includes/ioMem.h \
+	src/includes/ioMemTables.h \
+	src/includes/keymap.h \
+	src/includes/kms.h \
+	src/includes/m68000.h \
+	src/includes/main.h \
+	src/includes/mo.h \
+	src/includes/nbic.h \
+	src/includes/ncc.h \
+	src/includes/NextBus.hpp \
+	src/includes/paths.h \
+	src/includes/printer.h \
+	src/includes/queue.h \
+	src/includes/ramdac.h \
+	src/includes/reset.h \
+	src/includes/rom.h \
+	src/includes/rs.h \
+	src/includes/rtcnvram.h \
+	src/includes/scandir.h \
+	src/includes/scc.h \
+	src/includes/screen.h \
+	src/includes/scsi.h \
+	src/includes/shortcut.h \
+	src/includes/snd.h \
+	src/includes/statusbar.h \
+	src/includes/str.h \
+	src/includes/sysReg.h \
+	src/includes/tablet.h \
+	src/includes/timing.h \
+	src/includes/tmc.h \
+	src/includes/video.h \
+	src/includes/vs-fix.h \
+	src/includes/overlay.h \
+	src/includes/leds.h \
+	src/includes/notify.h \
+	src/includes/paste.h \
+	src/includes/gifcap.h \
+	src/includes/ffmpeg_gif.h \
+	src/includes/capture.h \
+	src/slirp/slirp_log.h \
+	src/slirp/bootp.h \
+	src/slirp/ctl.h \
+	src/slirp/icmp_var.h \
+	src/slirp/if.h \
+	src/slirp/ip.h \
+	src/slirp/ip_icmp.h \
+	src/slirp/libslirp.h \
+	src/slirp/mbuf.h \
+	src/slirp/misc.h \
+	src/slirp/nfs/BootparamProg.h \
+	src/slirp/nfs/compat.h \
+	src/slirp/nfs/CSocket.h \
+	src/slirp/nfs/FileTableNFSD.h \
+	src/slirp/nfs/MountProg.h \
+	src/slirp/nfs/NetInfoBindProg.h \
+	src/slirp/nfs/NetInfoProg.h \
+	src/slirp/nfs/NFS2Prog.h \
+	src/slirp/nfs/nfsd.h \
+	src/slirp/nfs/NFSProg.h \
+	src/slirp/nfs/PortmapProg.h \
+	src/slirp/nfs/RPCProg.h \
+	src/slirp/nfs/RPCServer.h \
+	src/slirp/nfs/SocketListener.h \
+	src/slirp/nfs/TCPServerSocket.h \
+	src/slirp/nfs/UDPServerSocket.h \
+	src/slirp/nfs/VDNS.h \
+	src/slirp/nfs/XDRStream.h \
+	src/slirp/ntp.h \
+	src/slirp/rip.h \
+	src/slirp/rpc/bootparam.h \
+	src/slirp/rpc/csocket.h \
+	src/slirp/rpc/dns.h \
+	src/slirp/rpc/filetable.h \
+	src/slirp/rpc/mount.h \
+	src/slirp/rpc/netinfobind.h \
+	src/slirp/rpc/netinfo.h \
+	src/slirp/rpc/nfs.h \
+	src/slirp/rpc/portmap.h \
+	src/slirp/rpc/rpc.h \
+	src/slirp/rpc/tcpsocket.h \
+	src/slirp/rpc/udpsocket.h \
+	src/slirp/rpc/vfs.h \
+	src/slirp/rpc/xdr.h \
+	src/slirp/sbuf.h \
+	src/slirp/slirp_config.h \
+	src/slirp/slirpdebug.h \
+	src/slirp/slirp.h \
+	src/slirp/slirpmain.h \
+	src/slirp/socket.h \
+	src/slirp/tcp.h \
+	src/slirp/tcpip.h \
+	src/slirp/tcp_timer.h \
+	src/slirp/tcp_var.h \
+	src/slirp/tftp.h \
+	src/slirp/udp.h \
+	src/softfloat/softfloat_fpsp_tables.h \
+	src/softfloat/softfloat.h \
+	src/softfloat/softfloat-macros.h \
+	src/softfloat/softfloat-specialize.h \
+	src/includes/settings.h \
+	src/includes/overlay_view.h \
+	src/includes/ui_config.h \
+	src/includes/overlay_media.h
 
 # Common include path for the whole Previous-derived core
 AM_CPPFLAGS = \
@@ -441,9 +455,10 @@ dist_pixmaps_DATA = icons/1989.png
 
 # Files shipped in the dist tarball but not built (license, docs, examples).
 EXTRA_DIST = LICENSE README.md ROMS.md Development.md USAGE.md CONTROLS.md INSTALL.md \
-	ROADMAP.md docs/STATUS.md docs/ROMV66-0001E-02588.ASM \
+	ROADMAP.md docs/STATUS.md docs/INTERFACE.md docs/ROMV66-0001E-02588.ASM \
 	1989.conf.example 1989.spec 1989.png 1989-logo.png \
 	roms/README \
+	src/dimension/i860dec.cpp src/dimension/i860dbg.cpp \
 	src/ditool_cpp/compat.h \
 	src/ditool_cpp/DiskImage.h \
 	src/ditool_cpp/ditool.h \
@@ -455,4 +470,5 @@ EXTRA_DIST = LICENSE README.md ROMS.md Development.md USAGE.md CONTROLS.md INSTA
 	src/ditool_cpp/VirtualFS.h \
 	packaging/debian/build-deb.sh packaging/macos/package.sh \
 	web/README.md \
-	tests/Makefile tests/test_str.c tests/test_headers.c
+	tests/Makefile tests/test_str.c tests/test_headers.c tests/test_capture.c tests/test_paste.c tests/test_settings.c tests/test_overlay.c \
+	tests/ui_test_support.c tests/ui_test_support.h

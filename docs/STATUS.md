@@ -24,20 +24,28 @@ upstream Previous 4.3 code base integrated into 1989.
 | Display            | Monochrome and color framebuffers via SDL3     |
 | DMA                | NeXT DMA controller                           |
 | SCSI               | NCR 53C90 controller, up to 7 targets         |
-| Floppy             | 400k/720k/1.44M/2.88M images                  |
-| Magneto-optical    | 128 MiB/230 MiB/640 MiB/1.3 GiB images        |
+| Floppy             | 720 KiB/1.44 MiB/2.88 MiB raw images                  |
+| Magneto-optical    | Previous MO sector/ECC format; see INTERFACE.md        |
 | Sound              | 16-bit PCM + DSP56001 emulation               |
 | Ethernet           | SLiRP NAT; pcap when built with it            |
 | ADB                | Keyboard and mouse                            |
 | Tablet             | Supported                                     |
-| Printer            | Dot-matrix printer emulation                  |
+| Printer            | NeXT Laser Printer emulation                  |
 | RTC/NVRAM          | MC68HC68T1 / MCCS1850                         |
 
 ## Integration-specific notes
 
-- The `src/` tree is the upstream Previous 4.3 code; compile-time changes
-  made for 1989 are documented in `Development.md`.
+- The machine core derives from Previous 4.3. Desktop integration changes
+  and module boundaries are documented in [Development.md](../Development.md).
 - The build system is autotools (the upstream build is CMake). Generated CPU
   sources are checked in, so no codegen step is required.
 - `ditool` (NeXT disk image tool) builds alongside the emulator.
 - A browser/WASM frontend is planned; `web/` is a placeholder.
+
+## Desktop status
+
+F9 is the primary settings UI; F1 and missing-file recovery still use the
+legacy dialogs. See [interface coverage and apply rules](INTERFACE.md) for
+the complete migration inventory. Settings/application tests cover reset
+classification and per-drive media changes; OS/disk compatibility still
+requires testing with a running NeXTstep guest.

@@ -49,9 +49,8 @@ This installs:
 ## Running without installing
 
 `make` produces `./1989` in the build directory. The firmware images live in
-`roms/` in the source tree; either `make install` once so the install-time ROM
-directory exists, or point the ROM file names in the configuration file
-(created with F12) at absolute paths under `roms/`.
+`roms/` in the source tree; running from the source directory finds them
+automatically. ROM paths can also be selected in F9 → Advanced (enable Tinker), or in F1 → ROM.
 
 ## Distribution packages
 

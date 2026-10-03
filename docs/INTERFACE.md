@@ -1,0 +1,94 @@
+# Desktop interface and legacy-menu migration
+
+The F9 overlay is the primary interface. F1 opens **1989 – Legacy options**
+for the controls listed below that have not yet been migrated. The old menu
+is still compiled and functional; migration is incomplete.
+
+## Applying changes
+
+F9 edits private copies of machine and UI settings. The guest continues
+running while you browse. Nothing selected in the panel is applied until
+**Save** or **Restart** is confirmed. **Discard** drops the draft; **Esc** in
+the confirmation returns to editing. Changing a value and changing it back
+produces no save prompt or restart.
+
+| Change | Effect when confirmed |
+| --- | --- |
+| Smoothing, CRT, notifications, GIF settings, debug output, RTC local/UTC | Apply without a machine restart |
+| Fullscreen, status bar, title bar | Update the window without rebooting NeXT |
+| Sound/microphone, Ethernet connection, tablet, printer connection | Update the affected host/peripheral subsystem; disks stay attached |
+| Boot device, power-on diagnostics, verbose boot | Save for the next boot; the current OS keeps running |
+| Media in an already connected removable drive | Exchange only the changed drive's media; other disks stay open |
+| Model, CPU/FPU/DSP, RAM, active ROM, enabled NeXTdimension hardware, drive connections or SCSI device type | Require an explicit restart |
+| Fixed SCSI hard-disk image, insertion/removal or write protection | Require an explicit restart |
+| Legacy network backend or network-time source | Require an explicit restart |
+
+ROM paths for inactive machine variants and disabled NeXTdimension boards can
+be saved without restarting.
+The MMU row is informational: Previous's CPU setup always enables it.
+Inherited MMU/CPU/FPU compatibility flags that the core ignores do not
+request a restart. ADB can be changed only on Turbo models.
+
+Shut down NeXT inside the guest before confirming a hardware/fixed-disk
+restart or quitting the emulator. Eject/unmount removable media inside the
+guest before changing it. A confirmation does not flush the guest OS's
+filesystem caches. F5 and Ctrl+Alt+C now use the overlay restart confirmation,
+with **Cancel** selected initially. Restart-requiring F9 saves initially
+select **Discard**, and Esc lets you continue editing.
+
+F1 uses the same restart policy and per-drive media application. Its media
+selections are staged until the main dialog's OK; Cancel leaves attached
+media unchanged. Its explicit **Save config** button still writes a file,
+and its **Load config** button can change the active configuration filename.
+F1 remains a blocking legacy dialog, with its own alerts and file browser.
+
+There is no separate queue of hardware changes for a future launch. Save
+boot options at any time; shut down the guest before editing hardware that
+requires restarting. For preparing another machine entirely offline, edit
+its configuration while the emulator is closed.
+
+## Coverage against the legacy dialogs
+
+This inventory is based on `src/gui-sdl/dlg*.c` and the F9 row/actions code.
+“Remaining” means absent from F9, not absent from the emulation core.
+
+| Legacy area | Available in F9 | Remaining in F1 |
+| --- | --- | --- |
+| System | Seven model variants, 25/33/40 MHz clock choices, FPU, DSP mode, MMU status, Turbo ADB, model hardware defaults | 16/20 MHz and variable clock; DSP RAM size; SCSI/RTC chip and NBIC selection |
+| Memory | Model-appropriate total-RAM presets with bank sizes displayed | Individual bank editing and RAM speed |
+| ROM | 68030, 68040 and Turbo ROM pickers in Advanced | Restore-default-path buttons |
+| Boot | Boot device in Media; DRAM test and verbose boot in Advanced | Power-on test master switch, sound/SCSI tests, test loop, extended diagnostics, diagnostic VRAM display |
+| SCSI | Seven image slots, T to cycle disk/CD/floppy type, W for per-target write protection, eject/clear, blank hard-disk creation | Legacy browser and testing-only global disk-write overlay |
+| Floppy | Drives 0/1, image selection, eject/clear, write protection, blank 720 KiB/1.44 MiB/2.88 MiB images | Explicit drive connection/disconnection switches |
+| Magneto-optical | Drives 0/1, image selection, eject/clear, write protection, blank-image creation | Explicit drive connection switches and legacy second-drive warning |
+| Graphics | First NeXTdimension board enable; fullscreen, filtering, CRT, status/title bars | Boards in slots 4/6; per-board ROM/RAM; console/display slot; separate/grouped displays and monitor arrangement |
+| Network | Connected/disconnected | SLiRP/pcap selection, host interface, twisted-pair selection, MAC address, network time, NFS shares and names |
+| Sound | Output enable in General; microphone in Extensions | No additional sound-menu toggle |
+| Keyboard | Host clipboard paste shortcut | Scancode/symbolic mapping, Command/Alt swap, configurable legacy shortcuts |
+| Mouse/tablet | Tablet model; click-to-capture and Ctrl+Enter release | Motion presets, linear/exponential/raw motion, automatic capture, mouse-to-key and Ctrl-click options |
+| Printer | Connected/disconnected | Paper size and output directory |
+| Main menu | About; model hardware defaults; confirmed restart/quit | Configuration import/export and show-legacy-menu-at-startup setting |
+
+The m68k/i860 debuggers, legacy PNG screenshots and AIFF recording remain
+available through their shortcuts. Missing-ROM/media recovery still uses
+legacy dialogs. These are separate migration tasks, not removed features.
+
+## Media creation and remaining polish
+
+New images are blank files, not formatted NeXT filesystems. The guest or
+`ditool` must prepare them. Creation uses a sparse file where the host
+filesystem supports holes, avoiding a long UI-blocking write of gigabytes
+of zeros. Existing files are never overwritten. Discarding an options edit
+does not delete an image already created on the host.
+
+The offered MO image sizes are file-size choices, not a compatibility claim
+for every format. The Previous MO core expects its own sector/ECC layout;
+use a known-compatible image or the supplied `empty.ecc.od.zip` template.
+The legacy menu restricts MO to non-Turbo Cubes and warns about a second MO
+drive; F9 does not yet reproduce all of those hardware-specific affordances.
+
+Remaining interface work includes keyboard/mouse and NFS controls, richer
+NeXTdimension configuration, replacing missing-file/legacy alerts, and moving
+the optional FFmpeg post-processing pass off the UI thread. Browser/WASM is
+still a placeholder. UI/component tests do not establish NeXTstep desktop or
+disk-filesystem compatibility on every machine variant.

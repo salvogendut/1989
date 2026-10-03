@@ -16,6 +16,8 @@ const char Change_fileid[] = "Previous change.c";
 #include "main.h"
 #include "configuration.h"
 #include "change.h"
+#include "settings.h"
+#include "printer.h"
 #include "dialog.h"
 #include "ioMem.h"
 #include "m68000.h"
@@ -33,7 +35,7 @@ const char Change_fileid[] = "Previous change.c";
 #include "tablet.h"
 #include "keymap.h"
 
-#define DEBUG 1
+#define DEBUG 0
 #if DEBUG
 #define Dprintf(...) printf(__VA_ARGS__)
 #else
@@ -47,187 +49,7 @@ const char Change_fileid[] = "Previous change.c";
  */
 bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
 {
-	int i, j;
-
-	/* Did we change ROM file? */
-	if (current->System.nMachineType == NEXT_CUBE030 && strcmp(current->Rom.szRom030FileName, changed->Rom.szRom030FileName)) {
-		printf("rom030 reset\n");
-		return true;
-	}
-	if (current->System.nMachineType == NEXT_CUBE040 || current->System.nMachineType == NEXT_STATION) {
-		if (!current->System.bTurbo && strcmp(current->Rom.szRom040FileName, changed->Rom.szRom040FileName)) {
-			printf("rom040 reset\n");
-			return true;
-		}
-		if (current->System.bTurbo && strcmp(current->Rom.szRomTurboFileName, changed->Rom.szRomTurboFileName)) {
-			printf("romturbo reset\n");
-			return true;
-		}
-	}
-
-	/* Did we change MAC address? */
-	if (current->Rom.bUseCustomMac != changed->Rom.bUseCustomMac) {
-		printf("mac reset\n");
-		return true;
-	}
-	if (current->Rom.bUseCustomMac) {
-		for (i = 0; i < 6; i++) {
-			if (current->Rom.nRomCustomMac[i] != changed->Rom.nRomCustomMac[i]) {
-				printf("mac reset\n");
-				return true;
-			}
-		}
-	}
-
-	/* Did we change network interface? */
-	if ((current->Ethernet.nHostInterface != changed->Ethernet.nHostInterface) ||
-		(current->Ethernet.bNetworkTime != changed->Ethernet.bNetworkTime)) {
-		printf("network interface reset\n");
-		return true;
-	}
-
-	/* Did we change machine type? */
-	if ((current->System.nMachineType != changed->System.nMachineType) ||
-		(current->System.bColor != changed->System.bColor) || 
-		(current->System.bTurbo != changed->System.bTurbo)) {
-		printf("machine type reset\n");
-		return true;
-	}
-
-	/* Did we change CPU type? */
-	if ((current->System.nCpuLevel != changed->System.nCpuLevel) ||
-		(current->System.nCpuFreq != changed->System.nCpuFreq)) {
-		printf("cpu type reset\n");
-		return true;
-	}
-
-	/* Did we change the realtime flag? */
-	if (current->System.bRealtime != changed->System.bRealtime) {
-		printf("realtime flag reset\n");
-		return true;
-	}
-
-	/* Did we change FPU type? */
-	if (current->System.n_FPUType != changed->System.n_FPUType) {
-		printf("fpu type reset\n");
-		return true;
-	}
-
-#if ENABLE_DSP_EMU
-	/* Did we change DSP type or memory? */
-	if ((current->System.nDSPType != changed->System.nDSPType) ||
-		(current->System.bDSPMemoryExpansion != changed->System.bDSPMemoryExpansion)) {
-		printf("dsp type reset\n");
-		return true;
-	}
-#endif
-
-	/* Did we change SCSI controller? */
-	if (current->System.nSCSI != changed->System.nSCSI) {
-		printf("scsi controller reset\n");
-		return true;
-	}
-
-	/* Did we change RTC chip? */
-	if (current->System.nRTC != changed->System.nRTC) {
-		printf("rtc chip reset\n");
-		return true;
-	}
-
-	/* Did we change NBIC emulation? */
-	if (current->System.bNBIC != changed->System.bNBIC) {
-		printf("nbic reset\n");
-		return true;
-	}
-	
-	/* Did we change ADB emulation? */
-	if (current->System.bADB != changed->System.bADB) {
-		printf("adb reset\n");
-		return true;
-	}
-
-	/* Did we change memory size? */
-	for (i = 0; i < 4; i++) {
-		if (current->Memory.nMemoryBankSize[i] != changed->Memory.nMemoryBankSize[i]) {
-			printf("memory size reset\n");
-			return true;
-		}
-	}
-
-	/* Did we change boot options? */
-	if ((current->Boot.nBootDevice != changed->Boot.nBootDevice) ||
-		(current->Boot.bEnableDRAMTest != changed->Boot.bEnableDRAMTest) ||
-		(current->Boot.bEnablePot != changed->Boot.bEnablePot) ||
-		(current->Boot.bEnableSoundTest != changed->Boot.bEnableSoundTest) ||
-		(current->Boot.bEnableSCSITest != changed->Boot.bEnableSCSITest) ||
-		(current->Boot.bLoopPot != changed->Boot.bLoopPot) ||
-		(current->Boot.bVerbose != changed->Boot.bVerbose) ||
-		(current->Boot.bExtendedPot != changed->Boot.bExtendedPot) ||
-		(current->Boot.bVisible != changed->Boot.bVisible)) {
-		printf("boot options reset\n");
-		return true;
-	}
-
-	/* Did we change SCSI disk? */
-	for (i = 0; i < ESP_MAX_DEVS; i++) {
-		if (current->SCSI.target[i].nDeviceType != changed->SCSI.target[i].nDeviceType ||
-			(current->SCSI.target[i].nDeviceType == SD_HARDDISK &&
-			 (current->SCSI.target[i].bWriteProtected != changed->SCSI.target[i].bWriteProtected ||
-			  strcmp(current->SCSI.target[i].szImageName, changed->SCSI.target[i].szImageName)))) {
-				 printf("scsi disk reset\n");
-				 return true;
-			 }
-	}
-	if (current->SCSI.nWriteProtection != changed->SCSI.nWriteProtection) {
-		printf("scsi disk reset\n");
-		return true;
-	}
-
-	/* Did we change MO drive? */
-	for (i = 0; i < MO_MAX_DRIVES; i++) {
-		if (current->MO.drive[i].bDriveConnected != changed->MO.drive[i].bDriveConnected) {
-			printf("mo drive reset\n");
-			return true;
-		}
-	}
-
-	/* Did we change floppy drive? */
-	for (i = 0; i < FLP_MAX_DRIVES; i++) {
-		if (current->Floppy.drive[i].bDriveConnected != changed->Floppy.drive[i].bDriveConnected) {
-			printf("floppy drive reset\n");
-			return true;
-		}
-	}
-
-	/* Did we change printer? */
-	if (current->Printer.bPrinterConnected != changed->Printer.bPrinterConnected) {
-		printf("printer reset\n");
-		return true;
-	}
-
-	/* Did we change NeXTdimension? */
-	for (i = 0; i < ND_MAX_BOARDS; i++) {
-		if (current->Dimension.board[i].bEnabled != changed->Dimension.board[i].bEnabled ||
-			strcmp(current->Dimension.board[i].szRomFileName, changed->Dimension.board[i].szRomFileName)) {
-			printf("dimension reset\n");
-			return true;
-		}
-		for (j = 0; j < 4; j++) {
-			if (current->Dimension.board[i].nMemoryBankSize[j] != changed->Dimension.board[i].nMemoryBankSize[j]) {
-				printf("dimension memory size reset\n");
-				return true;
-			}
-		}
-	}
-	if (current->Dimension.bI860Thread != changed->Dimension.bI860Thread ||
-		current->Dimension.nConsoleSlot != changed->Dimension.nConsoleSlot) {
-		printf("dimension display reset\n");
-		return true;
-	}
-
-	/* Else no reset is required */
-	printf("No Reset needed!\n");
-	return false;
+    return Settings_NeedRestart(current, changed);
 }
 
 
@@ -235,7 +57,7 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
 /**
  * Copy details back to configuration and perform reset.
  */
-void Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *changed, bool bForceReset)
+bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *changed, bool bForceReset)
 {
 	bool NeedReset;
 	bool bReInitKeymap = false;
@@ -243,6 +65,8 @@ void Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 	bool bReInitEnetEmu = false;
 	bool bReInitSoundEmu = false;
 	bool bScreenModeChange = false;
+	bool bReInitPrinter = false;
+	bool bTitlebarChange = current->Screen.bShowTitlebar != changed->Screen.bShowTitlebar;
 
 	Dprintf("Changes for:\n");
 	/* Do we need to warn user that changes will only take effect after reset? */
@@ -251,7 +75,7 @@ void Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 	else
 		NeedReset = Change_DoNeedReset(current, changed);
 
-	/* Note: SCSI, MO and floppy disk insert/eject called from GUI */
+	/* Settings_Apply owns per-target removable-media operations. */
 
 	if (!NeedReset) {
 		int i;
@@ -283,8 +107,11 @@ void Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 			bReInitSoundEmu = true;
 		}
 
+		bReInitPrinter = current->Printer.bPrinterConnected != changed->Printer.bPrinterConnected;
+
 		/* Do we need to change Screen configuration? */
-		if (current->Screen.nMode != changed->Screen.nMode) {
+		if (current->Screen.nMode != changed->Screen.nMode ||
+            current->Screen.bShowStatusbar != changed->Screen.bShowStatusbar) {
 			bScreenModeChange = true;
 		} else if (current->Screen.nMode == SCREEN_GROUP) {
 			for (i = 0; i < NUM_MONITORS; i++) {
@@ -330,6 +157,9 @@ void Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 		Tablet_Reset();
 	}
 
+	if (bReInitPrinter) Printer_Reset();
+	if (bTitlebarChange) Screen_TitlebarChanged();
+
 	/* Force things associated with screen change */
 	if (bScreenModeChange)
 	{
@@ -343,10 +173,13 @@ void Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 		/* Check if all necessary files exist */
 		Dialog_CheckFiles();
 		if (bQuitProgram)
-			return;
+			return false;
 
 		Dprintf("- Reset\n");
-		Reset_Cold();
+        if (Reset_Cold()) {
+            Main_RequestQuit(false);
+            return false;
+        }
 	}
 
 	/* Go into/return from full screen if flagged */
@@ -360,6 +193,7 @@ void Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 	/* Keep the activity-LED bar in sync with the attached media. */
 	overlay_update_leds();
 	Dprintf("done.\n");
+    return true;
 }
 
 

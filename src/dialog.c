@@ -11,6 +11,7 @@ const char Dialog_fileid[] = "Previous dialog.c";
 #include "main.h"
 #include "configuration.h"
 #include "change.h"
+#include "settings.h"
 #include "dialog.h"
 #include "log.h"
 #include "screen.h"
@@ -56,9 +57,8 @@ bool Dialog_DoProperty(void)
 	}
 
 	/* Check if reset is required and ask user if he really wants to continue then */
-	if (bOKDialog && !bForceReset
-	    && Change_DoNeedReset(&current, &ConfigureParams)) {
-		bOKDialog = DlgAlert_Query("The emulated system must be "
+	if (bOKDialog && (bForceReset || Change_DoNeedReset(&current, &ConfigureParams))) {
+		bOKDialog = DlgAlert_Query("Shut down NeXT before restarting. The system must be "
 		                           "reset to apply these changes. "
 		                           "Apply changes now and reset "
 		                           "the emulator?");
@@ -68,11 +68,16 @@ bool Dialog_DoProperty(void)
 		Main_RequestQuit(true);
 
 	/* Copy details to configuration */
-	if (bOKDialog) {
-		Change_CopyChangedParamsToConfiguration(&current, &ConfigureParams, bForceReset);
-	} else {
-		ConfigureParams = current;
-	}
+    if (bOKDialog) {
+        SettingsSession session = { current, ConfigureParams };
+        ConfigureParams = current;
+        if (bForceReset)
+            bOKDialog = Change_CopyChangedParamsToConfiguration(&current, &session.draft, true);
+        else
+            bOKDialog = Settings_Apply(&session, true);
+    } else {
+        ConfigureParams = current;
+    }
 
 	if (bQuitProgram)
 		Main_RequestQuit(false);

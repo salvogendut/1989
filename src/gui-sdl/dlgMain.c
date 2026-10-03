@@ -43,7 +43,7 @@ const char DlgMain_fileid[] = "Previous dlgMain.c";
 static SGOBJ maindlg[] =
 {
 	{ SGBOX, 0, 0, 0,0, 50,19, NULL },
-	{ SGTEXT, SG_EXIT, 0, 15,1, 20,1, "Previous - Main menu" },
+	{ SGTEXT, SG_EXIT, 0, 15,1, 20,1, "1989 - Legacy options" },
 	{ SGBUTTON, 0, 0, 2,4, 13,1, "System" },
 	{ SGBUTTON, 0, 0, 2,6, 13,1, "ROM" },
 	{ SGBUTTON, 0, 0, 2,8, 13,1, "Display" },
