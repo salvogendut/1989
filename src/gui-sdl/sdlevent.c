@@ -412,6 +412,17 @@ void GuiEvent_EventHandler(void) {
 						                 UI89Config_.nGifFps);
 					break;
 				}
+				/* Ctrl + / Ctrl - : step the window scale (sibling convention). */
+				if (event.key.mod & SDL_KMOD_CTRL) {
+					bool plus = (event.key.scancode == SDL_SCANCODE_EQUALS ||
+					             event.key.scancode == SDL_SCANCODE_KP_PLUS);
+					bool minus = (event.key.scancode == SDL_SCANCODE_MINUS ||
+					              event.key.scancode == SDL_SCANCODE_KP_MINUS);
+					if (plus || minus) {
+						Screen_ScaleWindow(plus ? 1 : -1);
+						break;
+					}
+				}
 				if (ShortCut_CheckKeys(event.key.key, GuiEvent_ShortcutMod(event.key.mod), true)) {
 					ShortCut_ActKey();
 					break;

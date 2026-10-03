@@ -32,6 +32,7 @@ const char Main_fileid[] = "Previous main.c";
 #include "leds.h"
 #include "notify.h"
 #include "capture.h"
+#include "sdlscreen.h"
 #include "debugui.h"
 #include "file.h"
 #include "dsp.h"
@@ -340,6 +341,7 @@ static bool Main_Init(void) {
 	notify_init();
 	overlay_init();
 	overlay_update_leds();
+	Screen_ApplyWindowScale();
 
 	/* First run: create the main configuration file (1989.conf) with the
 	 * current defaults, matching the sibling emulators. */

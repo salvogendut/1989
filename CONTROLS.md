@@ -16,6 +16,7 @@ fullscreen.
 | `F9`  | Open / close the options overlay                |
 | `F11` | Toggle fullscreen                               |
 | `F12` | Quit                                            |
+| `Ctrl++` / `Ctrl+-` | Increase / decrease the window scale |
 
 Quitting shows a confirmation in the same overlay style as the F9 panel:
 `Left`/`Right` selects OK or Cancel, `Enter` confirms and `Esc` cancels.

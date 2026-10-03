@@ -139,6 +139,8 @@ bDebug = FALSE
 bRtcLocalTime = TRUE
 # Optimize recorded GIFs through ffmpeg when available.
 bGifFfmpeg = FALSE
+# Window scale as a percentage of the native size (0 = fit to display).
+nWindowScale = 0
 nGifWidth = 480
 nGifFps = 25
 nNotifyMode = 1

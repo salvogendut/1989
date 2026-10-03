@@ -24,6 +24,11 @@ extern void Screen_Blank(SDL_Texture* tex);
 
 extern bool Screen_Repaint(void);
 extern void Screen_SizeChanged(void);
+/* Step the window scale up (+1) or down (-1), keeping the aspect ratio. */
+extern void Screen_ScaleWindow(int dir);
+/* Apply the saved window scale (nWindowScale); call once after the config
+ * is loaded. */
+extern void Screen_ApplyWindowScale(void);
 
 extern void Screen_Init(void);
 extern void Screen_UnInit(void);

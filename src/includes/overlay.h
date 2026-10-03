@@ -50,6 +50,7 @@ typedef struct {
     bool bDebug;        /* show emulator debug/log output on the terminal */
     bool bRtcLocalTime; /* RTC reports host local time (true) or UTC (false) */
     bool bGifFfmpeg;    /* optimize recorded GIFs through ffmpeg */
+    int  nWindowScale;  /* window scale percent (0 = fit to display) */
     int  nGifWidth;     /* recorded GIF width (320/480/640) */
     int  nGifFps;       /* recorded GIF frame rate (10/20/25) */
     int  nNotifyMode;   /* NotifyMode */

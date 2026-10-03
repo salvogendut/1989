@@ -56,6 +56,7 @@ static const struct Config_Tag configs_UI89[] = {
     { "bDebug",      Bool_Tag,  &UI89Config_.bDebug },
     { "bRtcLocalTime", Bool_Tag, &UI89Config_.bRtcLocalTime },
     { "bGifFfmpeg",  Bool_Tag,  &UI89Config_.bGifFfmpeg },
+    { "nWindowScale", Int_Tag,  &UI89Config_.nWindowScale },
     { "nGifWidth",   Int_Tag,   &UI89Config_.nGifWidth },
     { "nGifFps",     Int_Tag,   &UI89Config_.nGifFps },
     { "nNotifyMode", Int_Tag,   &UI89Config_.nNotifyMode },
@@ -75,6 +76,7 @@ void overlay_config_load(void) {
     UI89Config_.bDebug     = false;
     UI89Config_.bRtcLocalTime = true;
     UI89Config_.bGifFfmpeg = false;
+    UI89Config_.nWindowScale = 0;
     UI89Config_.nGifWidth  = 480;
     UI89Config_.nGifFps    = 25;
     UI89Config_.nNotifyMode = NOTIFY_MODE_SCREEN;

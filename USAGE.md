@@ -87,6 +87,7 @@ tool distributed with Previous.
 - **F4**: save a screenshot (PPM `1989-<timestamp>.ppm`).
 - **F6**: toggle GIF capture (`1989-<timestamp>.gif`); resolution and frame
   rate are set in the overlay's Advanced tab.
+- **Ctrl++ / Ctrl+-**: increase / decrease the window scale.
 - **Alt+G**: legacy screenshot shortcut (PNG when built with libpng).
 - **Alt+R**: legacy sound recording (AIFF).
 

@@ -463,6 +463,9 @@ static void Screen_GetWindowBounds(SDL_Rect* r) {
 				scale = (float)w / width;
 			}
 		}
+	} else if (UI89Config_.nWindowScale > 0) {
+		/* First init (or a mode change): honour the saved window scale. */
+		scale = (float)UI89Config_.nWindowScale / 100.0f;
 	}
 	if (SDL_GetDisplayUsableBounds(d, &usable)) {
 		int top, left, bottom, right;
@@ -887,6 +890,45 @@ void Screen_SizeChanged(void) {
 		SDL_GetWindowSize(sdlWindow, NULL, &h);
 		nd_sdl_resize((float)h/height);
 	}
+}
+
+/*-----------------------------------------------------------------------*/
+/**
+ * Step the window scale up (+1) or down (-1), keeping the aspect ratio.
+ * The scale is a percentage of the base logical size (0 = fit to display).
+ * Bound to Ctrl +/- like the sibling emulators.
+ */
+void Screen_ScaleWindow(int dir) {
+	int w, h;
+	int pct;
+
+	if (bInFullScreen)
+		return;
+	if (!SDL_GetWindowSize(sdlWindow, &w, &h) || width <= 0)
+		return;
+
+	pct = (w * 100 + width / 2) / width;
+	pct += dir * 10;
+	if (pct < 25)
+		pct = 25;
+	if (pct > 200)
+		pct = 200;
+
+	UI89Config_.nWindowScale = pct;
+	overlay_config_save();
+	SDL_SetWindowSize(sdlWindow, width * pct / 100, height * pct / 100);
+}
+
+/*-----------------------------------------------------------------------*/
+/**
+ * Apply the saved window scale (nWindowScale). Called once after the user
+ * configuration is loaded, since the first screen init runs before it.
+ */
+void Screen_ApplyWindowScale(void) {
+	if (bInFullScreen || UI89Config_.nWindowScale <= 0)
+		return;
+	SDL_SetWindowSize(sdlWindow, width * UI89Config_.nWindowScale / 100,
+	                  height * UI89Config_.nWindowScale / 100);
 }
 
 /*-----------------------------------------------------------------------*/
