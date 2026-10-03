@@ -24,6 +24,7 @@ const char SDLevent_fileid[] = "Previous sdlevent.c";
 #include "overlay.h"
 #include "capture.h"
 #include "notify.h"
+#include "paste.h"
 
 
 static bool bIgnoreNextMouseMotion = false; /* Ignore next mouse motion (needed after SDL_WarpMouse) */
@@ -281,6 +282,7 @@ void GuiEvent_EventHandler(void) {
 
 		/* Process pending options-overlay file-dialog results. */
 		overlay_tick();
+		paste_tick();
 		notify_tick(20);
 
 #ifdef ENABLE_RENDERING_THREAD
@@ -290,7 +292,9 @@ void GuiEvent_EventHandler(void) {
 			events = SDL_WaitEvent(&event);
 		}
 #else
-		events = SDL_WaitEventTimeout(&event, 100);
+		/* While a clipboard paste is running, poll often enough for the
+		 * per-character key steps. */
+		events = SDL_WaitEventTimeout(&event, paste_active() ? 10 : 100);
 #endif
 		if (!events) {
 			/* no events -> if emulation is active or
@@ -422,6 +426,31 @@ void GuiEvent_EventHandler(void) {
 					              event.key.scancode == SDL_SCANCODE_KP_MINUS);
 					if (plus || minus) {
 						Screen_ScaleWindow(plus ? 1 : -1);
+						break;
+					}
+					/* Ctrl+V: type the host clipboard into the NeXT. Release
+					 * Ctrl first so the first character is not Ctrl+key. */
+					if (event.key.scancode == SDL_SCANCODE_V) {
+						SDL_KeyboardEvent up;
+						char *text;
+
+						SDL_zero(up);
+						up.type = SDL_EVENT_KEY_UP;
+						up.mod = SDL_KMOD_NONE;
+						up.scancode = SDL_SCANCODE_LCTRL;
+						up.key = SDL_GetKeyFromScancode(
+						    SDL_SCANCODE_LCTRL, SDL_KMOD_NONE, false);
+						Keymap_KeyUp(&up);
+						up.scancode = SDL_SCANCODE_RCTRL;
+						up.key = SDL_GetKeyFromScancode(
+						    SDL_SCANCODE_RCTRL, SDL_KMOD_NONE, false);
+						Keymap_KeyUp(&up);
+
+						text = SDL_GetClipboardText();
+						if (text) {
+							paste_start(text);
+							SDL_free(text);
+						}
 						break;
 					}
 				}

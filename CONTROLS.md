@@ -17,6 +17,7 @@ fullscreen.
 | `F11` | Toggle fullscreen                               |
 | `F12` | Quit                                            |
 | `Ctrl++` / `Ctrl+-` | Increase / decrease the window scale |
+| `Ctrl+V` | Paste the host clipboard into the emulated keyboard |
 
 Quitting shows a confirmation in the same overlay style as the F9 panel:
 `Left`/`Right` selects OK or Cancel, `Enter` confirms and `Esc` cancels.
@@ -24,6 +25,10 @@ Quitting shows a confirmation in the same overlay style as the F9 panel:
 The window scale and the fullscreen state are stored in `1989.conf`
 (`nWindowScale` in `[UI89]`, `bFullScreen` in `[Screen]`) and restored on the
 next start.
+
+`Ctrl+V` types the host clipboard into the emulated machine one character at
+a time (with Shift pressed around shifted characters and unmapped bytes
+skipped), like the other happy-years emulators.
 
 The legacy configurable shortcuts still work (Alt+O opens the old options
 dialog, Alt+G screenshot, Alt+R sound recording, Alt+M mouse grab, Alt+C

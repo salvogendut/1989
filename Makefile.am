@@ -51,6 +51,7 @@ dist_man1_MANS = 1989.1
 	src/overlay.c \
 	src/leds.c \
 	src/notify.c \
+	src/paste.c \
 	src/gifcap.c \
 	src/ffmpeg_gif.c \
 	src/capture.c \
@@ -292,6 +293,7 @@ noinst_HEADERS = \
 	src/includes/overlay.h
 	src/includes/leds.h
 	src/includes/notify.h
+	src/includes/paste.h
 	src/includes/gifcap.h
 	src/includes/ffmpeg_gif.h
 	src/includes/capture.h

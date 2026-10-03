@@ -8,12 +8,18 @@ CPPFLAGS ?= -I../src -I../src/includes -I../src/cpu -I../src/debug \
 SDL3_CFLAGS ?= $(shell pkg-config --cflags sdl3)
 SDL3_LIBS ?= $(shell pkg-config --libs sdl3)
 
-TESTS = test-str
+TESTS = test-str test-paste
 
 all: $(TESTS) test-headers test-capture
 
 test-str: test_str.c ../src/str.c ../src/includes/str.h ../config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) test_str.c ../src/str.c -o $@
+
+# Paste state machine (keymap calls are stubbed in the test).
+test-paste: test_paste.c ../src/paste.c ../src/includes/paste.h \
+	../src/gui-sdl/sdlkeymap.h ../config.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) \
+		test_paste.c ../src/paste.c $(SDL3_LIBS) -o $@
 
 # Compile-time sanity: pulls in the core headers as compiled by the emulator.
 test-headers: test_headers.c ../config.h
