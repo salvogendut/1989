@@ -12,13 +12,12 @@
 */
 const char Change_fileid[] = "Previous change.c";
 
-#include <ctype.h>
 #include "main.h"
 #include "configuration.h"
 #include "change.h"
 #include "settings.h"
 #include "printer.h"
-#include "dialog.h"
+#include "recovery.h"
 #include "ioMem.h"
 #include "m68000.h"
 #include "reset.h"
@@ -75,6 +74,15 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 	else
 		NeedReset = Change_DoNeedReset(current, changed);
 
+    /* Resolve unavailable resources before touching live settings/subsystems.
+     * Cancelling native recovery leaves the running machine untouched. */
+    CNF_PARAMS recovered;
+    if (NeedReset) {
+        recovered = *changed;
+        if (!Recovery_CheckFiles(&recovered, false)) return false;
+        changed = &recovered;
+    }
+
 	/* Settings_Apply owns per-target removable-media operations. */
 
 	if (!NeedReset) {
@@ -93,6 +101,7 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 		/* Do we need to change Ethernet configuration? */
 		for (i = 0; i < EN_MAX_SHARES; i++) {
 			if (current->Ethernet.bEthernetConnected != changed->Ethernet.bEthernetConnected ||
+				current->Ethernet.bTwistedPair != changed->Ethernet.bTwistedPair ||
 				strcmp(current->Ethernet.szInterfaceName, changed->Ethernet.szInterfaceName) ||
 				strcmp(current->Ethernet.nfs[i].szHostName, changed->Ethernet.nfs[i].szHostName) ||
 				strcmp(current->Ethernet.nfs[i].szPathName, changed->Ethernet.nfs[i].szPathName)) {
@@ -111,7 +120,8 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 
 		/* Do we need to change Screen configuration? */
 		if (current->Screen.nMode != changed->Screen.nMode ||
-            current->Screen.bShowStatusbar != changed->Screen.bShowStatusbar) {
+			(changed->Screen.nMode == SCREEN_SINGLE &&
+			 current->Screen.nSingleModeSlot != changed->Screen.nSingleModeSlot)) {
 			bScreenModeChange = true;
 		} else if (current->Screen.nMode == SCREEN_GROUP) {
 			for (i = 0; i < NUM_MONITORS; i++) {
@@ -170,11 +180,6 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 	/* Do we need to perform reset? */
 	if (NeedReset)
 	{
-		/* Check if all necessary files exist */
-		Dialog_CheckFiles();
-		if (bQuitProgram)
-			return false;
-
 		Dprintf("- Reset\n");
         if (Reset_Cold()) {
             Main_RequestQuit(false);
@@ -194,122 +199,4 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 	overlay_update_leds();
 	Dprintf("done.\n");
     return true;
-}
-
-
-/*-----------------------------------------------------------------------*/
-/**
- * Change given Hatari options
- * Return false if parsing failed, true otherwise
- */
-static bool Change_Options(int argc, const char *argv[])
-{
-	bool bOK = false;
-	CNF_PARAMS current;
-
-	Main_PauseEmulation(false);
-
-	/* get configuration changes */
-	current = ConfigureParams;
-	ConfigureParams.Screen.bFullScreen = bInFullScreen;
-
-	/* Check if reset is required and ask user if he really wants to continue */
-	if (Change_DoNeedReset(&current, &ConfigureParams)) {
-		bOK = DlgAlert_Query("The emulated system must be "
-				     "reset to apply these changes. "
-				     "Apply changes now and reset "
-				     "the emulator?");
-	}
-	/* Copy details to configuration */
-	if (bOK) {
-		Change_CopyChangedParamsToConfiguration(&current, &ConfigureParams, false);
-	} else {
-		ConfigureParams = current;
-	}
-
-	Main_UnPauseEmulation();
-	return bOK;
-}
-
-
-/*-----------------------------------------------------------------------*/
-/**
- * Parse given command line and change Hatari options accordingly.
- * Given string must be stripped and not empty.
- * Return false if parsing failed or there were no args, true otherwise
- */
-bool Change_ApplyCommandline(char *cmdline)
-{
-	int i, argc, inarg;
-	const char **argv;
-	bool ret;
-
-	/* count args */
-	inarg = argc = 0;
-	for (i = 0; cmdline[i]; i++)
-	{
-		if (isspace((unsigned char)cmdline[i]) && cmdline[i-1] != '\\')
-		{
-			inarg = 0;
-			continue;
-		}
-		if (!inarg)
-		{
-			inarg++;
-			argc++;
-		}
-	}
-	if (!argc)
-	{
-		return false;
-	}
-	/* 2 = "hatari" + NULL */
-	argv = malloc((argc+2) * sizeof(char*));
-	if (!argv)
-	{
-		perror("command line alloc");
-		return false;
-	}
-
-	/* parse them to array */
-	fprintf(stderr, "Command line with '%d' arguments:\n", argc);
-	inarg = argc = 0;
-	argv[argc++] = "hatari";
-	for (i = 0; cmdline[i]; i++)
-	{
-		if (isspace((unsigned char)cmdline[i]))
-		{
-			if (cmdline[i-1] != '\\')
-			{
-				cmdline[i] = '\0';
-				if (inarg)
-				{
-					fprintf(stderr, "- '%s'\n", argv[argc-1]);
-				}
-				inarg = 0;
-				continue;
-			}
-			else
-			{
-				/* remove quote for space */
-				memcpy(cmdline+i-1, cmdline+i, strlen(cmdline+i)+1);
-				i--;
-			}
-		}
-		if (!inarg)
-		{
-			argv[argc++] = &(cmdline[i]);
-			inarg++;
-		}
-	}
-	if (inarg)
-	{
-		fprintf(stderr, "- '%s'\n", argv[argc-1]);
-	}
-	argv[argc] = NULL;
-	
-	/* do args */
-	ret = Change_Options(argc, argv);
-	free((void *)argv);
-	return ret;
 }

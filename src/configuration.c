@@ -315,6 +315,7 @@ static const struct Config_Tag configs_Printer[] =
 {
 	{ "bPrinterConnected", Bool_Tag, &ConfigureParams.Printer.bPrinterConnected },
 	{ "nPaperSize", Int_Tag, &ConfigureParams.Printer.nPaperSize },
+	{ "nFileFormat", Int_Tag, &ConfigureParams.Printer.nFileFormat },
 	{ "szPrintToFileName", String_Tag, ConfigureParams.Printer.szPrintToFileName },
 	{ NULL , Error_Tag, NULL }
 };
@@ -490,6 +491,7 @@ void Configuration_SetDefault(void)
 	/* Set defaults for Printer */
 	ConfigureParams.Printer.bPrinterConnected = false;
 	ConfigureParams.Printer.nPaperSize = PAPER_A4;
+	ConfigureParams.Printer.nFileFormat = FORMAT_PNG;
 	File_MakePathBuf(ConfigureParams.Printer.szPrintToFileName,
 	                 sizeof(ConfigureParams.Printer.szPrintToFileName),
 	                 Paths_GetUserHome(), "", NULL);
@@ -776,6 +778,21 @@ void Configuration_CheckPeripheralSettings(void) {
 }
 
 
+/* Compatibility migration only: retired preferences/bindings have no runtime path.
+ * Old temporary-overlay users must not silently acquire writable images. */
+static void Configuration_RetireLegacyOptions(void) {
+    ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup = false;
+    ConfigureParams.Shortcut.withModifier[SHORTCUT_OPTIONS] = 0;
+    ConfigureParams.Shortcut.withoutModifier[SHORTCUT_OPTIONS] = 0;
+    if (ConfigureParams.SCSI.nWriteProtection == WRITEPROT_ON) {
+        for (int i = 0; i < ESP_MAX_DEVS; i++)
+            if (ConfigureParams.SCSI.target[i].nDeviceType != SD_NONE)
+                ConfigureParams.SCSI.target[i].bWriteProtected = true;
+        Log_Printf(LOG_WARN, "Retired temporary SCSI overlay: configured drives are now read-only. Use per-drive write protection to change this.");
+    }
+    ConfigureParams.SCSI.nWriteProtection = WRITEPROT_OFF;
+}
+
 /*-----------------------------------------------------------------------*/
 /**
  * Copy details from configuration structure into global variables for system,
@@ -784,6 +801,13 @@ void Configuration_CheckPeripheralSettings(void) {
 void Configuration_Apply(bool bReset)
 {
 	int i;
+
+	Configuration_RetireLegacyOptions();
+
+	/* Retired duplicate UI: old configurations must not bring it back. */
+	ConfigureParams.Screen.bShowStatusbar = false;
+	ConfigureParams.Shortcut.withModifier[SHORTCUT_STATUSBAR] = 0;
+	ConfigureParams.Shortcut.withoutModifier[SHORTCUT_STATUSBAR] = 0;
 
 	/* Mouse settings */
 	if (ConfigureParams.Mouse.bEnableMacClick) {
@@ -1039,6 +1063,7 @@ void Configuration_Load(const char *psFileName)
 	Configuration_LoadSection(psFileName, configs_Printer, "[Printer]");
 	Configuration_LoadSection(psFileName, configs_System, "[System]");
 	Configuration_LoadSection(psFileName, configs_Dimension, "[Dimension]");
+	Configuration_RetireLegacyOptions();
 }
 
 

@@ -23,7 +23,7 @@ extern "C" {
 /* Configuration Dialog */
 typedef struct
 {
-  bool bShowConfigDialogAtStartup;
+  bool bShowConfigDialogAtStartup; /* Retired; accepted and cleared on load. */
 } CNF_CONFIGDLG;
 
 /* Logging and tracing */
@@ -88,7 +88,7 @@ typedef struct
 
 
 typedef enum {
-  SHORTCUT_OPTIONS,
+  SHORTCUT_OPTIONS, /* Reserved for old config files; F9 owns options. */
   SHORTCUT_FULLSCREEN,
   SHORTCUT_MOUSEGRAB,
   SHORTCUT_COLDRESET,
@@ -100,7 +100,7 @@ typedef enum {
   SHORTCUT_PAUSE,
   SHORTCUT_QUIT,
   SHORTCUT_DIMENSION,
-  SHORTCUT_STATUSBAR,
+  SHORTCUT_STATUSBAR, /* Reserved for old config files; no active binding. */
   SHORTCUT_TITLEBAR,
   SHORTCUT_KEYS,  /* number of shortcuts */
   SHORTCUT_NONE
@@ -216,7 +216,7 @@ typedef enum
 
 typedef struct {
   SCSIDISK target[ESP_MAX_DEVS];
-  int nWriteProtection;
+  int nWriteProtection; /* Retired; ON migrates attached targets to read-only. */
 } CNF_SCSI;
 
 
@@ -285,7 +285,7 @@ typedef struct
   int nGroupModePos[NUM_MONITORS];
   int nSingleModeSlot;
   bool bFullScreen;
-  bool bShowStatusbar;
+  bool bShowStatusbar; /* Accepted from old config files, ignored by the UI. */
   bool bShowTitlebar;
 } CNF_SCREEN;
 
@@ -299,10 +299,17 @@ typedef enum
   PAPER_LEGAL
 } PAPER_SIZE;
 
+typedef enum
+{
+  FORMAT_PNG,
+  FORMAT_TIFF
+} PRINT_FORMAT;
+
 typedef struct
 {
   bool bPrinterConnected;
   PAPER_SIZE nPaperSize;
+  PRINT_FORMAT nFileFormat;
   char szPrintToFileName[FILENAME_MAX];
 } CNF_PRINTER;
 

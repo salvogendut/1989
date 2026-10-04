@@ -13,8 +13,6 @@ const char SDLscreen_fileid[] = "Previous sdlscreen.c";
 #include "screen.h"
 #include "sdlscreen.h"
 #include "statusbar.h"
-#include "sdlstatusbar.h"
-#include "sdlgui.h"
 #include "event.h"
 #include "dimension.hpp"
 #include "nd_sdl.hpp"
@@ -55,7 +53,6 @@ static SDL_FRect     uiRect;
 static SDL_FRect     fbRect;
 static SDL_FRect     groupRect[NUM_MONITORS];
 static SDL_AtomicInt blitUI;
-static SDL_Rect      statusBar;
 static SDL_Rect      saveWindowBounds; /* Window bounds before going fullscreen. Used to restore window size & position. */
 static SCREENMODE    saveScreenMode;   /* Save screen mode to restore on return from fullscreen */
 static SCREENMODE    initScreenMode;   /* Save screen mode present at last init */
@@ -70,23 +67,18 @@ static SDL_Thread*   repaintThread;
 #endif
 
 
-static uint32_t BW2RGB[0x400];
+static uint32_t BW2RGB[0x100][4];
 static uint32_t COL2RGB[0x10000];
 
 static uint32_t bw2rgb(SDL_Surface* surf, int bw) {
-	switch(bw & 3) {
-		case 3:  return SDL_MapSurfaceRGB(surf, 0,   0,   0);
-		case 2:  return SDL_MapSurfaceRGB(surf, 85,  85,  85);
-		case 1:  return SDL_MapSurfaceRGB(surf, 170, 170, 170);
-		case 0:  return SDL_MapSurfaceRGB(surf, 255, 255, 255);
-		default: return 0;
-	}
+	int c = (~bw & 3) * 0x55;
+	return SDL_MapSurfaceRGB(surf, c, c, c);
 }
 
 static uint32_t col2rgb(SDL_Surface* surf, int col) {
-	int r = col & 0xF000; r >>= 12; r |= r << 4;
-	int g = col & 0x0F00; g >>= 8;  g |= g << 4;
-	int b = col & 0x00F0; b >>= 4;  b |= b << 4;
+	int r = ((col >> 12) & 0x0F) * 0x11;
+	int g = ((col >>  8) & 0x0F) * 0x11;
+	int b = ((col >>  4) & 0x0F) * 0x11;
 	return SDL_MapSurfaceRGB(surf, r, g, b);
 }
 
@@ -95,21 +87,22 @@ static uint32_t col2rgb(SDL_Surface* surf, int col) {
  */
 static void blitBW(SDL_Texture* tex) {
 	void* pixels;
-	uint32_t* dst;
-	int src, idx, src_pitch, dst_pitch, x, y;
+	uint8_t* src;
+	uint8_t* dst;
+	int pitch, src_padding, dst_padding, x, y;
 
-	src_pitch = (NeXT_SCRN_W + (ConfigureParams.System.bTurbo ? 0 : 32)) / 4;
-	SDL_LockTexture(tex, NULL, &pixels, &dst_pitch);
+	SDL_LockTexture(tex, NULL, &pixels, &pitch);
+	src = NEXTVideo;
+	dst = (uint8_t*)pixels;
+	src_padding = ConfigureParams.System.bTurbo ? 0 : (32 / 4);
+	dst_padding = pitch - NeXT_SCRN_W * 4;
 	for (y = 0; y < NeXT_SCRN_H; y++) {
-		src = y * src_pitch;
-		dst = (uint32_t*)((uint8_t*)pixels + (y * dst_pitch));
 		for (x = 0; x < NeXT_SCRN_W / 4; x++) {
-			idx = NEXTVideo[src++] * 4;
-			*dst++ = BW2RGB[idx+0];
-			*dst++ = BW2RGB[idx+1];
-			*dst++ = BW2RGB[idx+2];
-			*dst++ = BW2RGB[idx+3];
+			memcpy(dst, BW2RGB[*src++], 16);
+			dst += 16;
 		}
+		src += src_padding;
+		dst += dst_padding;
 	}
 	SDL_UnlockTexture(tex);
 }
@@ -121,16 +114,19 @@ static void blitColor(SDL_Texture* tex) {
 	void* pixels;
 	uint16_t* src;
 	uint32_t* dst;
-	int src_pitch, dst_pitch, x, y;
+	int pitch, src_padding, dst_padding, x, y;
 
-	src_pitch = NeXT_SCRN_W + (ConfigureParams.System.bTurbo ? 0 : 32);
-	SDL_LockTexture(tex, NULL, &pixels, &dst_pitch);
+	SDL_LockTexture(tex, NULL, &pixels, &pitch);
+	src = (uint16_t*)NEXTVideo;
+	dst = (uint32_t*)pixels;
+	src_padding = ConfigureParams.System.bTurbo ? 0 : 32;
+	dst_padding = pitch / 4 - NeXT_SCRN_W;
 	for (y = 0; y < NeXT_SCRN_H; y++) {
-		src = (uint16_t*)NEXTVideo + (y * src_pitch);
-		dst = (uint32_t*)((uint8_t*)pixels + (y * dst_pitch));
 		for (x = 0; x < NeXT_SCRN_W; x++) {
 			*dst++ = COL2RGB[*src++];
 		}
+		src += src_padding;
+		dst += dst_padding;
 	}
 	SDL_UnlockTexture(tex);
 }
@@ -250,8 +246,7 @@ static void Screen89_RenderScanlines(SDL_Renderer *r, const SDL_FRect *rect) {
  window coordinates. Also advances GIF capture.
  */
 static void Screen89_RenderExtras(SDL_Renderer *r) {
-	int sbh = Statusbar_GetHeight();
-	int led_y = height - sbh - LED_BAR_H;
+	int led_y = height - LED_BAR_H;
 	int strip_y = led_y - FUNCTION_KEY_BAR_H;
 
 	/* Function-key hint strip (sibling convention: red machine name,
@@ -261,10 +256,10 @@ static void Screen89_RenderExtras(SDL_Renderer *r) {
 	                   (float)FUNCTION_KEY_BAR_H };
 	SDL_RenderFillRect(r, &band);
 
-	char model[64];
-	snprintf(model, sizeof(model), "1989 %s", overlay_machine_name());
+	char model[128];
+	overlay_machine_summary(model, sizeof(model));
 	const char *keys =
-	    "  F1=legacy  F4=screenshot  F5=reset  F6=gif  F9=options  "
+	    "  F4=screenshot  F5=reset  F6=gif  F9=options  "
 	    "F11=fullscreen  F12=quit";
 	float text_w = (float)(strlen(model) + strlen(keys)) * 8.0f;
 	float scale = text_w > (float)width - 12.0f
@@ -490,8 +485,6 @@ static void Screen_GetWindowBounds(SDL_Rect* r) {
 		if (SDL_GetWindowBordersSize(sdlWindow, &top, &left, &bottom, &right) == false) {
 			top = bottom = 50;
 			left = right = 25;
-		} else if (!ConfigureParams.Screen.bShowStatusbar) {
-			bottom += 24; /* make sure there is enough space to show statusbar */
 		}
 		hscale = (float)(usable.h - top - bottom) / height;
 		wscale = (float)(usable.w - left - right) / width;
@@ -580,24 +573,10 @@ void Screen_Reset(void) {
 	width  = screen_w;
 	height = screen_h;
 
-	/* 1989 happy-years UI: a function-key hint strip and an LED activity
-	 * bar sit at the bottom of the window, above the (optional) legacy
-	 * statusbar. The statusbar pins itself to the bottom of the surface,
-	 * so tell it its screen area includes the strips: that keeps it
-	 * correctly positioned without leaving a mask-coloured gap. */
-	{
-		int strip_total = FUNCTION_KEY_BAR_H + LED_BAR_H;
-		height += Statusbar_SetHeight(screen_w, screen_h + strip_total);
-		height += strip_total;
-	}
+	/* One function-key/model strip and one activity-LED bar. */
+	height += FUNCTION_KEY_BAR_H + LED_BAR_H;
 
-	/* Statusbar */
-	statusBar.x = 0;
-	statusBar.y = height - Statusbar_GetHeight();
-	statusBar.w = screen_w;
-	statusBar.h = Statusbar_GetHeight();
-
-	/* User interface including statusbar */
+	/* User interface */
 	uiRect.x = 0;
 	uiRect.y = 0;
 	uiRect.w = width;
@@ -654,11 +633,6 @@ void Screen_Reset(void) {
 		/* Clear UI with mask */
 		SDL_FillSurfaceRect(sdlscrn, NULL, mask);
 
-		/* Keep the SDL GUI screen pointer valid even when the legacy
-		 * statusbar is disabled (it used to be set by Statusbar_Init).
-		 * The missing-file / alert dialogs depend on it. */
-		SDLGui_SetScreen(sdlscrn);
-
 		/* Allocate buffer for copy routines */
 		if (uiBuffer) {
 			free(uiBuffer);
@@ -698,12 +672,6 @@ void Screen_Reset(void) {
 	initScreenMode   = ConfigureParams.Screen.nMode;
 	initScreenWidth  = width;
 	initScreenHeight = height;
-
-	/* Initialise statusbar and set visibility */
-	if (ConfigureParams.Screen.bShowStatusbar) {
-		Statusbar_Init(sdlscrn);
-		Statusbar_Update(sdlscrn);
-	}
 
 #ifdef ENABLE_RENDERING_THREAD
 	/* Start repaint thread */
@@ -745,13 +713,13 @@ void Screen_Init(void) {
 
 	/* Setup lookup tables */
 	for (i = 0; i < 0x100; i++) {
-		BW2RGB[i*4+0] = bw2rgb(sdlscrn, i>>6);
-		BW2RGB[i*4+1] = bw2rgb(sdlscrn, i>>4);
-		BW2RGB[i*4+2] = bw2rgb(sdlscrn, i>>2);
-		BW2RGB[i*4+3] = bw2rgb(sdlscrn, i>>0);
+		BW2RGB[i][0] = bw2rgb(sdlscrn, i>>6);
+		BW2RGB[i][1] = bw2rgb(sdlscrn, i>>4);
+		BW2RGB[i][2] = bw2rgb(sdlscrn, i>>2);
+		BW2RGB[i][3] = bw2rgb(sdlscrn, i>>0);
 	}
 	for (i = 0; i < 0x10000; i++) {
-		COL2RGB[SDL_BYTEORDER == SDL_BIG_ENDIAN ? i : SDL_Swap16(i)] = col2rgb(sdlscrn, i);
+		COL2RGB[SDL_Swap16BE(i)] = col2rgb(sdlscrn, i);
 	}
 
 	/* Set title, cursor visibility and mouse grab */
@@ -976,54 +944,32 @@ void Screen_TitlebarChanged(void) {
 
 /*-----------------------------------------------------------------------*/
 /**
- * Wrapper for Statusbar_AddMessage() and Statusbar_Update() in one go.
+ * Compatibility entry point for core/debugger messages.
  */
 void Screen_StatusbarMessage(const char *msg, uint32_t msecs)
 {
 	Statusbar_AddMessage(msg, msecs);
-	Statusbar_Update(sdlscrn);
+	Screen_RequestRepaint();
 }
 
 /*-----------------------------------------------------------------------*/
 /**
- * Wrapper for Statusbar_Update().
- */
-void Screen_StatusbarUpdate(void) {
-	Statusbar_Update(sdlscrn);
-}
-
-/*-----------------------------------------------------------------------*/
-/**
- * Check if we need to update full user interface or just the statusbar 
- * and copy user interface surface to buffer. Replace mask pixels with 
+ * Copy user interface surface to buffer. Replace mask pixels with
  * transparent pixels for blending with framebuffer texture.
  */
 void Screen_UpdateRects(SDL_Surface *screen, int numrects, SDL_Rect *rects) {
-	bool doUIblit = true;
-
-	while (numrects--) {
-		doUIblit = (rects->y < statusBar.y);
-		if (doUIblit) {
-			break;
-		}
-		rects++;
-	}
+	(void)screen;
+	(void)numrects;
+	(void)rects;
 
 	SDL_LockSurface(sdlscrn);
 	SDL_LockSpinlock(&uiBufferLock);
-	if (doUIblit) {
-		/* Copy user interface surface and replace mask pixels. */
-		int i;
-		uint32_t* src = (uint32_t*)sdlscrn->pixels;
-		uint32_t* dst = (uint32_t*)uiBuffer;
-		/* Primitive green-screen - would be nice if SDL had more blending modes. */
-		for (i = sdlscrn->w * sdlscrn->h; --i >= 0; src++) *dst++ = *src == mask ? 0 : *src;
-	} else {
-		/* Copy statusbar without transparent pixels. */
-		void* src = (uint8_t*)sdlscrn->pixels + statusBar.y * sdlscrn->pitch;
-		void* dst = (uint8_t*)uiBuffer + statusBar.y * sdlscrn->pitch;
-		memcpy(dst, src, statusBar.h * sdlscrn->pitch);
-	}
+	/* Copy user interface surface and replace mask pixels. */
+	int i;
+	uint32_t* src = (uint32_t*)sdlscrn->pixels;
+	uint32_t* dst = (uint32_t*)uiBuffer;
+	/* Primitive green-screen - would be nice if SDL had more blending modes. */
+	for (i = sdlscrn->w * sdlscrn->h; --i >= 0; src++) *dst++ = *src == mask ? 0 : *src;
 	SDL_SetAtomicInt(&blitUI, 1);
 	SDL_UnlockSpinlock(&uiBufferLock);
 	SDL_UnlockSurface(sdlscrn);

@@ -8,7 +8,8 @@ There are no per-run command-line options for machine or media setup.
 
 The default NeXT Computer boots its ROM monitor. ROMs are found in the data
 or installed ROM directory, or `./roms` for a source-tree run. If a required
-file is missing, a legacy recovery dialog asks for a replacement.
+file is missing, a native recovery dialog offers a replacement or an available
+default ROM. Quit is the safe default; no missing disk is silently substituted.
 
 To boot an OS from the ROM monitor:
 
@@ -25,6 +26,9 @@ To eject removable media, select its row, press **E**, then close F9 and choose
 **Save**. Ejection keeps the drive connected, needs no reset, and leaves other
 disks open. Enter loads another image. Delete disconnects the drive and requires
 a restart. Native floppy/MO drives are grouped separately from the SCSI bus.
+**C** connects an empty native drive, with restart confirmation. Native floppy
+0 is available on 68040 models; native MO uses the Cube's separate optical
+controller and is available only on non-Turbo Cubes.
 
 The row labels are suggested roles, not forced assignments; existing disks
 are never moved. H explains SCSI IDs versus NEXTSTEP `sdN` drive numbers.
@@ -32,10 +36,12 @@ See the [layout and examples](docs/INTERFACE.md#scsi-layout-and-drive-numbers).
 
 ## Options
 
-F9 is the primary interface. General covers machine presets and sound;
-Media covers boot selection and disks; Extensions covers attached devices.
-Enable Tinker in General to see Advanced display, capture, logging, RTC,
-boot-diagnostic and ROM controls.
+F9 is the primary interface. General covers machine presets, individual RAM
+banks/speed, CPU clock mode and sound;
+Media covers boot selection, disks and next-boot diagnostics; Extensions
+covers attached devices, printer output and keyboard/mouse controls. Enable
+Tinker in General to see Advanced display, capture, logging, RTC and ROM controls,
+plus DSP RAM, SCSI/RTC chip selection and Cube NBIC.
 
 The panel edits a draft. Save applies routine changes without rebooting;
 Discard leaves the runtime unchanged. Boot preferences apply on the next
@@ -43,11 +49,24 @@ boot. Hardware changes need a separate, clearly labelled restart confirmation.
 See [CONTROLS.md](CONTROLS.md) and the
 [interface inventory](docs/INTERFACE.md) for details.
 
-F1 (also Ctrl+Alt+O) opens the legacy options dialog for custom RAM banks and
-speed, detailed keyboard/mouse controls, network/NFS configuration,
-NeXTdimension boards/displays, printer paper/output directory, and config
-import/export. Its media changes are staged until OK. The legacy Save config
-button explicitly writes to the chosen file.
+The F1 menu and its configuration import/export are retired; use `1989.conf`
+and F9. Missing resources use native dialogs and file/folder pickers. You can
+explicitly leave a removable drive empty, disconnect a missing fixed disk,
+or disable an unavailable board/share/printer. Only enabled resources are
+checked; empty NFS paths remain disabled. All four enabled NFS shares are
+checked. No shared folder silently falls back to your home directory.
+
+Cancelling recovery during a hardware change cancels that application before
+changing live settings or restarting. A cancelled picker returns to the
+recovery prompt; the draft remains available in F9. CPU-halt recovery offers
+Quit or an explicit restart, with Quit selected by default. Ordinary errors
+use notifications and logs. “Show menu at startup” remains retired.
+
+The testing-only temporary SCSI write overlay is retired. Loading an old
+configuration with it enabled makes configured SCSI drives read-only. Use
+per-drive write protection in Media to change this; writable images now
+always receive persistent writes. Shut down the guest before changing a
+fixed disk's protection and confirming the required restart.
 
 The default effective memory configuration is 64 MiB on the 68030 Cube.
 Changing machine variants chooses model-specific CPU/RAM defaults.
@@ -57,12 +76,34 @@ since accepted UI changes and exit save the runtime configuration.
 
 ## Networking and peripherals
 
-The SLiRP backend provides user-mode networking. F9 toggles the connection;
-F1 → Network selects SLiRP/pcap, host interface, guest cable type, custom MAC,
-network time and NFS shares. pcap controls depend on build support.
+The SLiRP backend provides user-mode networking. F9 → Extensions toggles the
+connection; **Network / NFS** selects SLiRP/PCAP, host interface, guest cable,
+custom MAC, network time and up to four NFS shares. PCAP requires build support
+and host capture permissions. NFS shares and network time use SLiRP.
+
+Select each exported folder with Enter. The first export uses `nfs.home`;
+additional exports use their configured name plus `.home`. Names must be
+unique DNS labels; `nfs`, `dns` and `previous` are reserved. Delete on a folder
+stops exporting it. Unmount exports inside NeXT before replacing/removing
+them. Saving export or cable changes restarts only network services, leaving
+guest disks attached. Backend, network-time and MAC edits require explicit
+machine restart confirmation. MAC editing preserves the ROM prefix.
+
+F9 → General → Tinker enables Advanced. Its **NeXTdimension / displays** page
+configures Cube boards in slots 2/4/6, per-board ROM and RAM, boot console,
+single/separate/grouped displays and monitor arrangement. Prepare at least
+two grid positions for Grouped mode. Display selection and arrangement apply
+without rebooting NeXT; connected-board hardware and boot-console changes
+require restart confirmation. ROM/RAM settings for disconnected boards can
+be saved without rebooting. Esc returns to the tab; F9 opens Save/Discard.
 
 F9 toggles sound, microphone, tablet and printer connection without restarting
-NeXT. F1 holds mouse sensitivity/key mapping and printer paper/output settings.
+NeXT. Extensions also provides printer paper, PNG/TIFF format and output
+folder, keyboard mapping, mouse motion presets and capture options.
+**Input details** edits shortcut bindings and numeric mouse sensitivity.
+These remain drafts until Save and apply without a restart. **D** on machine
+or board ROM rows restores an available default path; active ROM changes
+require restart confirmation.
 The emulated printer is the NeXT Laser Printer.
 
 ## Capture, debuggers and disk tools

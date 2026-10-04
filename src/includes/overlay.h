@@ -4,8 +4,8 @@
  * F9. It has four tabs:
  *
  *   General    - machine model, RAM, CPU/FPU/DSP/MMU, sound, Tinker
- *   Media      - boot device, SCSI targets, floppy drives, magneto-optical
- *   Extensions - NeXTdimension, printer, Ethernet, tablet, microphone
+ *   Media      - boot device/diagnostics, SCSI, floppy, magneto-optical
+ *   Extensions - devices, printer output, keyboard/mouse controls
  *   Advanced   - display/capture/tinkering options (only with Tinker on)
  *
  * The controller edits private drafts; settings.c owns runtime application
@@ -53,5 +53,7 @@ void overlay_update_leds(void);
 
 /* Name of the currently selected machine model (e.g. "NeXT Computer"). */
 const char *overlay_machine_name(void);
+/* Bottom-strip label: live model, configured CPU clock and total RAM. */
+void overlay_machine_summary(char *buffer, size_t size);
 
 #endif /* PREV_OVERLAY_H */

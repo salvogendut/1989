@@ -16,7 +16,7 @@ const char Main_fileid[] = "Previous main.c";
 #include "event.h"
 #include "timing.h"
 #include "configuration.h"
-#include "dialog.h"
+#include "recovery.h"
 #include "ioMem.h"
 #include "keymap.h"
 #include "log.h"
@@ -26,6 +26,7 @@ const char Main_fileid[] = "Previous main.c";
 #include "screen.h"
 #include "snd.h"
 #include "ethernet.h"
+#include "printer.h"
 #include "statusbar.h"
 #include "str.h"
 #include "overlay.h"
@@ -171,14 +172,8 @@ bool Main_UnPauseEmulation(void) {
  * Pause emulation if a fatal CPU error occured and ask if user wants to 
  * reset or quit.
  */
-void Main_HaltDialog(void) {
-	Main_PauseEmulation(true);
-	Log_Printf(LOG_WARN, "Fatal error: CPU halted!");
-	if (!DlgAlert_Query("Fatal error: CPU halted!\n\nPress OK to restart CPU or cancel to quit.")) {
-		Main_RequestQuit(false);
-	}
-	Main_UnPauseEmulation();
-}
+void Main_HaltDialog(void) { Recovery_Halt(); }
+
 void Main_Halt(void) {
 #ifdef ENABLE_RENDERING_THREAD
 	Main_HaltDialog();
@@ -305,20 +300,14 @@ static void Main_Loop(void) {
 
 /*-----------------------------------------------------------------------*/
 /**
- * Show dialog at start.
+ * Check required files before starting.
  * 
  * @return true if configuration is ready, false if we need to quit
  */
-static bool Main_StartMenu(void) {
-	/* Boot straight into emulation; the config dialog is only shown at
-	 * startup when the user explicitly enabled it (F1 opens it anytime). */
-	if (ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup) {
-		Dialog_DoProperty();
-	}
-	if (!bQuitProgram) {
-		Dialog_CheckFiles();
-	}
-	return !bQuitProgram;
+static bool Main_CheckStartupFiles(void) {
+    if (bQuitProgram || !Recovery_CheckFiles(&ConfigureParams, true)) return false;
+    Configuration_Apply(true); /* Normalize any explicitly disabled board/layout. */
+    return true;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -338,13 +327,14 @@ static bool Main_Init(void) {
 	/* Load the 1989 UI settings before the window is created so it can be
 	 * opened at the saved scale (a later resize is ignored by some
 	 * Wayland compositors). */
+	/* Initialize messages before loading the saved Screen/Console/Off mode. */
+	notify_init();
 	UI89_Load();
 
 	/* Init user interface */
 	UI_Init();
 
-	/* Init 1989 happy-years UI (options overlay, LED bar, toasts) */
-	notify_init();
+	/* Init 1989 happy-years options overlay and activity LEDs. */
 	overlay_init();
 	overlay_update_leds();
 
@@ -363,8 +353,8 @@ static bool Main_Init(void) {
 	/* Done as last, needs CPU & DSP running... */
 	DebugUI_Init();
 
-	/* Call menu at startup */
-	if (Main_StartMenu()) {
+	/* Recover missing files before the initial reset. */
+	if (Main_CheckStartupFiles()) {
 		/* Reset emulated machine */
 		return !Reset_Cold();
 	}
@@ -384,6 +374,7 @@ static void Main_UnInit(void) {
 	host_semaphore_destroy(pauseFlag);
 #endif
 	Sound_Pause(true);
+	Printer_UnInit();
 	Ethernet_UnInit();
 	IoMem_UnInit();
 	UI_UnInit();
@@ -424,29 +415,10 @@ static void Main_LoadInitialConfig(void) {
 
 /*-----------------------------------------------------------------------*/
 /**
- * Set system information and initial help message
+ * Show the primary desktop shortcuts.
  */
-static void Main_StatusbarSetup(void) {
-	const char *name = NULL;
-	int key;
-
-	key = ConfigureParams.Shortcut.withoutModifier[SHORTCUT_OPTIONS];
-	if (!key)
-		key = ConfigureParams.Shortcut.withModifier[SHORTCUT_OPTIONS];
-	if (key)
-		name = Keymap_GetKeyName(key);
-	if (name)
-	{
-		char message[24], *keyname;
-
-		keyname = Str_ToUpper(strdup(name));
-		snprintf(message, sizeof(message), "Press %s for Options", keyname);
-		free(keyname);
-
-		Statusbar_AddMessage(message, 6000);
-	}
-	/* update information loaded by Main_Init() */
-	Statusbar_UpdateInfo();
+static void Main_DesktopHelp(void) {
+	notify_post("F9: OPTIONS   Ctrl+Enter: RELEASE MOUSE");
 }
 
 /**
@@ -525,8 +497,8 @@ int main(int argc, char *argv[])
 
 	/* Init emulator system */
 	if (Main_Init()) {
-		/* Set initial Statusbar information */
-		Main_StatusbarSetup();
+		/* Show the desktop shortcuts. */
+		Main_DesktopHelp();
 
 		/* Run emulation */
 		Main_Loop();

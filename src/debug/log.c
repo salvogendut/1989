@@ -24,7 +24,7 @@ const char Log_fileid[] = "Hatari log.c";
 
 #include "main.h"
 #include "configuration.h"
-#include "dialog.h"
+#include "notify.h"
 #include "log.h"
 #include "file.h"
 #include "str.h"
@@ -395,14 +395,14 @@ void Log_AlertDlg(LOGTYPE nType, const char *psFormat, ...)
 			fputs(line, hLogFile);
 	}
 
-	/* Show alert dialog box: */
+	/* Shared thread-safe 1989 notification; no blocking legacy GUI. */
 	if (nType <= AlertDlgLogLevel)
 	{
 		char buf[MAX_MSG_LEN];
 		va_start(argptr, psFormat);
 		vsnprintf(buf, sizeof(buf), psFormat, argptr);
 		va_end(argptr);
-		DlgAlert_Notice(buf);
+		notify_post("%s", buf);
 	}
 }
 

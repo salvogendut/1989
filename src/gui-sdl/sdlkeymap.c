@@ -38,14 +38,13 @@ void Keymap_Init(void)
  */
 void Keymap_InitShortcutDefaultKeys(void)
 {
-	/* F1 keeps the legacy options dialog until every option is migrated to
-	 * the F9 overlay. F12 now quits (the 1989 convention). F5 resets. */
-	ConfigureParams.Shortcut.withoutModifier[SHORTCUT_OPTIONS]    = SDLK_F1;
+	/* F9 owns options; the old options shortcut slot is reserved. */
+	ConfigureParams.Shortcut.withoutModifier[SHORTCUT_OPTIONS]    = 0;
 	ConfigureParams.Shortcut.withoutModifier[SHORTCUT_FULLSCREEN] = SDLK_F11;
 	ConfigureParams.Shortcut.withoutModifier[SHORTCUT_QUIT]       = SDLK_F12;
 	ConfigureParams.Shortcut.withoutModifier[SHORTCUT_COLDRESET]  = SDLK_F5;
 
-	ConfigureParams.Shortcut.withModifier[SHORTCUT_OPTIONS]       = SDLK_O;
+	ConfigureParams.Shortcut.withModifier[SHORTCUT_OPTIONS]       = 0;
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_FULLSCREEN]    = SDLK_F;
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_PAUSE]         = SDLK_P;
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_DEBUG_M68K]    = SDLK_D;
@@ -57,7 +56,6 @@ void Keymap_InitShortcutDefaultKeys(void)
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_SOUND]         = SDLK_S;
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_QUIT]          = SDLK_Q;
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_DIMENSION]     = SDLK_N;
-	ConfigureParams.Shortcut.withModifier[SHORTCUT_STATUSBAR]     = SDLK_B;
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_TITLEBAR]      = SDLK_T;
 }
 

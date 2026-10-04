@@ -1,8 +1,9 @@
 # 1989 configuration
 # Example keys for ~/.config/1989/1989.conf (created on first run).
 # This is a partial example; the generated file includes all defaults.
-# Edit while the emulator is closed, or use F9 / the F1 legacy dialog.
+# Edit while the emulator is closed, or use F9. F1/import-export are retired.
 # All paths may be absolute or relative to the current working directory.
+# Show-menu-at-startup is retired; its legacy key is ignored and cleared.
 
 [System]
 # 0 = NeXT Computer (68030), 1 = NeXTcube (68040), 2 = NeXTstation.
@@ -46,6 +47,7 @@ bVisible = 0
 [ROM]
 # Machine ROMs. Defaults point at the data dir (and the install-time
 # ROM_INSTALL_DIR); set absolute paths to use images elsewhere.
+# D on an F9 ROM row restores the discovered installed/source-tree default.
 szRom030FileName = Rev_1.0_v41.BIN
 szRom040FileName = Rev_2.5_v66.BIN
 szRomTurboFileName = Rev_3.3_v74.BIN
@@ -67,18 +69,24 @@ nDeviceType1 = 0
 bDiskInserted1 = 0
 bWriteProtected1 = 0
 # Other target IDs use the same keys with their ID suffix, never an sdN number.
-# MO/ECC images belong in [MO], not in a SCSI CD-ROM slot.
+# MO/ECC images belong in [MagnetoOptical], not in a SCSI CD-ROM slot.
+# The temporary write overlay is retired: old nWriteProtection = 1 imports
+# configured targets as read-only and becomes 0. Use bWriteProtectedN now;
+# writable images always receive persistent writes.
 
 [Floppy]
-# 720 KiB, 1.44 MiB or 2.88 MiB raw floppy images
+# Native drive 0, 68040 models only; 720 KiB, 1.44 MiB or 2.88 MiB raw images.
+# SCSI floppies are separate and are configured in [HardDisk].
 szImageName0 =
 bDriveConnected0 = 0
 bDiskInserted0 = 0
 bWriteProtected0 = 0
-# ... drives 1..3 follow the same pattern
+# Legacy slots 1..3 are retained by the file format, not supported hardware.
 
 [MagnetoOptical]
 # Previous-compatible MO image; repeat with suffix 1 for the second drive.
+# Separate optical controller, non-Turbo Cubes only. A second MO drive can
+# trigger a NEXTSTEP kernel bug; F9 includes that warning when connecting it.
 szImageName0 =
 bDriveConnected0 = 0
 bDiskInserted0 = 0
@@ -92,13 +100,22 @@ nHostInterface = 0
 szInterfaceName =
 bNetworkTime = 0
 # NFS directory/name keys are szNFSPathName0..3 and szNFSHostName0..3.
-# Keep the generated first share path or select a valid directory in F1.
+# Choose export folders in F9 > Extensions > Network / NFS (SLiRP only).
+# Share 0 keeps the name nfs; additional names are unique DNS labels.
+# Unmount in the guest before changing/removing an export.
 
 [Sound]
 bEnableSound = 1
 bEnableMicrophone = 1
 
+[Printer]
+# 0 = PNG (default), 1 = TIFF; also selects the legacy screenshot format.
+# Without libpng, image output uses TIFF. F4 PPM / F6 GIF are independent.
+nFileFormat = 0
+
 [Screen]
+# F9 > Advanced > NeXTdimension / displays (enable Tinker in General).
+# Modes: 0 = single, 1 = separate windows, 2 = grouped (at least two displays).
 nMode = 0
 nGroupModePos0 = 0
 nGroupModePos1 = -1
@@ -106,18 +123,21 @@ nGroupModePos2 = -1
 nGroupModePos3 = -1
 nSingleModeSlot = 0
 bFullScreen = 0
+# Legacy status-bar keys are accepted but ignored; use the LEDs/notifications.
 bShowStatusbar = 0
 bShowTitlebar = 1
 
 [ShortcutsWithoutModifiers]
-kOptions = F1
+# Edit bindings in F9 > Extensions > Input details. F4/F6/F9 are reserved.
+# Retired legacy-menu binding: accepted then cleared.
+kOptions =
 kFullScreen = F11
 kQuit = F12
 kColdReset = F5
 
 [ShortcutsWithModifiers]
 # Modifier + key. The modifier is Ctrl+Alt.
-kOptions = O
+kOptions =
 kFullScreen = F
 kMouseMode = M
 kColdReset = C
@@ -129,7 +149,7 @@ kDebuggerM68K = D
 kDebuggerI860 = I
 kQuit = Q
 kDimension = N
-kStatusbar = B
+kStatusbar =
 kTitlebar = T
 
 [Log]

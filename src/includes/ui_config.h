@@ -20,6 +20,14 @@ typedef enum {
     OV_DIALOG_ROM030,
     OV_DIALOG_ROM040,
     OV_DIALOG_ROMTURBO,
+    OV_DIALOG_PRINTER_DIR,
+    OV_DIALOG_NFS0,
+    OV_DIALOG_NFS1,
+    OV_DIALOG_NFS2,
+    OV_DIALOG_NFS3,
+    OV_DIALOG_NDROM0,
+    OV_DIALOG_NDROM1,
+    OV_DIALOG_NDROM2,
     OV_DIALOG_COUNT
 } OvDialogKind;
 
@@ -36,7 +44,7 @@ typedef struct {
     int  nGifWidth;     /* recorded GIF width (320/480/640) */
     int  nGifFps;       /* recorded GIF frame rate (10/20/25) */
     int  nNotifyMode;   /* NotifyMode */
-    /* Last directory browsed for each media entry (indexed by OvDialogKind). */
+    /* Last directory browsed for each media/directory entry (indexed by OvDialogKind). */
     char szLastDir[OV_DIALOG_COUNT][FILENAME_MAX];
 } UI89Config;
 

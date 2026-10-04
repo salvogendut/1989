@@ -29,13 +29,22 @@ typedef struct {
 
 static NotifyEntry g_slots[NOTIFY_MAX];
 static NotifyMode  g_mode = NOTIFY_MODE_SCREEN;
+/* Device/emulation threads can post while the desktop ticks or renders.
+ * Copy state under lock; never draw while holding it. */
+static SDL_SpinLock g_lock;
 
 void notify_init(void) {
+    SDL_LockSpinlock(&g_lock);
     for (int i = 0; i < NOTIFY_MAX; i++) g_slots[i].age_ms = -1;
     g_mode = NOTIFY_MODE_SCREEN;
+    SDL_UnlockSpinlock(&g_lock);
 }
 
-void notify_set_mode(NotifyMode mode) { g_mode = mode; }
+void notify_set_mode(NotifyMode mode) {
+    SDL_LockSpinlock(&g_lock);
+    g_mode = mode;
+    SDL_UnlockSpinlock(&g_lock);
+}
 
 static int oldest_slot(void) {
     int best = 0;
@@ -45,16 +54,17 @@ static int oldest_slot(void) {
 }
 
 void notify_post(const char *fmt, ...) {
-    if (g_mode == NOTIFY_MODE_OFF) return;
-
     char buf[NOTIFY_TEXT_MAX];
     va_list ap;
     va_start(ap, fmt);
     vsnprintf(buf, sizeof(buf), fmt, ap);
     va_end(ap);
 
-    if (g_mode == NOTIFY_MODE_CONSOLE) {
-        fprintf(stderr, "%s\n", buf);
+    SDL_LockSpinlock(&g_lock);
+    NotifyMode mode = g_mode;
+    if (mode != NOTIFY_MODE_SCREEN) {
+        SDL_UnlockSpinlock(&g_lock);
+        if (mode == NOTIFY_MODE_CONSOLE) fprintf(stderr, "%s\n", buf);
         return;
     }
 
@@ -66,34 +76,43 @@ void notify_post(const char *fmt, ...) {
 
     snprintf(g_slots[slot].text, NOTIFY_TEXT_MAX, "%s", buf);
     g_slots[slot].age_ms = 0;
+    SDL_UnlockSpinlock(&g_lock);
 }
 
 void notify_tick(int dt_ms) {
+    SDL_LockSpinlock(&g_lock);
     for (int i = 0; i < NOTIFY_MAX; i++) {
         if (g_slots[i].age_ms < 0) continue;
         g_slots[i].age_ms += dt_ms;
         if (g_slots[i].age_ms >= NOTIFY_TTL_MS) g_slots[i].age_ms = -1;
     }
+    SDL_UnlockSpinlock(&g_lock);
 }
 
 void notify_render(struct SDL_Renderer *r) {
-    if (g_mode != NOTIFY_MODE_SCREEN || !r) return;
+    if (!r) return;
+    NotifyEntry slots[NOTIFY_MAX];
+    SDL_LockSpinlock(&g_lock);
+    NotifyMode mode = g_mode;
+    memcpy(slots, g_slots, sizeof(slots));
+    SDL_UnlockSpinlock(&g_lock);
+    if (mode != NOTIFY_MODE_SCREEN) return;
 
     /* Build an ordered list of active entries by age, oldest first
      * (those are drawn highest; newest sits at the bottom). */
     int idx[NOTIFY_MAX], n = 0;
     for (int i = 0; i < NOTIFY_MAX; i++)
-        if (g_slots[i].age_ms >= 0) idx[n++] = i;
+        if (slots[i].age_ms >= 0) idx[n++] = i;
     if (!n) return;
     for (int i = 0; i < n - 1; i++)
         for (int j = i + 1; j < n; j++)
-            if (g_slots[idx[i]].age_ms < g_slots[idx[j]].age_ms) {
+            if (slots[idx[i]].age_ms < slots[idx[j]].age_ms) {
                 int t = idx[i]; idx[i] = idx[j]; idx[j] = t;
             }
 
     int rw, rh;
-    SDL_RendererLogicalPresentation mode;
-    if (!SDL_GetRenderLogicalPresentation(r, &rw, &rh, &mode) || rw <= 0 || rh <= 0)
+    SDL_RendererLogicalPresentation presentation;
+    if (!SDL_GetRenderLogicalPresentation(r, &rw, &rh, &presentation) || rw <= 0 || rh <= 0)
         SDL_GetRenderOutputSize(r, &rw, &rh);
     int win_h = (int)(rh / NOTIFY_SCALE);
     SDL_SetRenderScale(r, NOTIFY_SCALE, NOTIFY_SCALE);
@@ -102,7 +121,7 @@ void notify_render(struct SDL_Renderer *r) {
 
     int y = win_h - BOTTOM_INSET - LINE_H - PAD_Y;
     for (int k = n - 1; k >= 0; k--) {
-        NotifyEntry *e = &g_slots[idx[k]];
+        NotifyEntry *e = &slots[idx[k]];
         int fade_in = NOTIFY_TTL_MS - NOTIFY_FADE_MS;
         Uint8 alpha = 255;
         if (e->age_ms > fade_in) {

@@ -129,7 +129,6 @@ struct {
     uint32_t lastlba;
     
     int known;
-    uint8_t** shadow;
 } SCSIdisk[ESP_MAX_DEVS];
 
 
@@ -181,7 +180,7 @@ struct known_disk {
     uint32_t bs;
 };
 
-#define KNOWN_SIZE(x,n) (x[n].c * x[n].h * x[n].s * x[n].bs)
+#define KNOWN_SIZE(x,n) ((off_t)x[n].c * x[n].h * x[n].s * x[n].bs)
 
 static const struct known_disk known_disks[] =
 {
@@ -490,21 +489,7 @@ static void scsi_write_sector(void) {
     offset = ((uint64_t)SCSIdisk[target].lba)*SCSIdisk[target].blocksize;
     
     if (offset < SCSIdisk[target].size) {
-        if (ConfigureParams.SCSI.nWriteProtection != WRITEPROT_ON) {
-            File_Write(scsi_buffer.data, SCSIdisk[target].blocksize, offset, SCSIdisk[target].dsk);
-        } else {
-            Log_Printf(LOG_SCSI_LEVEL, "[SCSI] WARNING: File write disabled!");
-            if(SCSIdisk[target].shadow) {
-                if(!(SCSIdisk[target].shadow[SCSIdisk[target].lba]))
-                    SCSIdisk[target].shadow[SCSIdisk[target].lba] = malloc(SCSIdisk[target].blocksize);
-                memcpy(SCSIdisk[target].shadow[SCSIdisk[target].lba], scsi_buffer.data, SCSIdisk[target].blocksize);
-            } else {
-                uint32_t blocks = (uint32_t)(SCSIdisk[target].size / SCSIdisk[target].blocksize);
-                SCSIdisk[target].shadow = malloc(sizeof(uint8_t*) * blocks);
-                for(int i = blocks; --i >= 0;)
-                    SCSIdisk[target].shadow[i] = NULL;
-            }
-        }
+        File_Write(scsi_buffer.data, SCSIdisk[target].blocksize, offset, SCSIdisk[target].dsk);
         scsi_buffer.size = 0;
         scsi_buffer.limit = SCSIdisk[target].blocksize;
         
@@ -570,11 +555,7 @@ static void scsi_read_sector(void) {
     offset = ((uint64_t)SCSIdisk[target].lba)*SCSIdisk[target].blocksize;
     
     if (offset < SCSIdisk[target].size) {
-        if (SCSIdisk[target].shadow && SCSIdisk[target].shadow[SCSIdisk[target].lba]) {
-            memcpy(scsi_buffer.data, SCSIdisk[target].shadow[SCSIdisk[target].lba], SCSIdisk[target].blocksize);
-        } else {
-            File_Read(scsi_buffer.data, SCSIdisk[target].blocksize, offset, SCSIdisk[target].dsk);
-        }
+        File_Read(scsi_buffer.data, SCSIdisk[target].blocksize, offset, SCSIdisk[target].dsk);
         scsi_buffer.size = scsi_buffer.limit = SCSIdisk[target].blocksize;
         
         SCSIdisk[target].lba++;
@@ -1086,9 +1067,7 @@ void SCSI_Insert(uint8_t i) {
     SCSIdisk[i].lba = SCSIdisk[i].lastlba = SCSIdisk[i].blockcounter = 0;
     SCSIdisk[i].blocksize = (SCSIdisk[i].devtype == SD_CD) ? SCSI_CD_BLOCK : SCSI_BLOCKSIZE;
     SCSIdisk[i].known = SCSI_LookupDisk(i); /* Sets size and blocksize */
-    
-    SCSIdisk[i].shadow = NULL;
-    
+
     if (SCSIdisk[i].devtype != SD_NONE && ConfigureParams.SCSI.target[i].bDiskInserted) {
         Log_Printf(LOG_WARN, "SCSI disk %i: Insert %s", i, ConfigureParams.SCSI.target[i].szImageName);
         

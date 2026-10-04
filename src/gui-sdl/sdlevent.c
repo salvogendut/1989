@@ -15,10 +15,9 @@ const char SDLevent_fileid[] = "Previous sdlevent.c";
 #include "keymap.h"
 #include "screen.h"
 #include "shortcut.h"
-#include "sdlgui.h"
+#include "sdlaudio.h"
 #include "sdlkeymap.h"
 #include "sdlscreen.h"
-#include "sdlstatusbar.h"
 #include "tablet.h"
 #include "dimension.hpp"
 #include "overlay.h"
@@ -322,6 +321,18 @@ void GuiEvent_EventHandler(void) {
 				Screen_SizeChanged();
 				continue;
 
+			case SDL_EVENT_AUDIO_DEVICE_ADDED:
+				Audio_DeviceConnected(event.adevice.recording);
+				continue;
+
+			case SDL_EVENT_AUDIO_DEVICE_REMOVED:
+				Audio_DeviceDisconnected(event.adevice.recording);
+				continue;
+
+			case SDL_EVENT_AUDIO_DEVICE_FORMAT_CHANGED:
+				Audio_FormatChanged(event.adevice.recording);
+				continue;
+
 			case SDL_EVENT_QUIT:
 				Main_RequestQuit(true);
 				break;
@@ -397,6 +408,10 @@ void GuiEvent_EventHandler(void) {
 #else
 				GuiEvent_PutEventQueue(&event);
 #endif
+				break;
+
+			case SDL_EVENT_TEXT_INPUT:
+				if (overlay_handle_event(&event)) Screen_RequestRepaint();
 				break;
 
 			case SDL_EVENT_KEY_DOWN:
@@ -500,7 +515,6 @@ void GuiEvent_EventHandler(void) {
 							break;
 #ifndef ENABLE_RENDERING_THREAD
 						case SPECIAL_EVENT_REPAINT:
-							Statusbar_Update(sdlscrn);
 							Screen_Repaint();
 							break;
 						case SPECIAL_EVENT_ND_DISPLAY:
@@ -534,13 +548,11 @@ void UI_Init(void) {
 	{
 		Main_ErrorExit("Could not initialize the SDL library:", SDL_GetError(), -1);
 	}
-	SDLGui_Init();
 	Screen_Init();
 	Keymap_Init();
 }
 
 void UI_UnInit(void) {
-	SDLGui_UnInit();
 	Screen_UnInit();
 }
 

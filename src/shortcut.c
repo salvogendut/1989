@@ -9,7 +9,6 @@
 const char ShortCut_fileid[] = "Hatari shortcut.c";
 
 #include "main.h"
-#include "dialog.h"
 #include "dimension.hpp"
 #include "grab.h"
 #include "reset.h"
@@ -132,15 +131,6 @@ static void ShortCut_Dimension(void)
 }
 
 /**
- * Shortcut to show/hide statusbar
- */
-static void ShortCut_StatusBar(void)
-{
-	ConfigureParams.Screen.bShowStatusbar = !ConfigureParams.Screen.bShowStatusbar;
-	Screen_Reset();
-}
-
-/**
  * Shortcut to show/hide titlebar
  */
 static void ShortCut_TitleBar(void)
@@ -162,7 +152,7 @@ void ShortCut_ActKey(void)
 	switch (ShortCutKey)
 	{
 	 case SHORTCUT_OPTIONS:
-		Dialog_DoProperty();           /* Show options dialog */
+		/* Retired legacy-menu binding. F9 owns options. */
 		break;
 	 case SHORTCUT_FULLSCREEN:
 		ShortCut_FullScreen();         /* Switch between fullscreen/windowed mode */
@@ -199,7 +189,7 @@ void ShortCut_ActKey(void)
 		ShortCut_Dimension();
 		break;
 	 case SHORTCUT_STATUSBAR:
-		ShortCut_StatusBar();
+		/* Retired binding, retained only for configuration compatibility. */
 		break;
 	case SHORTCUT_TITLEBAR:
 		ShortCut_TitleBar();
@@ -268,6 +258,7 @@ static SHORTCUTKEYIDX ShortCut_CheckKey(int symkey, int *keys)
 	SHORTCUTKEYIDX key;
 	for (key = SHORTCUT_OPTIONS; key < SHORTCUT_KEYS; key++)
 	{
+		if (key == SHORTCUT_STATUSBAR || key == SHORTCUT_OPTIONS) continue;
 		if (symkey == keys[key])
 			return key;
 	}

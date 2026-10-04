@@ -28,7 +28,6 @@ extern void Screen_SetMouseGrab(bool grab);
 extern void Screen_ShowMainWindow(void);
 extern void Screen_TitlebarChanged(void);
 extern void Screen_StatusbarMessage(const char *msg, uint32_t msecs);
-extern void Screen_StatusbarUpdate(void);
 extern bool Screen_ShowCursor(bool show);
 extern void Screen_CenterCursor(void);
 extern void Screen_Reset(void);

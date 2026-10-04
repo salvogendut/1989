@@ -1,8 +1,8 @@
 # Development notes for 1989
 
-1989 builds Previous 4.3's C/C++ emulation core through Autotools and adapts
-its SDL3 frontend to the sibling emulator conventions. Keep machine-core
-changes contained so upstream fixes remain practical to merge.
+1989 builds Previous 4.4 plus development fixes through SVN r1854 using
+Autotools and adapts its SDL3 frontend to the sibling emulator conventions.
+Keep machine-core changes contained so upstream fixes remain practical to merge.
 
 ## Structure
 
@@ -26,11 +26,18 @@ changes contained so upstream fixes remain practical to merge.
 | Module | Responsibility |
 | --- | --- |
 | `overlay.c` | Sections/rows, keyboard navigation, edit-session and confirmation flow |
+| `overlay_controls.c` | Shared control definitions across the four tabs; typed draft accessors, model-dependent choices/availability, labels and hints; no runtime or dialog calls |
+| `overlay_devices.c` | Networking/NFS and NeXTdimension detail-page navigation, draft edits and Save validation; read-only ROM MAC/PCAP discovery |
+| `overlay_input.c` | Numeric mouse scales and shortcut capture/validation in Extensions; draft-only edits |
+| `overlay_text.c` | Shared text-entry lifecycle, selection, paste, cancellation and drawing; field owners validate accepted text |
 | `overlay_view.c` | Stateless SDL drawing of copied rows, tabs, choices and dialogs; no device/configuration calls |
-| `overlay_media.c` | Suggested SCSI roles/types, next-boot drive-number preview, native-picker handoff, eject/disconnect draft updates, image validation and exclusive sparse-file creation |
+| `sdlstatusbar.c` | Compatibility hooks forwarding core activity/messages to LEDs and notifications; no legacy status-bar drawing |
+| `overlay_media.c` | Suggested SCSI roles/types, next-boot drive numbers, native-picker handoff, connect/eject/disconnect drafts, model restrictions, default-ROM lookup and exclusive sparse-file creation |
 | `ui_config.c` | Load/save/apply `[UI89]` desktop preferences |
 | `settings.c` | Private machine draft, merge with live state, restart policy and per-target media application |
-| `change.c` | Apply configuration to runtime subsystems; shared by F9 and the legacy dialog |
+| `change.c` | Validate recovery before applying configuration to runtime subsystems |
+| `recovery.c` | Transactional checks for required ROMs, inserted media and enabled directories; CPU-halt decisions |
+| `host_dialog.c` | Native SDL message boxes and file/folder pickers; modal event pumping without guest input; callback lifetime isolated from caller memory |
 
 The overlay never writes `ConfigureParams` while navigating. It snapshots
 configuration briefly under pause, edits its own machine/UI copies, then
@@ -40,25 +47,42 @@ not undone. Discard has no runtime undo path because it has no runtime effects.
 
 Restart decisions compare the resulting configuration, rather than trusting
 flags set by individual row handlers. Boot options are saved for the next
-boot. Network connection, tablet, printer, sound and display changes update
+boot. Network connection/cable/NFS, tablet, printer, sound and display changes update
 their own subsystems. Machine hardware and fixed-disk changes require explicit
 confirmation. Live removable-media changes call the selected drive's
 insert/eject functions; never reset every storage controller to apply one image.
-The legacy dialog stages media as well and uses this same application path.
 Media role suggestions apply only when loading an unused SCSI slot; they do
 not initialize drives on panel open or migrate existing configurations.
 Eject retains the device type/connection, while disconnect removes it and
 uses the hardware restart path. Native floppy/MO entries do not consume SCSI IDs.
 
 Native file callbacks publish a result under an SDL spinlock and hold no
-pointer to an edit session. Only one request may be outstanding. Closing the
+pointer to an edit session. Machine/board ROMs, media images, printer folders
+and all four NFS-directory requests share this handoff. Only one request may be outstanding. Closing the
 panel invalidates the result; cancelled/late results cannot edit a later
 session. File creation never truncates an existing path. A created file is
 an independent host artifact and remains when the panel draft is discarded.
 
-The remaining legacy-menu inventory and user-facing apply rules are in
-[docs/INTERFACE.md](docs/INTERFACE.md). F1, missing-file recovery and legacy
-alerts remain; their full migration is not claimed by this refactor.
+The [interface inventory](docs/INTERFACE.md) records the retired legacy menu.
+F1, its config import/export, `dialog.c`, `dlg*.c`, `sdlgui` and the obsolete
+font assets are removed. The `1989.conf` load/save lifecycle remains.
+
+Recovery runs before any live configuration/subsystem changes for a hardware
+save. It edits a copy and commits only after all resource choices succeed.
+Startup uses the same checks, with Quit instead of Cancel changes. File
+checks reject directories in file slots and unreadable files. Disabled
+resources and empty NFS paths do not prompt; all four enabled SLiRP exports
+are checked. Default ROMs use `Rom_GetDefaultPath`. No directory silently
+falls back to HOME and no disk loses its write-protection preference.
+
+Native choices/pickers run only on the SDL window thread while emulation is
+paused. The picker pumps SDL events for portal support without recursively
+entering the overlay/event controller or forwarding input to the guest. A
+static synchronized result outlives cancellation/quit; late callbacks own
+no draft pointers. Window-close requests use `Main_RequestQuit(false)` to
+stop the CPU as well. Noninteractive `Log_AlertDlg` messages use the existing
+thread-safe notifications. CPU-halt recovery defaults to Quit; only an
+explicit Restart invokes `Reset_Cold` and resumes emulation.
 
 ## Configuration and resources
 
@@ -68,6 +92,13 @@ use the corresponding Application Support/AppData paths from `paths.c`.
 `[UI89]` stores the additional desktop preferences. ROM lookup includes the
 configured data directory, installed ROM directory and source-tree `roms/`.
 Internal Previous/Hatari names generally remain in core code.
+
+`Configuration_RetireLegacyOptions` runs on configuration load/application.
+It clears show-menu-at-startup and migrates enabled global temporary SCSI
+writes to per-target read-only flags, then clears the global setting. The
+keys/struct fields remain for file compatibility; no runtime shadow-write
+or automatic options-menu path remains. Settings drafts cannot reactivate
+these flags. Per-drive write protection still uses the ordinary SCSI path.
 
 ## Verification
 
@@ -83,11 +114,47 @@ Settings tests instrument runtime device calls while executing the real
 change/apply code. Overlay tests send key events through the real controller,
 exercise software rendering, reject unconfirmed resets, preserve guest
 ejects, cancel late file-picker results, and check exclusive large-image
-creation. Capture tests use a synthetic framebuffer and real PPM/GIF encoding.
-Tests do not boot NeXTstep or verify host-native dialogs on every platform.
+creation. Migrated-control tests cover printer folder selection/cancel,
+keyboard and mouse changes, imported custom sensitivity, boot diagnostics,
+and preservation of attached disks without resets. Hardware controls exercise
+Save/Discard/restart and model-specific availability, with the Advanced
+scanline row both present and hidden. `test-hardware` links the real
+configuration code to check RAM choices for all seven models against core
+normalization, Turbo memory-speed labels and NBIC dependencies, plus
+NeXTdimension RAM/monitor choices. `test-devices` covers detail-page navigation,
+all four NFS pickers, share-name/MAC editing and validation, Save/Discard,
+slots 4/6, console selection, display layouts and unchanged disk I/O counters.
+`test-devices-pcap` builds the optional PCAP UI with simulated interface
+enumeration, including empty/error results and allocation cleanup.
+These checks do not replace a guest NFS mount or a multi-board NEXTSTEP boot.
+`test-input-media` covers numeric validation/no-op precision, shortcut capture
+and conflict checks, runtime key matching, empty-drive connections, model
+restrictions, ROM defaults and Save/Discard/restart behavior with unchanged
+boot disks. It renders the input editors and MO warning through SDL software
+rendering. `test-hardware` also exercises the real retired-option migration;
+`test-scsi` checks persistent sector writes/readback and write-protection
+sense codes using the real command/sector handlers and a temporary disk file.
+`test-recovery` runs the real recovery and host-dialog code with scripted SDL
+responses: missing/default/replacement resources, all NFS shares, disabled
+resources, preserving protection, cancellation after earlier choices, picker
+failure/late callbacks and explicit CPU restart versus quit. Settings tests
+check that failed recovery performs no live apply/reset/disk I/O. Retired
+F1/Ctrl+Alt+O bindings are checked against actual shortcut matching.
+Status tests cover literal core messages, notification modes/expiry,
+concurrent posting/rendering and the retired shortcut. The model summary
+is checked against active settings while different hardware remains staged.
+Capture tests use a synthetic framebuffer and real PPM/GIF encoding.
+The grab tests exercise real framebuffer conversion and PNG/TIFF writing;
+sound tests check byte order, double-rate modes and timing with host sound
+disabled. Printer tests cover page replacement/finalization. Tests do not
+boot NeXTstep or verify host-native dialogs on every platform.
 
 ## Upstream
 
-Previous 4.3: https://previous.sourceforge.net/; WinUAE m68k core;
-NeXTdimension i860 emulation by Jason Eckhardt. See the source headers and
-LICENSE for licensing details.
+Previous: https://previous.sourceforge.net/; WinUAE m68k core;
+NeXTdimension i860 emulation by Jason Eckhardt. The imported source is the
+SDL3 `branch_filesharing` tree at SVN r1854. See [docs/UPSTREAM.md](docs/UPSTREAM.md)
+for provenance, local adaptations and validation limits. After changing the
+CPU generator, run `tools/regenerate-cpu.sh`; `--check` verifies that checked-in
+outputs match without rewriting them. See the source headers and LICENSE
+for licensing details.

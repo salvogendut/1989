@@ -2,9 +2,10 @@
 
 ![1989](1989.png)
 
-1989 integrates the [Previous](https://previous.sourceforge.net/) 4.3 NeXT
-emulator with the SDL3 desktop conventions of the sibling “happy years”
-emulators (1983, 1984, 1985, 1986). It is a C/C++ fork of Previous, retaining
+1989 integrates the [Previous](https://previous.sourceforge.net/) NeXT
+emulator (4.4 plus development fixes through SVN r1854) with the SDL3 desktop
+conventions of the sibling “happy years” emulators (1983, 1984, 1985, 1986).
+It is a C/C++ fork of Previous, retaining
 its WinUAE m68k core and peripheral emulation, built through Autotools.
 
 ## Emulated machines
@@ -27,22 +28,47 @@ optional i860-based NeXTdimension graphics board.
   applies it without a reset. Enter loads/replaces; Delete disconnects with
   restart confirmation. Native file pickers remember directories; blank-image
   creation, device types and write protection are available in the same tab.
+- Printer paper/PNG/TIFF/output-folder settings and keyboard/mouse controls
+  in Extensions; all next-boot diagnostics grouped in Media.
+- **Input details** in Extensions edits numeric mouse sensitivity and shortcut
+  bindings. **C** connects an empty native drive; model restrictions and the
+  second-MO warning are included. **D** restores discovered default ROM paths.
+- Individual RAM banks, memory speed and fixed/variable CPU clock in General;
+  DSP RAM, SCSI/RTC chips and NBIC in Advanced, with model-specific choices.
+- Network/NFS details in Extensions: SLiRP/optional PCAP, cable, MAC, network
+  time and four shared folders. Export changes apply without restarting NeXT.
+- NeXTdimension details in Advanced: all three boards, per-board ROM/RAM, boot
+  console, single/separate/grouped displays and a 4 × 4 monitor layout. Display
+  changes apply live; board hardware changes require restart confirmation.
 - Activity LEDs, function-key hints, toast notifications, window/fullscreen
   persistence, optional CRT scanlines and framebuffer filtering.
+- Model, configured CPU frequency and total RAM share the bottom hint strip.
+  The duplicate legacy status bar is retired; its messages use notifications.
 - **F4** PPM screenshot, **F6** GIF capture with optional FFmpeg optimization,
   **F11** fullscreen, **Ctrl+V** clipboard typing, **Ctrl+Enter** mouse release.
 - **F5** confirmed restart and **F12** confirmed quit. Shut down NeXT inside
   the guest before restarting or quitting, especially with writable disks.
 
-**F1 opens the legacy options menu.** It still provides detailed keyboard,
-mouse, networking/NFS, memory and NeXTdimension settings. See the
-[interface coverage table](docs/INTERFACE.md) for exactly what has and has
-not moved to F9, and [CONTROLS.md](CONTROLS.md) for keyboard controls.
+**F1's legacy menu is retired.** F9 and `1989.conf` cover configuration;
+menu-based configuration import/export was intentionally removed. Missing
+ROMs, disk images and enabled shared/output folders use native recovery
+prompts and file pickers. Cancelling recovery during a settings change leaves
+the running configuration and disks untouched. CPU-halt decisions use a
+native confirmation; ordinary errors use the shared notifications.
+See [interface coverage](docs/INTERFACE.md) and [CONTROLS.md](CONTROLS.md).
+
+“Show menu at startup” and the testing-only temporary SCSI write overlay are
+retired. Old configurations using that overlay become read-only per drive;
+ordinary writable images use persistent writes. See the
+[compatibility notes](docs/INTERFACE.md#retired-options).
 
 The core includes 68030/68040 CPU, MMU/FPU, DSP56001, monochrome/color
 1120 × 832 video, SCSI, floppy, magneto-optical, sound, SLiRP networking
 (optional pcap), and m68k/i860 debuggers. The companion `ditool` manipulates
-NeXT disk images. See [hardware status](docs/STATUS.md).
+NeXT disk images. The r1854 integration brings CPU/MMU corrections, improved
+audio buffering, faster framebuffer conversion, DSP recording updates and
+PNG/TIFF printer output. See [hardware status](docs/STATUS.md) and the
+[pinned upstream integration notes](docs/UPSTREAM.md).
 
 ## Quick start
 
@@ -67,15 +93,18 @@ See [USAGE.md](USAGE.md) and [INSTALL.md](INSTALL.md).
 make -C tests check
 ```
 
-Tests cover strings, headers, clipboard typing, PPM/GIF capture, settings
-application, and overlay save/discard/restart and file-selection behavior.
+Tests cover strings, headers, clipboard typing, framebuffer conversion,
+PPM/GIF and PNG/TIFF output, audio samples/timing, printer buffers, settings
+application, model-specific hardware choices, and overlay save/discard/restart
+and file-selection behavior.
 They do not replace testing a running NeXTstep installation.
 
 ## Project status
 
-Native integration and the shared desktop UI are implemented, with interface
-migration and compatibility validation ongoing. The browser frontend is
-planned; `web/` is a placeholder. [Development.md](Development.md) describes
+Native integration, the shared desktop UI and legacy-menu retirement are
+implemented; guest compatibility validation is ongoing. The browser frontend is
+planned; `web/` is a placeholder. [Issue #1](https://github.com/salvogendut/1989/issues/1)
+records the completed F1 retirement. [Development.md](Development.md) describes
 the module boundaries and [ROADMAP.md](ROADMAP.md) tracks remaining work.
 Generated CPU sources are checked in; no CPU code-generation step is needed.
 

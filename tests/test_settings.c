@@ -27,7 +27,7 @@ int main(void) {
     session.draft.Tablet.nTabletType = TABLET_MM961;
     session.draft.Sound.bEnableMicrophone = true;
     session.draft.Printer.bPrinterConnected = true;
-    session.draft.Screen.bShowStatusbar = true;
+    session.draft.Screen.nMode = SCREEN_ALL;
     assert(!memcmp(&before, &ConfigureParams, sizeof(before)));
     assert(!Settings_NeedRestart(&before, &session.draft));
     assert(Settings_Apply(&session, false));
@@ -35,10 +35,20 @@ int main(void) {
     assert(scsi_out[0] == 0 && scsi_in[0] == 0);
 
     Settings_Begin(&session);
+    session.draft.Screen.bShowStatusbar = true; /* Old imported preference: ignored. */
+    assert(Settings_Apply(&session, false));
+    assert(!restarts && screen == 1); /* No window rebuild or hardware reset. */
+
+    Settings_Begin(&session);
     session.draft.System.nCpuFreq = 33;
     before = ConfigureParams;
     assert(!Settings_Apply(&session, false));
     assert(!memcmp(&before, &ConfigureParams, sizeof(before)) && restarts == 0);
+    recovery_ok = false; /* Native recovery cancelled before applying hardware. */
+    assert(!Settings_Apply(&session, true));
+    assert(!memcmp(&before, &ConfigureParams, sizeof(before)) && restarts == 0);
+    assert(network == 1 && screen == 1 && scsi_in[0] == 0 && scsi_out[0] == 0);
+    recovery_ok = true;
     assert(Settings_Apply(&session, true));
     assert(restarts == 1);
 

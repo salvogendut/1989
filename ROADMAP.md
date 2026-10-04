@@ -1,7 +1,8 @@
 # Roadmap
 
-1989 integrates the Previous 4.3 core with the shared SDL3 desktop experience.
-The [interface inventory](docs/INTERFACE.md) is the checklist for F1 migration.
+1989 integrates the Previous 4.4 core plus r1854 development fixes with the shared SDL3 desktop experience.
+The [interface inventory](docs/INTERFACE.md) and
+[issue #1](https://github.com/salvogendut/1989/issues/1) record the completed F1 retirement.
 
 ## Implemented
 
@@ -9,8 +10,10 @@ The [interface inventory](docs/INTERFACE.md) is the checklist for F1 migration.
 - Firmware/resource installation, desktop integration, RPM/Debian/macOS
   packaging scaffolding and `ditool`.
 - F9 General/Media/Extensions/Advanced tabs, activity LEDs and function hints.
+- CPU clock/RAM beside the model in the hint strip; duplicate legacy status
+  bar removed, with core messages routed through shared notifications.
 - Private settings drafts; Save/Discard; shared restart policy; confirmed
-  F5 restart; per-drive removable-media updates in F9 and F1.
+  F5 restart; per-drive removable-media updates in F9.
 - Live display/audio/network-connection/tablet/printer settings; boot options
   saved for the next boot without automatically resetting the guest.
 - Window/fullscreen persistence, relative mouse capture, clipboard typing.
@@ -19,15 +22,32 @@ The [interface inventory](docs/INTERFACE.md) is the checklist for F1 migration.
   blank-image creation, and tests for edit/apply/file-picker boundaries.
 - Media roles matching NeXT's suggested SCSI layout, next-boot drive-number
   preview, separate native drives, and explicit eject versus disconnect.
+- Shared draft-only control definitions; printer paper/format/folder,
+  keyboard mapping and mouse motion/capture controls in Extensions.
+- Complete next-boot diagnostics in Media, including controls previously
+  behind Tinker. The four top-level tabs remain unchanged.
+- General: individual RAM banks/speed and fixed/variable CPU clock;
+  Advanced: DSP RAM, SCSI/RTC chips and NBIC, with model-specific choices
+  and restart confirmation.
+
+- Extensions Network/NFS detail page: SLiRP/optional PCAP, interface, cable,
+  network time, MAC suffix, four exports and validated names; live export updates.
+- Advanced NeXTdimension/display detail page: all three boards, ROM/RAM,
+  console, single/separate/grouped outputs and live monitor arrangement.
+- Extensions Input details: exact mouse scales and shortcut remapping with
+  reserved-key/duplicate checks, using shared text entry with Network/NFS.
+- Native empty-drive connections, model restrictions and second-MO guidance;
+  default ROM restoration for machine variants and NeXTdimension boards.
+- Retired show-menu-at-startup and temporary SCSI writes; old temporary-write
+  configurations migrate to per-drive read-only protection.
+
+- Native resource recovery and CPU-halt decisions; shared error notifications.
+  Recovery cancellation preserves live settings and disks. The F1 menu, its
+  config import/export and the unused SDL GUI toolkit are removed; `1989.conf`
+  and F9 remain the configuration interfaces.
 
 ## Next interface work
-
-- Migrate keyboard/mouse mapping and sensitivity, NFS/network detail,
-  printer paper/output settings and full NeXTdimension configuration.
-- Add custom RAM banks/speed and the remaining boot diagnostic controls.
-- Replace legacy missing-file dialogs, alerts and config import/export.
-- Match hardware-specific media restrictions and second-MO-drive guidance
-  throughout F9; validate created images against supported guest formats.
+- Validate created images against supported guest formats, particularly MO/ECC.
 - Provide a separate save-for-next-launch workflow for hardware changes.
 - Run FFmpeg post-processing asynchronously; extend capture beyond GIF.
 - Improve UI-only coverage on macOS/Windows and native file-dialog backends.
