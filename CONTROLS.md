@@ -61,6 +61,14 @@ Machine variant, RAM presets, CPU clock, FPU, DSP, MMU status, Turbo ADB, sound 
 Tinker, About and **Machine defaults**. Machine defaults restores the selected
 model's hardware defaults; it does not clear media or desktop preferences.
 
+CPU clock cycles 16/20/25/33 MHz, plus 40 MHz on Turbo. **Variable CPU clock**
+selects the core's variable timing mode. **Memory banks** exposes each bank
+and memory speed alongside the total-RAM presets. Monochrome banks offer
+empty/1/4/16 MB, Color empty/2/8 MB and Turbo empty/2/8/32 MB. Non-Turbo
+monochrome NeXTstations have only banks 0/1. Memory-speed labels follow the
+selected controller: 120/100/80/60 ns normally, 60/70/80/100 ns on Turbo.
+All these hardware edits require explicit restart confirmation.
+
 ### Media
 
 Boot device, seven SCSI targets and a separate group for native floppy/MO drives.
@@ -96,7 +104,8 @@ Discard. See the [MO format caveat](docs/INTERFACE.md#media-creation-and-remaini
 ### Extensions
 
 Connections cover the first NeXTdimension board, printer, Ethernet, tablet
-model and microphone. **Printer output** adds paper size, PNG/TIFF image
+model and microphone. NeXTdimension is available on Cubes and requires NBIC.
+**Printer output** adds paper size, PNG/TIFF image
 format and a native output-folder picker. The format also controls legacy
 screenshots; F4/F6 keep PPM/GIF. Without libpng, image output uses TIFF.
 
@@ -117,6 +126,12 @@ notifications, debug output, RTC local/UTC, fullscreen, status/title bars,
 68030/68040/Turbo ROM files and version information. Display preferences
 apply on Save. Boot diagnostics are grouped in Media, including DRAM test
 and verbose boot, and do not require Tinker.
+
+**Machine hardware** provides DSP RAM (24/96 KB), SCSI controller
+(NCR53C90/NCR53C90A), RTC chip (MC68HC68T1/MCCS1850) and NBIC. NBIC is
+Cube-only and cannot be disabled while any NeXTdimension board is enabled.
+These hardware changes require a restart; RTC local/UTC remains a live
+host-clock preference.
 
 ## Activity display
 

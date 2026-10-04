@@ -6,7 +6,11 @@
 #include "configuration.h"
 #include "ui_config.h"
 
-/* Media controls here follow the device rows. Extensions uses this whole list.
+/* Presets match the legacy clock selector; 40 MHz is offered on Turbo. */
+void OverlayControls_CycleCpuClock(CNF_PARAMS *draft);
+
+/* General/Media/Advanced controls follow the existing rows in their tabs.
+ * Extensions uses this whole list.
  * Row numbers count selectable controls only; headings are presentation. */
 int OverlayControls_Count(OvSection section);
 void OverlayControls_AddRows(OverlayView *view, OvSection section,

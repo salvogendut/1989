@@ -241,7 +241,8 @@ static void test_migrated_controls(const char *dir, const char *image) {
     assert(!memcmp(&before.SCSI, &ConfigureParams.SCSI, sizeof(before.SCSI)));
 
     /* Protect layout/navigation from silently truncating a growing definition. */
-    for (int section = OV_MEDIA; section <= OV_EXTENSIONS; section++) {
+    const int base_rows[] = {11, 15, 0, 16};
+    for (int section = OV_GENERAL; section <= OV_ADVANCED; section++) {
         OverlayView view = {0};
         int count = OverlayControls_Count(section), selectable = 0, selected = 0;
         OverlayControls_AddRows(&view, section, count - 1, &ConfigureParams);
@@ -250,8 +251,90 @@ static void test_migrated_controls(const char *dir, const char *image) {
             if (view.rows[i].selected) selected++;
         }
         assert(count == selectable && selected == 1 && view.hint);
-        assert(view.row_count + (section == OV_MEDIA ? 15 : 0) <= OVERLAY_MAX_ROWS);
+        assert(view.row_count + base_rows[section] <= OVERLAY_MAX_ROWS);
     }
+}
+
+static void hardware(OvSection section, const char *label) {
+    key(SDL_SCANCODE_F9);
+    if (section == OV_ADVANCED) key(SDL_SCANCODE_LEFT);
+    int base = section == OV_GENERAL ? 11 : (UI89Config_.bCrtEnabled ? 16 : 15);
+    down(base + control_row(section, label));
+}
+
+static void test_hardware_controls(void) {
+    CNF_PARAMS before = ConfigureParams;
+    int resets_before = restarts, saves_before = saved;
+    hardware(OV_GENERAL, "RAM bank 0"); key(SDL_SCANCODE_RETURN);
+    assert(!memcmp(&before, &ConfigureParams, sizeof(before)));
+    key(SDL_SCANCODE_F9);
+    assert(overlay_confirm_visible());
+    key(SDL_SCANCODE_ESCAPE); /* Editing resumes; hardware remains staged. */
+    assert(overlay_is_visible() && !overlay_confirm_visible());
+    key(SDL_SCANCODE_F9); key(SDL_SCANCODE_RETURN); /* Default Discard. */
+    assert(!memcmp(&before, &ConfigureParams, sizeof(before)));
+    assert(restarts == resets_before && saved == saves_before);
+
+    /* Every new hardware control must go through the restart confirmation.
+     * Test Advanced with the conditional scanline row both shown and hidden. */
+    for (int crt = 0; crt < 2; crt++) {
+        UI89Config_.bCrtEnabled = crt;
+        const OvSection sections[] = {OV_GENERAL, OV_ADVANCED};
+        for (int s = 0; s < 2; s++) {
+            OvSection section = sections[s];
+            OverlayView view = {0};
+            OverlayControls_AddRows(&view, section, -1, &ConfigureParams);
+            for (int i = 0; i < view.row_count; i++) {
+                if (view.rows[i].heading) continue;
+                before = ConfigureParams;
+                resets_before = restarts;
+                hardware(section, view.rows[i].label); key(SDL_SCANCODE_RETURN);
+                assert(!memcmp(&before, &ConfigureParams, sizeof(before)));
+                key(SDL_SCANCODE_F9);
+                assert(overlay_confirm_visible() && restarts == resets_before);
+                key(SDL_SCANCODE_LEFT); key(SDL_SCANCODE_RETURN); /* Explicit Restart. */
+                assert(!overlay_is_visible() && restarts == resets_before + 1);
+                assert(memcmp(&before, &ConfigureParams, sizeof(before)));
+                assert(!memcmp(&before.SCSI, &ConfigureParams.SCSI, sizeof(before.SCSI)));
+                assert(!memcmp(&before.Floppy, &ConfigureParams.Floppy, sizeof(before.Floppy)));
+                assert(!memcmp(&before.MO, &ConfigureParams.MO, sizeof(before.MO)));
+            }
+        }
+    }
+
+    resets_before = restarts;
+    saves_before = saved;
+    hardware(OV_GENERAL, "Variable CPU clock");
+    key(SDL_SCANCODE_RETURN); key(SDL_SCANCODE_RETURN); /* Revert to original. */
+    key(SDL_SCANCODE_F9);
+    assert(!overlay_is_visible() && !overlay_confirm_visible());
+    assert(restarts == resets_before && saved == saves_before);
+
+    ConfigureParams.System.bNBIC = false;
+    before = ConfigureParams;
+    extension("NeXTdimension");
+    key(SDL_SCANCODE_RETURN); key(SDL_SCANCODE_RETURN);
+    key(SDL_SCANCODE_F9);
+    assert(!overlay_is_visible() && !overlay_confirm_visible());
+    assert(!memcmp(&before, &ConfigureParams, sizeof(before)));
+    assert(restarts == resets_before && saved == saves_before);
+
+    /* Inactive model-specific controls produce neither an edit nor a restart. */
+    ConfigureParams.System.nMachineType = NEXT_STATION;
+    ConfigureParams.System.bTurbo = ConfigureParams.System.bColor = false;
+    ConfigureParams.Memory.nMemoryBankSize[2] = ConfigureParams.Memory.nMemoryBankSize[3] = 0;
+    ConfigureParams.System.bNBIC = false;
+    before = ConfigureParams;
+    hardware(OV_GENERAL, "RAM bank 2");
+    key(SDL_SCANCODE_RETURN); key(SDL_SCANCODE_DOWN); key(SDL_SCANCODE_RETURN);
+    key(SDL_SCANCODE_F9);
+    assert(!overlay_is_visible());
+    hardware(OV_ADVANCED, "NBIC"); key(SDL_SCANCODE_RETURN); key(SDL_SCANCODE_F9);
+    assert(!overlay_is_visible());
+    extension("NeXTdimension"); key(SDL_SCANCODE_RETURN); key(SDL_SCANCODE_F9);
+    assert(!overlay_is_visible());
+    assert(!memcmp(&before, &ConfigureParams, sizeof(before)));
+    assert(restarts == resets_before && saved == saves_before);
 }
 
 int main(void) {
@@ -360,6 +443,7 @@ int main(void) {
     test_scsi_layout(created);
     test_removable_eject(created);
     test_migrated_controls(dir, created);
+    test_hardware_controls();
     remove(created); rmdir(dir);
     puts("test-overlay: OK");
     return 0;

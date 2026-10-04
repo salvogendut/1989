@@ -32,10 +32,12 @@ See the [layout and examples](docs/INTERFACE.md#scsi-layout-and-drive-numbers).
 
 ## Options
 
-F9 is the primary interface. General covers machine presets and sound;
+F9 is the primary interface. General covers machine presets, individual RAM
+banks/speed, CPU clock mode and sound;
 Media covers boot selection, disks and next-boot diagnostics; Extensions
 covers attached devices, printer output and keyboard/mouse controls. Enable
-Tinker in General to see Advanced display, capture, logging, RTC and ROM controls.
+Tinker in General to see Advanced display, capture, logging, RTC and ROM controls,
+plus DSP RAM, SCSI/RTC chip selection and Cube NBIC.
 
 The panel edits a draft. Save applies routine changes without rebooting;
 Discard leaves the runtime unchanged. Boot preferences apply on the next
@@ -43,8 +45,8 @@ boot. Hardware changes need a separate, clearly labelled restart confirmation.
 See [CONTROLS.md](CONTROLS.md) and the
 [interface inventory](docs/INTERFACE.md) for details.
 
-F1 (also Ctrl+Alt+O) opens the legacy options dialog for custom RAM banks and
-speed, shortcut remapping and custom numeric mouse scales, network/NFS
+F1 (also Ctrl+Alt+O) opens the legacy options dialog for shortcut remapping
+and custom numeric mouse scales, network/NFS
 configuration, NeXTdimension boards/displays, and config
 import/export. Its media changes are staged until OK. The legacy Save config
 button explicitly writes to the chosen file.

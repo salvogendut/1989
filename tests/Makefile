@@ -11,7 +11,7 @@ SDL3_LIBS ?= $(shell pkg-config --libs sdl3)
 PNG_CFLAGS ?= $(shell pkg-config --cflags libpng 2>/dev/null)
 PNG_LIBS ?= $(shell pkg-config --libs libpng 2>/dev/null)
 
-TESTS = test-str test-paste test-settings test-overlay test-sound test-grab test-printer
+TESTS = test-str test-paste test-settings test-overlay test-hardware test-sound test-grab test-printer
 
 all: $(TESTS) test-headers test-capture
 
@@ -33,6 +33,11 @@ UI_SOURCES = ../src/overlay.c ../src/overlay_controls.c ../src/overlay_view.c ..
 test-overlay: test_overlay.c ui_test_support.c ui_test_support.h $(UI_SOURCES) ../src/includes/overlay.h ../src/includes/overlay_controls.h ../src/includes/ui_config.h ../src/includes/configuration.h ../src/includes/overlay_media.h ../src/includes/overlay_view.h ../src/includes/settings.h ../config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) -DTEST_OVERLAY -ffunction-sections -fdata-sections \
 		test_overlay.c ui_test_support.c $(UI_SOURCES) $(SDL3_LIBS) -Wl,--gc-sections -o $@
+
+# Overlay RAM choices checked against the real core for all seven models.
+test-hardware: test_hardware.c ../src/configuration.c ../src/overlay_controls.c ../src/overlay_view.c ../src/includes/overlay_controls.h ../src/includes/configuration.h ../config.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) -ffunction-sections -fdata-sections \
+		test_hardware.c ../src/configuration.c ../src/overlay_controls.c ../src/overlay_view.c -Wl,--gc-sections -o $@
 
 # Audio byte order, double-rate modes, activity and timing with host sound off.
 test-sound: test_sound.c ../src/snd.c ../src/includes/snd.h ../config.h

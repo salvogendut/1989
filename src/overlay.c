@@ -237,7 +237,7 @@ static const char *ram_string(char *buf, size_t size) {
 
 static const char *cpu_freq_string(char *buf, size_t size) {
     snprintf(buf, size, "%d MHz (%s)", g_settings.draft.System.nCpuFreq,
-             g_settings.draft.System.bTurbo ? "turbo" : "stock");
+             g_settings.draft.System.bRealtime ? "variable" : "fixed");
     return buf;
 }
 
@@ -409,6 +409,10 @@ static void overlay_choice_accept(void) {
 static void overlay_activate(void) {
     switch (g_ov.section) {
         case OV_GENERAL:
+            if (g_ov.row >= GEN_ROWS) {
+                OverlayControls_Activate(OV_GENERAL, g_ov.row - GEN_ROWS, &g_settings.draft);
+                break;
+            }
             switch (g_ov.row) {
                 case GEN_MACHINE:
                     machine_cycle(1);
@@ -433,10 +437,7 @@ static void overlay_activate(void) {
                     break;
                 }
                 case GEN_CPUCLOCK:
-                    g_settings.draft.System.nCpuFreq =
-                        g_settings.draft.System.nCpuFreq < 25 ? 25 :
-                        g_settings.draft.System.nCpuFreq < 33 ? 33 :
-                        g_settings.draft.System.nCpuFreq < 40 ? 40 : 25;
+                    OverlayControls_CycleCpuClock(&g_settings.draft);
                     break;
                 case GEN_FPU: {
                     FPUTYPE f = g_settings.draft.System.n_FPUType;
@@ -505,6 +506,10 @@ static void overlay_activate(void) {
         }
 
         case OV_ADVANCED:
+            if (g_ov.row >= adv_row_count()) {
+                OverlayControls_Activate(OV_ADVANCED, g_ov.row - adv_row_count(), &g_settings.draft);
+                break;
+            }
             switch (adv_logical_row(g_ov.row)) {
                 case ADV_SMOOTHING:
                     g_edit_ui.bSmoothing = !g_edit_ui.bSmoothing;
@@ -591,10 +596,10 @@ static void overlay_activate(void) {
 
 static int section_rows(void) {
     switch (g_ov.section) {
-        case OV_GENERAL:    return GEN_ROWS;
+        case OV_GENERAL:    return GEN_ROWS + OverlayControls_Count(OV_GENERAL);
         case OV_MEDIA:      return MED_ROWS + OverlayControls_Count(OV_MEDIA);
         case OV_EXTENSIONS: return OverlayControls_Count(OV_EXTENSIONS);
-        case OV_ADVANCED:   return adv_row_count();
+        case OV_ADVANCED:   return adv_row_count() + OverlayControls_Count(OV_ADVANCED);
         default:            return 0;
     }
 }
@@ -738,6 +743,7 @@ void overlay_render(SDL_Renderer *r) {
                  g_ov.row == GEN_TINKER);
         OverlayView_Add(&view, "About", "Program details", g_ov.row == GEN_ABOUT);
         OverlayView_Add(&view, "Machine defaults", "Restore this model's hardware defaults", g_ov.row == GEN_RESET);
+        OverlayControls_AddRows(&view, OV_GENERAL, g_ov.row - GEN_ROWS, &g_settings.draft);
     } else if (g_ov.section == OV_MEDIA) {
         overlay_media_rows(&view, media_hint, sizeof(media_hint));
         OverlayControls_AddRows(&view, OV_MEDIA, g_ov.row - MED_ROWS, &g_settings.draft);
@@ -802,6 +808,7 @@ void overlay_render(SDL_Renderer *r) {
         OverlayView_Add(&view, "Turbo ROM", media_path(g_settings.draft.Rom.szRomTurboFileName, vbuf2, sizeof(vbuf2)), g_ov.row == dr++);
         OverlayView_Add(&view, "Version", PACKAGE_VERSION,
                  g_ov.row == dr);
+        OverlayControls_AddRows(&view, OV_ADVANCED, g_ov.row - adv_row_count(), &g_settings.draft);
     }
 
     OverlayView_Draw(r, &view);

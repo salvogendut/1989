@@ -476,4 +476,4 @@ EXTRA_DIST = LICENSE README.md ROMS.md Development.md USAGE.md CONTROLS.md INSTA
 	packaging/debian/build-deb.sh packaging/macos/package.sh \
 	web/README.md \
 	tests/Makefile tests/test_str.c tests/test_headers.c tests/test_capture.c tests/test_paste.c tests/test_settings.c tests/test_overlay.c \
-	tests/ui_test_support.c tests/ui_test_support.h tests/test_sound.c tests/test_grab.c tests/test_printer.c
+	tests/ui_test_support.c tests/ui_test_support.h tests/test_hardware.c tests/test_sound.c tests/test_grab.c tests/test_printer.c

@@ -21,7 +21,7 @@ produces no save prompt or restart.
 | Sound/microphone, Ethernet connection, tablet, printer connection | Update the affected host/peripheral subsystem; disks stay attached |
 | Boot device, power-on diagnostics, verbose boot | Save for the next boot; the current OS keeps running |
 | Media in an already connected removable drive | Exchange only the changed drive's media; other disks stay open |
-| Model, CPU/FPU/DSP, RAM, active ROM, enabled NeXTdimension hardware, drive connections or SCSI device type | Require an explicit restart |
+| Model, CPU/FPU/DSP and DSP RAM, RAM banks/speed, SCSI/RTC chips, NBIC, active ROM, enabled NeXTdimension hardware, drive connections or SCSI device type | Require an explicit restart |
 | Fixed SCSI hard-disk image, insertion/removal or write protection | Require an explicit restart |
 | Legacy network backend or network-time source | Require an explicit restart |
 
@@ -30,6 +30,11 @@ be saved without restarting.
 The MMU row is informational: Previous's CPU setup always enables it.
 Inherited MMU/CPU/FPU compatibility flags that the core ignores do not
 request a restart. ADB can be changed only on Turbo models.
+RAM choices match the selected model, including the two-bank limit on
+non-Turbo monochrome NeXTstations. NBIC and NeXTdimension are Cube-only;
+NBIC shows as required while any board is enabled and cannot be disabled.
+The core enables NBIC when the board change is confirmed. Toggling a board
+on and back off leaves the draft's independent NBIC preference intact.
 
 Shut down NeXT inside the guest before confirming a hardware/fixed-disk
 restart or quitting the emulator. Eject/unmount removable media inside the
@@ -56,8 +61,8 @@ This inventory is based on `src/gui-sdl/dlg*.c` and the F9 row/actions code.
 
 | Legacy area | Available in F9 | Remaining in F1 |
 | --- | --- | --- |
-| System | Seven model variants, 25/33/40 MHz clock choices, FPU, DSP mode, MMU status, Turbo ADB, model hardware defaults | 16/20 MHz and variable clock; DSP RAM size; SCSI/RTC chip and NBIC selection |
-| Memory | Model-appropriate total-RAM presets with bank sizes displayed | Individual bank editing and RAM speed |
+| System | General: seven model variants, 16/20/25/33 MHz (40 on Turbo), fixed/variable clock, FPU, DSP mode, MMU status, Turbo ADB and model defaults; Advanced: DSP RAM, SCSI/RTC chip and Cube NBIC selection | None of the effective system controls |
+| Memory | General: model-appropriate total-RAM presets, individual bank editing and controller-specific memory speed | None |
 | ROM | 68030, 68040 and Turbo ROM pickers in Advanced | Restore-default-path buttons |
 | Boot | Media: boot device, power-on test master switch, DRAM/sound/SCSI tests, repeat/extended tests, diagnostic video and verbose boot | None |
 | SCSI | Suggested roles and next-boot sdN preview; seven image slots; T disk/CD/floppy type; W protection; E eject; Delete disconnect; blank HDD/floppy images | Legacy browser and testing-only global disk-write overlay |

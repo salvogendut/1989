@@ -30,6 +30,8 @@ optional i860-based NeXTdimension graphics board.
   creation, device types and write protection are available in the same tab.
 - Printer paper/PNG/TIFF/output-folder settings and keyboard/mouse controls
   in Extensions; all next-boot diagnostics grouped in Media.
+- Individual RAM banks, memory speed and fixed/variable CPU clock in General;
+  DSP RAM, SCSI/RTC chips and NBIC in Advanced, with model-specific choices.
 - Activity LEDs, function-key hints, toast notifications, window/fullscreen
   persistence, optional CRT scanlines and framebuffer filtering.
 - **F4** PPM screenshot, **F6** GIF capture with optional FFmpeg optimization,
@@ -38,7 +40,7 @@ optional i860-based NeXTdimension graphics board.
   the guest before restarting or quitting, especially with writable disks.
 
 **F1 opens the legacy options menu.** It still provides shortcut editing,
-custom numeric mouse scales, networking/NFS, memory and NeXTdimension settings. See the
+custom numeric mouse scales, networking/NFS and full NeXTdimension settings. See the
 [interface coverage table](docs/INTERFACE.md) for exactly what has and has
 not moved to F9, and [CONTROLS.md](CONTROLS.md) for keyboard controls.
 
@@ -75,7 +77,8 @@ make -C tests check
 
 Tests cover strings, headers, clipboard typing, framebuffer conversion,
 PPM/GIF and PNG/TIFF output, audio samples/timing, printer buffers, settings
-application, and overlay save/discard/restart and file-selection behavior.
+application, model-specific hardware choices, and overlay save/discard/restart
+and file-selection behavior.
 They do not replace testing a running NeXTstep installation.
 
 ## Project status

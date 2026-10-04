@@ -24,12 +24,14 @@ The [interface inventory](docs/INTERFACE.md) and
   keyboard mapping and mouse motion/capture controls in Extensions.
 - Complete next-boot diagnostics in Media, including controls previously
   behind Tinker. The four top-level tabs remain unchanged.
+- General: individual RAM banks/speed and fixed/variable CPU clock;
+  Advanced: DSP RAM, SCSI/RTC chips and NBIC, with model-specific choices
+  and restart confirmation.
 
 ## Next interface work
 
 - Migrate shortcut editing, custom numeric mouse scales, NFS/network detail
   and full NeXTdimension configuration.
-- Add custom RAM banks/speed and remaining CPU/DSP/SCSI/RTC/NBIC controls.
 - Replace legacy missing-file dialogs, alerts and config import/export.
 - Match hardware-specific media restrictions and second-MO-drive guidance
   throughout F9; validate created images against supported guest formats.
