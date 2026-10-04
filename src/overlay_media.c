@@ -89,7 +89,8 @@ bool OverlayMedia_Request(OvDialogKind kind, const UI89Config *ui, long long siz
         { "NeXT images", "sd;SD;fd;FD;dsk;DSK;img;IMG;bin;BIN;iso;ISO;od;OD" },
         { "All files", "*" }
     };
-    if (kind <= OV_DIALOG_NONE || kind >= OV_DIALOG_COUNT) return false;
+    if (kind <= OV_DIALOG_NONE || kind >= OV_DIALOG_COUNT ||
+        (kind == OV_DIALOG_PRINTER_DIR && size != 0)) return false;
     SDL_LockSpinlock(&request_lock);
     if (request.busy) { SDL_UnlockSpinlock(&request_lock); return false; }
     memset(&request, 0, sizeof(request));
@@ -99,7 +100,9 @@ bool OverlayMedia_Request(OvDialogKind kind, const UI89Config *ui, long long siz
     SDL_UnlockSpinlock(&request_lock);
     const char *dir = ui->szLastDir[kind];
     if (!dir[0] || !File_DirExists(dir)) dir = NULL;
-    if (size > 0)
+    if (kind == OV_DIALOG_PRINTER_DIR)
+        SDL_ShowOpenFolderDialog(selected, NULL, sdlWindow, dir, false);
+    else if (size > 0)
         SDL_ShowSaveFileDialog(selected, NULL, sdlWindow, filters, 2, dir);
     else
         SDL_ShowOpenFileDialog(selected, NULL, sdlWindow, filters, 2, dir, false);
@@ -127,6 +130,10 @@ bool OverlayMedia_Poll(OvDialogKind *kind, char *path, long long *size) {
 
 void OverlayMedia_Remember(UI89Config *ui, OvDialogKind kind, const char *path) {
     if (kind <= OV_DIALOG_NONE || kind >= OV_DIALOG_COUNT) return;
+    if (kind == OV_DIALOG_PRINTER_DIR) {
+        if (File_DirExists(path)) snprintf(ui->szLastDir[kind], FILENAME_MAX, "%s", path);
+        return;
+    }
     char dir[FILENAME_MAX];
     snprintf(dir, sizeof(dir), "%s", path);
     char *slash = strrchr(dir, '/');
@@ -141,6 +148,14 @@ void OverlayMedia_Remember(UI89Config *ui, OvDialogKind kind, const char *path) 
 
 bool OverlayMedia_Set(CNF_PARAMS *p, OvDialogKind kind, const char *path) {
     bool inserted = path && path[0];
+    if (kind == OV_DIALOG_PRINTER_DIR) {
+        if (!inserted || !File_DirExists(path)) {
+            notify_post("CHOOSE AN EXISTING OUTPUT DIRECTORY");
+            return false;
+        }
+        snprintf(p->Printer.szPrintToFileName, FILENAME_MAX, "%s", path);
+        return true;
+    }
     if (inserted && (!File_Exists(path) || File_DirExists(path))) {
         notify_post("IMAGE NOT FOUND");
         return false;

@@ -22,7 +22,8 @@ void Ethernet_Reset(bool hard) { assert(!hard); network++; }
 void Tablet_Reset(void) { tablet++; }
 void Sound_Reset(void) { sound++; }
 void Printer_Reset(void) { printer++; }
-void Keymap_Init(void) {}
+int keymap_inits;
+void Keymap_Init(void) { keymap_inits++; }
 void Screen_Reset(void) { screen++; }
 void Screen_TitlebarChanged(void) {}
 void Screen_EnterFullScreen(void) { bInFullScreen = true; }
@@ -80,4 +81,11 @@ void SDL_ShowOpenFileDialog(SDL_DialogFileCallback cb, void *userdata, SDL_Windo
 void SDL_ShowSaveFileDialog(SDL_DialogFileCallback cb, void *userdata, SDL_Window *window,
                            const SDL_DialogFileFilter *filters, int count, const char *path) {
     SDL_ShowOpenFileDialog(cb, userdata, window, filters, count, path, false);
+}
+
+int folder_requests;
+void SDL_ShowOpenFolderDialog(SDL_DialogFileCallback cb, void *userdata, SDL_Window *window,
+                             const char *path, bool multiple) {
+    folder_requests++;
+    SDL_ShowOpenFileDialog(cb, userdata, window, NULL, 0, path, multiple);
 }

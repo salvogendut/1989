@@ -3,6 +3,8 @@
 The F9 overlay is the primary interface. F1 opens **1989 – Legacy options**
 for the controls listed below that have not yet been migrated. The old menu
 is still compiled and functional; migration is incomplete.
+[Issue #1](https://github.com/salvogendut/1989/issues/1) tracks its retirement.
+Controls are being distributed among the existing four tabs.
 
 ## Applying changes
 
@@ -57,16 +59,16 @@ This inventory is based on `src/gui-sdl/dlg*.c` and the F9 row/actions code.
 | System | Seven model variants, 25/33/40 MHz clock choices, FPU, DSP mode, MMU status, Turbo ADB, model hardware defaults | 16/20 MHz and variable clock; DSP RAM size; SCSI/RTC chip and NBIC selection |
 | Memory | Model-appropriate total-RAM presets with bank sizes displayed | Individual bank editing and RAM speed |
 | ROM | 68030, 68040 and Turbo ROM pickers in Advanced | Restore-default-path buttons |
-| Boot | Boot device in Media; DRAM test and verbose boot in Advanced | Power-on test master switch, sound/SCSI tests, test loop, extended diagnostics, diagnostic VRAM display |
+| Boot | Media: boot device, power-on test master switch, DRAM/sound/SCSI tests, repeat/extended tests, diagnostic video and verbose boot | None |
 | SCSI | Suggested roles and next-boot sdN preview; seven image slots; T disk/CD/floppy type; W protection; E eject; Delete disconnect; blank HDD/floppy images | Legacy browser and testing-only global disk-write overlay |
 | Floppy | Drives 0/1, image selection, E eject, Delete disconnect, write protection, blank 720 KiB/1.44 MiB/2.88 MiB images | Connect an empty drive without loading media |
 | Magneto-optical | Drives 0/1, image selection, E eject, Delete disconnect, write protection, blank-image creation | Connect an empty drive without media; legacy second-drive warning |
 | Graphics | First NeXTdimension board enable; fullscreen, filtering, CRT, status/title bars | Boards in slots 4/6; per-board ROM/RAM; console/display slot; separate/grouped displays and monitor arrangement |
 | Network | Connected/disconnected | SLiRP/pcap selection, host interface, twisted-pair selection, MAC address, network time, NFS shares and names |
 | Sound | Output enable in General; microphone in Extensions | No additional sound-menu toggle |
-| Keyboard | Host clipboard paste shortcut | Scancode/symbolic mapping, Command/Alt swap, configurable legacy shortcuts |
-| Mouse/tablet | Tablet model; click-to-capture and Ctrl+Enter release | Motion presets, linear/exponential/raw motion, automatic capture, mouse-to-key and Ctrl-click options |
-| Printer | Connected/disconnected | Paper size, PNG/TIFF file format and output directory |
+| Keyboard | Clipboard paste; Extensions: scancode/symbolic mapping and Command/Alt swap | Configurable legacy shortcuts |
+| Mouse/tablet | Extensions: tablet model, slow/fast motion presets, raw motion, automatic capture, wheel-to-arrow keys and Ctrl-click mapping; Ctrl+Enter release | Exact numeric linear/exponential scales |
+| Printer | Extensions: connection, paper size, PNG/TIFF format and native output-folder picker | None |
 | Main menu | About; model hardware defaults; confirmed restart/quit | Configuration import/export and show-legacy-menu-at-startup setting |
 
 The m68k/i860 debuggers, legacy PNG/TIFF screenshots and AIFF recording remain
@@ -123,7 +125,8 @@ use a known-compatible image or the supplied `empty.ecc.od.zip` template.
 The legacy menu restricts MO to non-Turbo Cubes and warns about a second MO
 drive; F9 does not yet reproduce all of those hardware-specific affordances.
 
-Remaining interface work includes keyboard/mouse and NFS controls, richer
+Remaining interface work includes shortcut editing, exact numeric mouse
+scales, NFS controls, richer
 NeXTdimension configuration, replacing missing-file/legacy alerts, and moving
 the optional FFmpeg post-processing pass off the UI thread. Browser/WASM is
 still a placeholder. UI/component tests do not establish NeXTstep desktop or

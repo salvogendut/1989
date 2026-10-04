@@ -4,8 +4,8 @@
  * F9. It has four tabs:
  *
  *   General    - machine model, RAM, CPU/FPU/DSP/MMU, sound, Tinker
- *   Media      - boot device, SCSI targets, floppy drives, magneto-optical
- *   Extensions - NeXTdimension, printer, Ethernet, tablet, microphone
+ *   Media      - boot device/diagnostics, SCSI, floppy, magneto-optical
+ *   Extensions - devices, printer output, keyboard/mouse controls
  *   Advanced   - display/capture/tinkering options (only with Tinker on)
  *
  * The controller edits private drafts; settings.c owns runtime application

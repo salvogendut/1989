@@ -1,7 +1,8 @@
 # Roadmap
 
 1989 integrates the Previous 4.4 core plus r1854 development fixes with the shared SDL3 desktop experience.
-The [interface inventory](docs/INTERFACE.md) is the checklist for F1 migration.
+The [interface inventory](docs/INTERFACE.md) and
+[issue #1](https://github.com/salvogendut/1989/issues/1) track F1 migration.
 
 ## Implemented
 
@@ -19,12 +20,16 @@ The [interface inventory](docs/INTERFACE.md) is the checklist for F1 migration.
   blank-image creation, and tests for edit/apply/file-picker boundaries.
 - Media roles matching NeXT's suggested SCSI layout, next-boot drive-number
   preview, separate native drives, and explicit eject versus disconnect.
+- Shared draft-only control definitions; printer paper/format/folder,
+  keyboard mapping and mouse motion/capture controls in Extensions.
+- Complete next-boot diagnostics in Media, including controls previously
+  behind Tinker. The four top-level tabs remain unchanged.
 
 ## Next interface work
 
-- Migrate keyboard/mouse mapping and sensitivity, NFS/network detail,
-  printer paper/output settings and full NeXTdimension configuration.
-- Add custom RAM banks/speed and the remaining boot diagnostic controls.
+- Migrate shortcut editing, custom numeric mouse scales, NFS/network detail
+  and full NeXTdimension configuration.
+- Add custom RAM banks/speed and remaining CPU/DSP/SCSI/RTC/NBIC controls.
 - Replace legacy missing-file dialogs, alerts and config import/export.
 - Match hardware-specific media restrictions and second-MO-drive guidance
   throughout F9; validate created images against supported guest formats.

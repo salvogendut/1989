@@ -28,6 +28,8 @@ optional i860-based NeXTdimension graphics board.
   applies it without a reset. Enter loads/replaces; Delete disconnects with
   restart confirmation. Native file pickers remember directories; blank-image
   creation, device types and write protection are available in the same tab.
+- Printer paper/PNG/TIFF/output-folder settings and keyboard/mouse controls
+  in Extensions; all next-boot diagnostics grouped in Media.
 - Activity LEDs, function-key hints, toast notifications, window/fullscreen
   persistence, optional CRT scanlines and framebuffer filtering.
 - **F4** PPM screenshot, **F6** GIF capture with optional FFmpeg optimization,
@@ -35,8 +37,8 @@ optional i860-based NeXTdimension graphics board.
 - **F5** confirmed restart and **F12** confirmed quit. Shut down NeXT inside
   the guest before restarting or quitting, especially with writable disks.
 
-**F1 opens the legacy options menu.** It still provides detailed keyboard,
-mouse, networking/NFS, memory and NeXTdimension settings. See the
+**F1 opens the legacy options menu.** It still provides shortcut editing,
+custom numeric mouse scales, networking/NFS, memory and NeXTdimension settings. See the
 [interface coverage table](docs/INTERFACE.md) for exactly what has and has
 not moved to F9, and [CONTROLS.md](CONTROLS.md) for keyboard controls.
 
@@ -80,7 +82,8 @@ They do not replace testing a running NeXTstep installation.
 
 Native integration and the shared desktop UI are implemented, with interface
 migration and compatibility validation ongoing. The browser frontend is
-planned; `web/` is a placeholder. [Development.md](Development.md) describes
+planned; `web/` is a placeholder. [Issue #1](https://github.com/salvogendut/1989/issues/1)
+tracks the remaining work before F1 can be retired. [Development.md](Development.md) describes
 the module boundaries and [ROADMAP.md](ROADMAP.md) tracks remaining work.
 Generated CPU sources are checked in; no CPU code-generation step is needed.
 

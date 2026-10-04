@@ -34,6 +34,7 @@ static const struct Config_Tag configs_UI89[] = {
     { "szLastDir12", String_Tag, UI89Config_.szLastDir[12] },
     { "szLastDir13", String_Tag, UI89Config_.szLastDir[13] },
     { "szLastDir14", String_Tag, UI89Config_.szLastDir[14] },
+    { "szLastDir15", String_Tag, UI89Config_.szLastDir[OV_DIALOG_PRINTER_DIR] },
     { NULL, Error_Tag, NULL }
 };
 

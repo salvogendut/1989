@@ -70,7 +70,10 @@ ID 7 is displayed as the reserved host controller and cannot be selected.
 Existing assignments stay intact. Loading an unused ID 3 defaults to CD-ROM,
 ID 4 to SCSI floppy and other IDs to HDD; T overrides these suggestions.
 
-Boot selection is saved for the next boot and does not restart the current OS.
+Boot selection and the **Next-boot diagnostics** group are saved for the next
+boot without restarting the current OS. Diagnostics include the power-on
+master switch, DRAM/sound/SCSI tests, repeat/extended tests, diagnostic video
+and verbose boot.
 File pickers remember a directory per entry. Fixed hard-disk changes require a restart;
 exchanging media in an already connected removable drive does not.
 
@@ -92,17 +95,28 @@ Discard. See the [MO format caveat](docs/INTERFACE.md#media-creation-and-remaini
 
 ### Extensions
 
-First NeXTdimension board, printer connection, Ethernet connection, tablet
-model and microphone. Only NeXTdimension requires a machine restart here.
-Other changes update the affected subsystem when saved.
+Connections cover the first NeXTdimension board, printer, Ethernet, tablet
+model and microphone. **Printer output** adds paper size, PNG/TIFF image
+format and a native output-folder picker. The format also controls legacy
+screenshots; F4/F6 keep PPM/GIF. Without libpng, image output uses TIFF.
+
+**Keyboard and mouse** provides symbolic/scancode mapping, Command/Alt swap,
+slow/fast motion presets, raw motion, Ctrl-click as right-click, wheel-to-arrow
+mapping and automatic mouse capture. Imported custom sensitivity values are
+shown and preserved until edited; exact numeric entry and shortcut remapping
+remain in F1. Ctrl+Enter still releases the mouse.
+
+Only NeXTdimension requires a machine restart here. Other changes apply on
+Save; Discard and cancelled folder selections leave the runtime unchanged.
 
 ### Advanced
 
 Visible when Tinker is enabled: smoothing, CRT/scanline strength, GIF
 resolution (320/480/640), frame rate (10/20/25), built-in/FFmpeg encoder,
 notifications, debug output, RTC local/UTC, fullscreen, status/title bars,
-DRAM test, verbose boot, 68030/68040/Turbo ROM files and version information.
-Display preferences apply on Save. Boot diagnostics apply on the next boot.
+68030/68040/Turbo ROM files and version information. Display preferences
+apply on Save. Boot diagnostics are grouped in Media, including DRAM test
+and verbose boot, and do not require Tinker.
 
 ## Activity display
 

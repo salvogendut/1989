@@ -26,6 +26,7 @@ Keep machine-core changes contained so upstream fixes remain practical to merge.
 | Module | Responsibility |
 | --- | --- |
 | `overlay.c` | Sections/rows, keyboard navigation, edit-session and confirmation flow |
+| `overlay_controls.c` | Shared control definitions for Extensions and Media boot diagnostics; typed draft accessors, labels, choices and hints; no runtime or dialog calls |
 | `overlay_view.c` | Stateless SDL drawing of copied rows, tabs, choices and dialogs; no device/configuration calls |
 | `overlay_media.c` | Suggested SCSI roles/types, next-boot drive-number preview, native-picker handoff, eject/disconnect draft updates, image validation and exclusive sparse-file creation |
 | `ui_config.c` | Load/save/apply `[UI89]` desktop preferences |
@@ -51,7 +52,8 @@ Eject retains the device type/connection, while disconnect removes it and
 uses the hardware restart path. Native floppy/MO entries do not consume SCSI IDs.
 
 Native file callbacks publish a result under an SDL spinlock and hold no
-pointer to an edit session. Only one request may be outstanding. Closing the
+pointer to an edit session. Image/ROM and printer-directory requests share
+this handoff. Only one request may be outstanding. Closing the
 panel invalidates the result; cancelled/late results cannot edit a later
 session. File creation never truncates an existing path. A created file is
 an independent host artifact and remains when the panel draft is discarded.
@@ -83,7 +85,9 @@ Settings tests instrument runtime device calls while executing the real
 change/apply code. Overlay tests send key events through the real controller,
 exercise software rendering, reject unconfirmed resets, preserve guest
 ejects, cancel late file-picker results, and check exclusive large-image
-creation. Capture tests use a synthetic framebuffer and real PPM/GIF encoding.
+creation. Migrated-control tests cover printer folder selection/cancel,
+keyboard and mouse changes, imported custom sensitivity, boot diagnostics,
+and preservation of attached disks without resets. Capture tests use a synthetic framebuffer and real PPM/GIF encoding.
 The grab tests exercise real framebuffer conversion and PNG/TIFF writing;
 sound tests check byte order, double-rate modes and timing with host sound
 disabled. Printer tests cover page replacement/finalization. Tests do not

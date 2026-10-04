@@ -60,8 +60,8 @@ IDs or change a user's configuration or disk images.
 Printer format is available in **F1 → Printer** and `[Printer] nFileFormat`
 (`0` PNG, `1` TIFF). It also selects the legacy screenshot format; without
 libpng, output falls back to TIFF. F4/F6 keep their existing formats.
-Printer format, paper size and output directory remain absent from F9; see
-[the interface inventory](INTERFACE.md).
+Printer format, paper size and the output directory are also available in
+F9 → Extensions; see [the interface inventory](INTERFACE.md).
 
 ## Reproducing an update
 

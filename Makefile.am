@@ -49,6 +49,7 @@ dist_man1_MANS = 1989.1
 	src/tmc.c \
 	src/video.c \
 	src/overlay.c \
+	src/overlay_controls.c \
 	src/overlay_media.c \
 	src/overlay_view.c \
 	src/ui_config.c \
@@ -302,6 +303,7 @@ noinst_HEADERS = \
 	src/includes/video.h \
 	src/includes/vs-fix.h \
 	src/includes/overlay.h \
+	src/includes/overlay_controls.h \
 	src/includes/leds.h \
 	src/includes/notify.h \
 	src/includes/paste.h \

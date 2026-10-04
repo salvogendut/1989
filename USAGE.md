@@ -33,9 +33,9 @@ See the [layout and examples](docs/INTERFACE.md#scsi-layout-and-drive-numbers).
 ## Options
 
 F9 is the primary interface. General covers machine presets and sound;
-Media covers boot selection and disks; Extensions covers attached devices.
-Enable Tinker in General to see Advanced display, capture, logging, RTC,
-boot-diagnostic and ROM controls.
+Media covers boot selection, disks and next-boot diagnostics; Extensions
+covers attached devices, printer output and keyboard/mouse controls. Enable
+Tinker in General to see Advanced display, capture, logging, RTC and ROM controls.
 
 The panel edits a draft. Save applies routine changes without rebooting;
 Discard leaves the runtime unchanged. Boot preferences apply on the next
@@ -44,8 +44,8 @@ See [CONTROLS.md](CONTROLS.md) and the
 [interface inventory](docs/INTERFACE.md) for details.
 
 F1 (also Ctrl+Alt+O) opens the legacy options dialog for custom RAM banks and
-speed, detailed keyboard/mouse controls, network/NFS configuration,
-NeXTdimension boards/displays, printer paper/output directory, and config
+speed, shortcut remapping and custom numeric mouse scales, network/NFS
+configuration, NeXTdimension boards/displays, and config
 import/export. Its media changes are staged until OK. The legacy Save config
 button explicitly writes to the chosen file.
 
@@ -62,7 +62,10 @@ F1 → Network selects SLiRP/pcap, host interface, guest cable type, custom MAC,
 network time and NFS shares. pcap controls depend on build support.
 
 F9 toggles sound, microphone, tablet and printer connection without restarting
-NeXT. F1 holds mouse sensitivity/key mapping and printer paper/output settings.
+NeXT. Extensions also provides printer paper, PNG/TIFF format and output
+folder, keyboard mapping, mouse motion presets and capture options. These
+remain drafts until Save. F1 retains shortcut editing and custom numeric
+mouse sensitivity.
 The emulated printer is the NeXT Laser Printer.
 
 ## Capture, debuggers and disk tools

@@ -9,6 +9,7 @@
 #include "settings.h"
 #include "overlay_media.h"
 #include "overlay_view.h"
+#include "overlay_controls.h"
 #include "paste.h"
 #include "configuration.h"
 #include "ffmpeg_gif.h"
@@ -96,16 +97,6 @@ enum {
     MED_ROWS
 };
 
-/* Extensions section rows */
-enum {
-    EXT_ND = 0,
-    EXT_PRINTER,
-    EXT_ETHERNET,
-    EXT_TABLET,
-    EXT_MIC,
-    EXT_ROWS
-};
-
 /* Advanced logical rows */
 enum {
     ADV_SMOOTHING = 0,
@@ -120,8 +111,6 @@ enum {
     ADV_FULLSCREEN,
     ADV_STATUSBAR,
     ADV_TITLEBAR,
-    ADV_DRAMTEST,
-    ADV_VERBOSE,
     ADV_ROM030,
     ADV_ROM040,
     ADV_ROMTURBO,
@@ -329,16 +318,6 @@ static const char *mo_value(int i, char *buf, size_t size) {
                            disk->bWriteProtected, disk->szImageName, buf, size);
 }
 
-static const char *tablet_string(char *buf, size_t size) {
-    switch (g_settings.draft.Tablet.nTabletType) {
-        case TABLET_NONE:  snprintf(buf, size, "None"); break;
-        case TABLET_MM961: snprintf(buf, size, "Summagraphics MM961"); break;
-        case TABLET_MM1201:snprintf(buf, size, "Summagraphics MM1201"); break;
-        default:           snprintf(buf, size, "SD series"); break;
-    }
-    return buf;
-}
-
 /* Refresh the activity-LED enable/colour state from the running machine. */
 void overlay_update_leds(void) {
 	leds_set_enabled(LED_CPU, true);
@@ -514,42 +493,16 @@ static void overlay_activate(void) {
                 b = (BOOT_DEVICE)(((int)b + 1) % 5);
                 g_settings.draft.Boot.nBootDevice = b;
                 notify_post("BOOT DEVICE SELECTED FOR THE NEXT BOOT");
+            } else if (g_ov.row >= MED_ROWS) {
+                OverlayControls_Activate(OV_MEDIA, g_ov.row - MED_ROWS, &g_settings.draft);
             } else OverlayMedia_Request(media_row_dialog(g_ov.row), &g_edit_ui, 0);
             break;
 
-        case OV_EXTENSIONS:
-            switch (g_ov.row) {
-                case EXT_ND:
-                    g_settings.draft.Dimension.board[0].bEnabled =
-                        !g_settings.draft.Dimension.board[0].bEnabled;
-                    notify_post("NEXTDIMENSION CHANGED - RESTART REQUIRED");
-                    break;
-                case EXT_PRINTER:
-                    g_settings.draft.Printer.bPrinterConnected =
-                        !g_settings.draft.Printer.bPrinterConnected;
-
-                    break;
-                case EXT_ETHERNET:
-                    g_settings.draft.Ethernet.bEthernetConnected =
-                        !g_settings.draft.Ethernet.bEthernetConnected;
-
-                    break;
-                case EXT_TABLET:
-                    g_settings.draft.Tablet.nTabletType =
-                        (TABLET_TYPE)(((int)g_settings.draft.Tablet.nTabletType + 1)
-                                      % 8);
-
-                    break;
-                case EXT_MIC:
-                    g_settings.draft.Sound.bEnableMicrophone =
-                        !g_settings.draft.Sound.bEnableMicrophone;
-                    notify_post(g_settings.draft.Sound.bEnableMicrophone
-                                ? "MICROPHONE ON" : "MICROPHONE OFF");
-                    break;
-                default:
-                    break;
-            }
+        case OV_EXTENSIONS: {
+            OvDialogKind picker = OverlayControls_Activate(OV_EXTENSIONS, g_ov.row, &g_settings.draft);
+            if (picker != OV_DIALOG_NONE) OverlayMedia_Request(picker, &g_edit_ui, 0);
             break;
+        }
 
         case OV_ADVANCED:
             switch (adv_logical_row(g_ov.row)) {
@@ -614,16 +567,6 @@ static void overlay_activate(void) {
                     g_settings.draft.Screen.bShowTitlebar =
                         !g_settings.draft.Screen.bShowTitlebar;
                     break;
-                case ADV_DRAMTEST:
-                    g_settings.draft.Boot.bEnableDRAMTest =
-                        !g_settings.draft.Boot.bEnableDRAMTest;
-
-                    break;
-                case ADV_VERBOSE:
-                    g_settings.draft.Boot.bVerbose =
-                        !g_settings.draft.Boot.bVerbose;
-
-                    break;
                 case ADV_ROM030:
                 case ADV_ROM040:
                 case ADV_ROMTURBO:
@@ -649,8 +592,8 @@ static void overlay_activate(void) {
 static int section_rows(void) {
     switch (g_ov.section) {
         case OV_GENERAL:    return GEN_ROWS;
-        case OV_MEDIA:      return MED_ROWS;
-        case OV_EXTENSIONS: return EXT_ROWS;
+        case OV_MEDIA:      return MED_ROWS + OverlayControls_Count(OV_MEDIA);
+        case OV_EXTENSIONS: return OverlayControls_Count(OV_EXTENSIONS);
         case OV_ADVANCED:   return adv_row_count();
         default:            return 0;
     }
@@ -744,7 +687,7 @@ static void overlay_media_rows(OverlayView *view, char *hint, size_t hint_size) 
             : type == SD_CD
             ? "Enter=load/replace  E=eject  T=type  Del=disconnect  H=help  F9=close"
             : "Enter=load/replace  E=eject  N=new  T=type  W=protect  Del=disconnect  H=help";
-    } else if (g_ov.row >= MED_FLOPPY0) {
+    } else if (g_ov.row >= MED_FLOPPY0 && g_ov.row <= MED_MO1) {
         view->hint = "Eject removes only the medium. The connected drive stays available; Save applies.";
         view->footer = "Enter=load/replace  E=eject  N=new  W=protect  Del=disconnect  H=help  F9=close";
     }
@@ -797,21 +740,9 @@ void overlay_render(SDL_Renderer *r) {
         OverlayView_Add(&view, "Machine defaults", "Restore this model's hardware defaults", g_ov.row == GEN_RESET);
     } else if (g_ov.section == OV_MEDIA) {
         overlay_media_rows(&view, media_hint, sizeof(media_hint));
+        OverlayControls_AddRows(&view, OV_MEDIA, g_ov.row - MED_ROWS, &g_settings.draft);
     } else if (g_ov.section == OV_EXTENSIONS) {
-        OverlayView_Add(&view, "NeXTdimension",
-                 g_settings.draft.Dimension.board[0].bEnabled ? "On" : "Off",
-                 g_ov.row == EXT_ND);
-        OverlayView_Add(&view, "Printer",
-                 g_settings.draft.Printer.bPrinterConnected ? "On" : "Off",
-                 g_ov.row == EXT_PRINTER);
-        OverlayView_Add(&view, "Ethernet",
-                 g_settings.draft.Ethernet.bEthernetConnected ? "On" : "Off",
-                 g_ov.row == EXT_ETHERNET);
-        OverlayView_Add(&view, "Tablet", tablet_string(s1, sizeof(s1)),
-                 g_ov.row == EXT_TABLET);
-        OverlayView_Add(&view, "Microphone",
-                 g_settings.draft.Sound.bEnableMicrophone ? "On" : "Off",
-                 g_ov.row == EXT_MIC);
+        OverlayControls_AddRows(&view, OV_EXTENSIONS, g_ov.row, &g_settings.draft);
     } else {
         char vbuf2[64];
         int dr = 0;
@@ -865,12 +796,6 @@ void overlay_render(SDL_Renderer *r) {
                  g_ov.row == dr); dr++;
         OverlayView_Add(&view, "Title bar",
                  g_settings.draft.Screen.bShowTitlebar ? "On" : "Off",
-                 g_ov.row == dr); dr++;
-        OverlayView_Add(&view, "DRAM test",
-                 g_settings.draft.Boot.bEnableDRAMTest ? "On" : "Off",
-                 g_ov.row == dr); dr++;
-        OverlayView_Add(&view, "Verbose boot",
-                 g_settings.draft.Boot.bVerbose ? "On" : "Off",
                  g_ov.row == dr); dr++;
         OverlayView_Add(&view, "68030 ROM", media_path(g_settings.draft.Rom.szRom030FileName, vbuf2, sizeof(vbuf2)), g_ov.row == dr++);
         OverlayView_Add(&view, "68040 ROM", media_path(g_settings.draft.Rom.szRom040FileName, vbuf2, sizeof(vbuf2)), g_ov.row == dr++);
@@ -1088,7 +1013,9 @@ void overlay_tick(void) {
     }
     if (OverlayMedia_Set(&g_settings.draft, kind, path)) {
         OverlayMedia_Remember(&g_edit_ui, kind, path);
-        notify_post("IMAGE SELECTED - APPLY WHEN CLOSING OPTIONS");
+        notify_post(kind == OV_DIALOG_PRINTER_DIR
+                    ? "OUTPUT DIRECTORY SELECTED - APPLY WHEN CLOSING OPTIONS"
+                    : "IMAGE SELECTED - APPLY WHEN CLOSING OPTIONS");
         Screen_RequestRepaint();
     }
 }

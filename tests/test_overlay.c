@@ -1,6 +1,7 @@
 #include "ui_test_support.h"
 #include "overlay_media.h"
 #include "overlay_view.h"
+#include "overlay_controls.h"
 #include <assert.h>
 #include <string.h>
 #include <unistd.h>
@@ -111,8 +112,153 @@ static void test_removable_eject(const char *image) {
     assert(restarts == resets_before + 1);
 }
 
+/* Find a migrated control by its user-facing label, ignoring headings. */
+static int control_row(OvSection section, const char *label) {
+    OverlayView view = {0};
+    OverlayControls_AddRows(&view, section, -1, &ConfigureParams);
+    int row = 0;
+    for (int i = 0; i < view.row_count; i++) {
+        if (view.rows[i].heading) continue;
+        if (!strcmp(view.rows[i].label, label)) return row;
+        row++;
+    }
+    assert(!"control not found");
+    return -1;
+}
+
+static void extension(const char *label) {
+    key(SDL_SCANCODE_F9);
+    key(SDL_SCANCODE_RIGHT); key(SDL_SCANCODE_RIGHT);
+    down(control_row(OV_EXTENSIONS, label));
+}
+
+static void save_live(void) {
+    key(SDL_SCANCODE_F9);
+    assert(overlay_confirm_visible());
+    key(SDL_SCANCODE_RETURN); /* Live edits default to Save. */
+    assert(!overlay_is_visible());
+}
+
+static void test_migrated_controls(const char *dir, const char *image) {
+    OverlayView formats = {0};
+    OverlayControls_AddRows(&formats, OV_EXTENSIONS, -1, &ConfigureParams);
+    bool saw_format = false;
+    for (int i = 0; i < formats.row_count; i++) {
+        if (strcmp(formats.rows[i].label, "Image format")) continue;
+        saw_format = true;
+#if HAVE_LIBPNG
+        assert(!strcmp(formats.rows[i].value, "PNG"));
+#else
+        assert(!strcmp(formats.rows[i].value, "TIFF (PNG unavailable)"));
+#endif
+    }
+    assert(saw_format);
+    CNF_PARAMS before = ConfigureParams;
+    int resets_before = restarts, printer_before = printer;
+    int keymaps_before = keymap_inits;
+    int disk_in[ESP_MAX_DEVS], disk_out[ESP_MAX_DEVS];
+    memcpy(disk_in, scsi_in, sizeof(disk_in));
+    memcpy(disk_out, scsi_out, sizeof(disk_out));
+
+    /* Keyboard and printer edits share the draft, including Discard. */
+    extension("Keyboard mapping"); key(SDL_SCANCODE_RETURN);
+    assert(!memcmp(&before, &ConfigureParams, sizeof(before)));
+    key(SDL_SCANCODE_F9); key(SDL_SCANCODE_RIGHT); key(SDL_SCANCODE_RETURN);
+    assert(!memcmp(&before, &ConfigureParams, sizeof(before)));
+
+    extension("Keyboard mapping"); key(SDL_SCANCODE_RETURN); save_live();
+    assert(ConfigureParams.Keyboard.nKeymapType == KEYMAP_SCANCODE);
+    extension("Swap Command / Alt"); key(SDL_SCANCODE_RETURN); save_live();
+    assert(ConfigureParams.Keyboard.bSwapCmdAlt);
+    extension("Raw mouse motion"); key(SDL_SCANCODE_RETURN); save_live();
+    assert(ConfigureParams.Mouse.bUseRawMotion && keymap_inits == keymaps_before + 1);
+    extension("Ctrl-click -> right"); key(SDL_SCANCODE_RETURN); save_live();
+    extension("Wheel -> arrow keys"); key(SDL_SCANCODE_RETURN); save_live();
+    extension("Automatic mouse grab"); key(SDL_SCANCODE_RETURN); save_live();
+    assert(ConfigureParams.Mouse.bEnableMacClick && ConfigureParams.Mouse.bEnableMapToKey);
+    assert(ConfigureParams.Mouse.bEnableAutoGrab);
+
+    /* A pre-existing custom sensitivity must survive browsing and other edits. */
+    ConfigureParams.Mouse.fLinScale = 2.345f;
+    extension("Mouse slow motion"); key(SDL_SCANCODE_F9);
+    assert(!overlay_is_visible() && ConfigureParams.Mouse.fLinScale == 2.345f);
+    extension("Mouse slow motion"); key(SDL_SCANCODE_RETURN); save_live();
+    assert(ConfigureParams.Mouse.fLinScale == .750f);
+    ConfigureParams.Mouse.fExpScale = .750f;
+    extension("Mouse fast motion"); key(SDL_SCANCODE_RETURN); save_live();
+    assert(ConfigureParams.Mouse.fExpScale == .875f);
+
+    extension("Paper size"); key(SDL_SCANCODE_RETURN); save_live();
+    assert(ConfigureParams.Printer.nPaperSize == PAPER_LETTER);
+    extension("Image format"); key(SDL_SCANCODE_RETURN); save_live();
+    assert(ConfigureParams.Printer.nFileFormat == FORMAT_TIFF);
+
+    /* Native folder results are staged, validated and cancellable. */
+    extension("Output directory"); key(SDL_SCANCODE_RETURN);
+    assert(OverlayMedia_Busy() && folder_requests == 1);
+    const char *files[] = {dir, NULL};
+    picker_callback(picker_userdata, files, 0); overlay_tick();
+    assert(!strcmp(ConfigureParams.Printer.szPrintToFileName, before.Printer.szPrintToFileName));
+    key(SDL_SCANCODE_F9); key(SDL_SCANCODE_RIGHT); key(SDL_SCANCODE_RETURN);
+    assert(!strcmp(ConfigureParams.Printer.szPrintToFileName, before.Printer.szPrintToFileName));
+
+    extension("Output directory"); key(SDL_SCANCODE_RETURN);
+    picker_callback(picker_userdata, files, 0); overlay_tick(); save_live();
+    assert(!strcmp(ConfigureParams.Printer.szPrintToFileName, dir));
+    assert(!strcmp(UI89Config_.szLastDir[OV_DIALOG_PRINTER_DIR], dir));
+    extension("Output directory"); key(SDL_SCANCODE_RETURN);
+    files[0] = image; /* An image file is not a valid output folder. */
+    picker_callback(picker_userdata, files, 0); overlay_tick(); key(SDL_SCANCODE_F9);
+    assert(!overlay_is_visible() && !strcmp(ConfigureParams.Printer.szPrintToFileName, dir));
+    extension("Output directory"); key(SDL_SCANCODE_RETURN);
+    picker_callback(picker_userdata, NULL, 0); overlay_tick(); key(SDL_SCANCODE_F9);
+    assert(!overlay_is_visible());
+    extension("Output directory"); key(SDL_SCANCODE_RETURN);
+    overlay_quit(); /* Invalidate the outstanding callback, as on shutdown. */
+    files[0] = "/tmp";
+    picker_callback(picker_userdata, files, 0); overlay_tick(); key(SDL_SCANCODE_F9);
+    assert(!overlay_is_visible() && !strcmp(ConfigureParams.Printer.szPrintToFileName, dir));
+
+    /* All power-on controls live in Media and only affect the next boot. */
+    CNF_BOOT old_boot = ConfigureParams.Boot;
+    open_media(12); /* Device rows precede the diagnostic controls. */
+    for (int i = 0; i < OverlayControls_Count(OV_MEDIA); i++) {
+        key(SDL_SCANCODE_RETURN); key(SDL_SCANCODE_DOWN);
+    }
+    assert(!memcmp(&old_boot, &ConfigureParams.Boot, sizeof(old_boot)));
+    save_live();
+    assert(ConfigureParams.Boot.bEnablePot != old_boot.bEnablePot);
+    assert(ConfigureParams.Boot.bEnableDRAMTest != old_boot.bEnableDRAMTest);
+    assert(ConfigureParams.Boot.bEnableSoundTest != old_boot.bEnableSoundTest);
+    assert(ConfigureParams.Boot.bEnableSCSITest != old_boot.bEnableSCSITest);
+    assert(ConfigureParams.Boot.bLoopPot != old_boot.bLoopPot);
+    assert(ConfigureParams.Boot.bExtendedPot != old_boot.bExtendedPot);
+    assert(ConfigureParams.Boot.bVisible != old_boot.bVisible);
+    assert(ConfigureParams.Boot.bVerbose != old_boot.bVerbose);
+    assert(ConfigureParams.Boot.nBootDevice == old_boot.nBootDevice);
+    assert(restarts == resets_before && printer == printer_before);
+    assert(!memcmp(disk_in, scsi_in, sizeof(disk_in)) && !memcmp(disk_out, scsi_out, sizeof(disk_out)));
+    assert(!memcmp(&before.SCSI, &ConfigureParams.SCSI, sizeof(before.SCSI)));
+
+    /* Protect layout/navigation from silently truncating a growing definition. */
+    for (int section = OV_MEDIA; section <= OV_EXTENSIONS; section++) {
+        OverlayView view = {0};
+        int count = OverlayControls_Count(section), selectable = 0, selected = 0;
+        OverlayControls_AddRows(&view, section, count - 1, &ConfigureParams);
+        for (int i = 0; i < view.row_count; i++) {
+            if (!view.rows[i].heading) selectable++;
+            if (view.rows[i].selected) selected++;
+        }
+        assert(count == selectable && selected == 1 && view.hint);
+        assert(view.row_count + (section == OV_MEDIA ? 15 : 0) <= OVERLAY_MAX_ROWS);
+    }
+}
+
 int main(void) {
     ConfigureParams.System.nCpuFreq = 25;
+    ConfigureParams.Mouse.fLinScale = 1.0f;
+    ConfigureParams.Mouse.fExpScale = .75f;
+    snprintf(ConfigureParams.Printer.szPrintToFileName, FILENAME_MAX, "/tmp");
     UI89Config_.bTinker = true;
     UI89Config_.nGifFps = 25;
     overlay_init();
@@ -169,6 +315,8 @@ int main(void) {
     assert(renderer);
     key(SDL_SCANCODE_F9);
     for (int i = 0; i < 4; i++) {
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
         overlay_render(renderer);
         SDL_RenderPresent(renderer);
         const char *preview = getenv("OVERLAY_PREVIEW_PREFIX");
@@ -211,6 +359,7 @@ int main(void) {
     assert(ConfigureParams.Floppy.drive[0].bDriveConnected); /* Disk != drive. */
     test_scsi_layout(created);
     test_removable_eject(created);
+    test_migrated_controls(dir, created);
     remove(created); rmdir(dir);
     puts("test-overlay: OK");
     return 0;
