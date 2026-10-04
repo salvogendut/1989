@@ -36,7 +36,11 @@ static uint32_t SPECIAL_EVENT;
 /**
  * Save an event and make it available to the emulator thread.
  **/
-#define MAX_EVENTS  16
+#ifdef __EMSCRIPTEN__
+#define MAX_EVENTS 256 /* Browser input arrives in batches between animation frames. */
+#else
+#define MAX_EVENTS 16
+#endif
 static SDL_Event    mainEvent[MAX_EVENTS];
 static SDL_SpinLock mainEventLock;
 static int          mainEventWrite;
@@ -276,6 +280,9 @@ void GuiEvent_EventHandler(void) {
 	bool bContinueProcessing;
 	SDL_Event event;
 	bool events;
+#ifdef __EMSCRIPTEN__
+	int event_budget = 64;
+#endif
 
 	do {
 		bContinueProcessing = false;
@@ -288,7 +295,10 @@ void GuiEvent_EventHandler(void) {
         if (last_notify) notify_tick((int)SDL_min(now - last_notify, 1000));
         last_notify = now;
 
-#ifdef ENABLE_RENDERING_THREAD
+#if defined(__EMSCRIPTEN__)
+		/* The browser owns the UI loop; never block waiting for input. */
+		events = SDL_PollEvent(&event);
+#elif defined(ENABLE_RENDERING_THREAD)
 		if (bEmulationActive) {
 			events = SDL_PollEvent(&event);
 		} else {
@@ -415,6 +425,11 @@ void GuiEvent_EventHandler(void) {
 				break;
 
 			case SDL_EVENT_KEY_DOWN:
+#ifdef __EMSCRIPTEN__
+				/* Browser controls own host actions; keys only reach the guest. */
+				if (!event.key.repeat) GuiEvent_PutEventQueue(&event);
+				break;
+#else
 				/* 1989 happy-years F-keys + options overlay (F9). */
 				if (overlay_handle_event(&event)) {
                     Screen_RequestRepaint();
@@ -490,12 +505,15 @@ void GuiEvent_EventHandler(void) {
 				GuiEvent_PutEventQueue(&event);
 #endif
 				break;
+#endif /* __EMSCRIPTEN__ */
 
 			case SDL_EVENT_KEY_UP:
+#ifndef __EMSCRIPTEN__
 				if (overlay_is_visible() || overlay_confirm_visible()) break;
 				if (ShortCut_CheckKeys(event.key.key, GuiEvent_ShortcutMod(event.key.mod), false)) {
 					break;
 				}
+#endif
 #ifdef ENABLE_RENDERING_THREAD
 				Keymap_KeyUp(&event.key);
 #else
@@ -533,7 +551,17 @@ void GuiEvent_EventHandler(void) {
 				bContinueProcessing = true;
 				break;
 		}
-	} while (bContinueProcessing || !(bEmulationActive || bQuitProgram));
+#ifdef __EMSCRIPTEN__
+		bContinueProcessing = --event_budget > 0;
+#endif
+	} while (bContinueProcessing
+#ifndef __EMSCRIPTEN__
+             || !(bEmulationActive || bQuitProgram)
+#endif
+    );
+#ifdef __EMSCRIPTEN__
+	Screen_Repaint();
+#endif
 }
 
 

@@ -45,6 +45,11 @@ const char Main_fileid[] = "Previous main.c";
 #include "hatari-glue.h"
 #include "NextBus.hpp"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include "web_host.h"
+#endif
+
 #ifdef WIN32
 #include "gui-win/opencon.h"
 #endif
@@ -206,6 +211,9 @@ void Main_RequestQuit(bool confirm) {
  */
 void Main_EventHandler(void) {
 	static int statusBarUpdate = 0;
+#ifdef __EMSCRIPTEN__
+	Web_Poll();
+#endif
 #ifndef ENABLE_RENDERING_THREAD
 	if (!bEmulationActive) {
 		host_semaphore_signal(pauseFlag);
@@ -290,11 +298,17 @@ static void Main_Loop(void) {
 	/* Start emulator thread */
 	pauseFlag  = host_semaphore_create(0);
 	nextThread = host_thread_create(Main_Thread, "[Previous] 68k at slot 0", NULL);
+	if (!nextThread) Main_ErrorExit("Could not start the CPU thread", NULL, -1);
 
 	/* Start EventHandler */
+#ifdef __EMSCRIPTEN__
+	Web_Ready();
+	emscripten_set_main_loop(GuiEvent_EventHandler, 0, 1);
+#else
 	while (!bQuitProgram) {
 		GuiEvent_EventHandler();
 	}
+#endif
 #endif
 }
 
@@ -487,6 +501,10 @@ int main(int argc, char *argv[])
 
 	/* Now load the values from the configuration file */
 	Main_LoadInitialConfig();
+
+#ifdef __EMSCRIPTEN__
+	Web_Configure();
+#endif
 
 	/* monitor type option might require "reset" -> true */
 	Configuration_Apply(true);

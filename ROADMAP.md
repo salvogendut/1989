@@ -59,9 +59,10 @@ The [interface inventory](docs/INTERFACE.md) and
   variants; component tests alone do not establish OS compatibility.
 - Grow ROM, CPU and device integration tests.
 - Browser/Emscripten frontend: [issue #3](https://github.com/salvogendut/1989/issues/3)
-  and the [browser implementation brief](web/README.md). Reuse 1984's shared
-  themes with a NeXT hardware theme, 1989 monitor logo, collapsible NeXT
-  keyboard, and SCSI disk/CD-ROM plus native floppy/MO media controls.
+  and [browser build documentation](web/README.md). ROM startup, shared themes,
+  the NeXT enclosure, monitor/keyboard logos, input, and four media slots with
+  independent eject/session export are implemented. Remaining: real NEXTSTEP
+  validation, larger persistent images, audio, browser recovery and deployment.
 
 ## Upstream alignment
 

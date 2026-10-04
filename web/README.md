@@ -1,72 +1,142 @@
-# WebAssembly edition (planned)
+# 1989 in the browser (experimental)
 
-[Issue #3](https://github.com/salvogendut/1989/issues/3) tracks the browser
-edition on branch `3-webassembly-next-theme`. This directory currently contains
-the implementation brief; there is no working browser build yet, and native
-`make` does not build it.
+The SDL3/WebAssembly build runs the Previous-derived CPU and device core in a
+browser. It reaches the **NeXT ROM monitor**, passes its self-test, and accepts
+physical and on-screen keyboard input. The NeXT enclosure follows the supplied
+[hardware reference](../POC/IllustratorScreenshot.jpg), with the original 1989
+logo on both the monitor and keyboard. Retro CRT, Sapporo and Sapporo Dark are
+adapted from 1984.
 
-The target is a standalone, client-side WebAssembly build of the same
-Previous-derived C/C++ core, with a static HTML/CSS/JavaScript interface based
-on `../1984/web/`. The guest display must come from the running emulator.
+[Issue #3](https://github.com/salvogendut/1989/issues/3) tracks this work on
+`3-webassembly-next-theme`. A complete NEXTSTEP installation has **not yet been
+validated** in the browser. Audio, networking/NFS, NeXTdimension and native
+desktop settings are not exposed in this initial build.
 
-## Themes and branding
+## Build and run
 
-Keep 1984's **Retro CRT**, **Sapporo**, and **Sapporo Dark** themes. Replace
-its CPC464 theme with **NeXT**, which becomes 1989's default.
+Install [Emscripten 6.0.6](https://github.com/emscripten-core/emsdk/tree/6.0.6),
+activate it with `source /path/to/emsdk/emsdk_env.sh`, then from the repo root:
 
-Use [the supplied hardware reference](../POC/IllustratorScreenshot.jpg) for
-the black monitor, recessed screen, rounded bezel, pedestal, and horizontally
-ribbed NeXTstation slab. Use the existing [1989-logo.png](../1989-logo.png)
-on the monitor where the original has its NeXT logo, preserving the artwork
-and proportions. The Illustrator desktop in the photograph is reference
-content, not a replacement for the live framebuffer.
+```sh
+make -C web -j2
+python3 web/serve.py
+```
 
-Retain the theme picker, case-insensitive `?theme=` selection, and saved
-preferences, with storage namespaced to `javascript1989`. Unknown theme names
-fall back to NeXT. Preserve the NeXT framebuffer's aspect ratio when resizing
-or entering fullscreen.
+Open <http://127.0.0.1:1989/>. Select any images before clicking **Start NeXT**,
+or start empty to explore the ROM monitor. Type `h` followed by Return for the
+monitor's commands. Click the display to give physical keyboard input to the
+guest; the folding keyboard supports latched modifiers for combinations.
 
-## Media and keyboard
+In the usual development container:
 
-The media panel has four independent image loaders and mounted-image status:
+```sh
+distrobox enter -n my-distrobox -- bash -lc \
+  'source ~/emsdk/emsdk_env.sh && make -C /var/home/salvogendut/Dev/1989/web -j2'
+```
 
-| Device | Connection | Controls |
+The output is a self-contained `web/dist/` tree. Native `make` remains separate.
+The Emscripten SDL3 port is still experimental; the pinned SDK uses SDL 3.4.2.
+Firmware comes from the existing `roms/` directory, as on desktop; see
+[ROMS.md](../ROMS.md) for provenance and licensing notes. Guest OS/disk images
+are supplied by the user and are not uploaded.
+
+## Media and saving
+
+The initial machine is a **non-Turbo 68040 NeXTcube, 25 MHz, 32 MB**. A Cube
+supports both native floppy and native MO; a NeXTstation does not support the
+native MO controller. The enclosure theme does not change the emulated model.
+
+| Device | Connection | Behavior |
 | --- | --- | --- |
-| Hard disk | SCSI ID 1 | Load/replace with restart confirmation |
-| CD-ROM | SCSI ID 3 | Load and eject without a hard reset |
-| Floppy | Native floppy controller | Load and eject without a hard reset |
-| Magneto-optical (MO) | Native MO controller | Load and eject without a hard reset |
+| Hard disk | SCSI ID 1 | Select before starting; writable session copy, downloadable |
+| CD-ROM | SCSI ID 3 | Load/eject at runtime; read-only |
+| Floppy | Native controller, drive 0 | Load/eject at runtime; writable session copy, downloadable |
+| Magneto-optical | Native MO controller, drive 0 | Load/eject at runtime; writable session copy, downloadable |
 
-These are exactly two SCSI devices plus the native floppy and MO drives.
-Ejecting one removable image must preserve the other attached media. The
-browser implementation must explain where guest writes are stored, how they
-are saved/exported, and what survives a page reload; changed writable disks
-must not be silently discarded.
+Removable drives are connected from power-on, so inserting/ejecting an image
+does not change controller topology or reset the machine. Host and guest eject
+are reflected in the panel. Eject leaves a writable session image available for
+download. The other disks stay attached. Replacing the fixed hard disk requires
+a fresh browser session; it is disabled while the CPU runs.
 
-Provide a **collapsible 1989/NeXT on-screen keyboard**, with the NeXT layout,
-key labels, working modifier combinations, and pointer/touch interaction.
-Physical keyboard and mouse input should also work. Showing or hiding the
-keyboard must preserve emulation and media state and release any held keys.
-Replace 1984's CPC-specific controls with controls appropriate to NeXT.
+**Disk changes live only in the current tab.** Original selected files are never
+modified. Use **Download image** to save the current writable copy. The CPU
+briefly pauses at an I/O checkpoint and flushes host file buffers for this
+operation. This cannot flush the guest OS's own caches: shut down NEXTSTEP
+before downloading a final disk image. Reloading/closing discards session
+copies; the browser prompts before leaving a session with writable images,
+and before replacing a writable image used by the guest. Downloads do not
+turn on automatic saving. Themes are the only persistent browser preference.
 
-## Implementation order
+The initial in-memory implementation accepts at most **512 MiB of images in
+total** and needs additional browser memory for emulation and downloads. Floppy
+sizes are 720 KB, 1.44 MB or 2.88 MB. SCSI disk/CD images require whole 512/2048
+byte sectors; MO images use Previous's 1296-byte encoded sectors. Validation
+checks geometry, not whether an image contains a bootable or healthy filesystem.
+Large images and durable browser storage need a later storage backend.
 
-1. Establish an Emscripten build and browser host adapters for scheduling,
-   display, input, audio, configuration, and file access. The existing core's
-   blocking loops and threads need explicit handling; 1984's small SDL shim
-   is a reference, not an assumed drop-in replacement. Reach the ROM monitor
-   and then boot a compatible user-supplied NEXTSTEP image.
-2. Adapt the shared browser shell and themes, implement the NeXT enclosure
-   and collapsible keyboard, and connect them to the real emulator. Keep
-   theme/layout code separate from emulator and media adapters.
-3. Implement the four media controls, removable-media eject, explicit reset
-   confirmation, and documented persistence/export behavior.
-4. Add browser and compiled-core tests, a GitHub Actions WASM artifact, and
-   build/serve documentation. The intended `make -C web` output is a complete
-   static `web/dist/` tree; document hosting headers if the chosen threading
-   approach requires them. Validate responsive layouts and preserve the
-   native builds.
+## Hosting
 
-See the issue for acceptance criteria and the [roadmap](../ROADMAP.md) for
-the rest of the project. Hosted-site publication follows a validated browser
-build and documented hosting requirements.
+The CPU runs in a worker using Emscripten pthreads. SDL3 rendering and browser
+input stay on the browser thread. The UI never waits synchronously for CPU/file
+I/O; media operations use an acknowledged pause before changing files.
+
+Serve over HTTPS (or localhost) with these headers on the static assets:
+
+```text
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Embedder-Policy: require-corp
+Cross-Origin-Resource-Policy: same-origin
+```
+
+`serve.py` provides those headers and binds only to localhost. A plain
+`python3 -m http.server` is sufficient for the design preview but **not** the
+live threaded build. The live page reports missing isolation instead of
+attempting to start. The need for isolation follows
+[Emscripten's threading requirements](https://emscripten.org/docs/porting/pthreads.html).
+
+The [WebAssembly workflow](../.github/workflows/web.yml) builds on branch pushes,
+pull requests and tags, runs browser tests, and uploads the static artifact and
+a ROM screenshot. It does not publish a hosted site or attach experimental web
+assets to the native release.
+
+## Tests and code boundaries
+
+```sh
+cd web
+npm ci
+npx playwright install chromium
+npm test
+npm run test:browser
+```
+
+The browser test starts its own isolated local server. It uses disposable
+images and the real WASM build to check ROM startup, rendered output, virtual
+and physical input, independent host/guest eject, insertion, invalid-image
+rejection, byte-exact export, keyboard folding and all four responsive themes.
+These checks do not establish NEXTSTEP installation or long-running disk
+reliability. The native suite remains `make -C tests check`.
+
+- `web_host.c`: initial hardware profile, guest input, acknowledged CPU pause,
+  removable-media operations. CPU/MMU/device implementations stay in `src/`.
+- `app.js`: runtime startup and status, connecting the UI to the core.
+- `media.js`: session copies, validation, serialized media operations and export.
+- `keyboard.js`: on-screen key translation and key release.
+- `shell.js`: shared theme, media-row and keyboard presentation.
+- `preview/`: reviewed layout and theme CSS; `assemble.py` replaces the preview
+  display with the real canvas and assembles the live assets.
+
+To view the original interface-only preview, serve the repository root and
+open `/web/preview/`. Its pickers display filenames only, without reading disk
+contents. Live and preview themes use separate `javascript1989.theme` and
+`javascript1989.preview.theme` keys. `?theme=Sapporo` selects a theme for a visit;
+names are case-insensitive and unknown values fall back to NeXT.
+
+## Remaining work
+
+- Validate boot/install, desktop use and disk writes with real NEXTSTEP media.
+- Add durable/sparse storage for larger images, recovery after reload and better
+  tracking of unsaved guest writes.
+- Bring up audio, browser-native halt/error recovery and wider browser testing.
+- Decide browser transports for networking/NFS and a NeXTdimension strategy.
+- Validate deployment before hosted publication or web release packaging.

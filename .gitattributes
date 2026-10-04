@@ -6,3 +6,5 @@
 /tests/Makefile text eol=lf
 /packaging/**/*.sh text eol=lf
 /.github/workflows/*.yml text eol=lf
+/web/Makefile text eol=lf
+/web/*.py text eol=lf

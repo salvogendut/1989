@@ -74,6 +74,9 @@
 # web build output (future)
 /web/build/
 /web/dist/
+/web/node_modules/
+/web/test-results/
+__pycache__/
 
 # Xcode / other editor droppings
 *.xcuserstate

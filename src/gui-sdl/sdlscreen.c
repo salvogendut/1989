@@ -246,6 +246,11 @@ static void Screen89_RenderScanlines(SDL_Renderer *r, const SDL_FRect *rect) {
  window coordinates. Also advances GIF capture.
  */
 static void Screen89_RenderExtras(SDL_Renderer *r) {
+#ifdef __EMSCRIPTEN__
+	/* The browser shell renders the controls outside the guest framebuffer. */
+	(void)r;
+	return;
+#else
 	int led_y = height - LED_BAR_H;
 	int strip_y = led_y - FUNCTION_KEY_BAR_H;
 
@@ -285,6 +290,7 @@ static void Screen89_RenderExtras(SDL_Renderer *r) {
 	notify_render(r);
 	overlay_render(r);
 	Capture_Tick();
+#endif
 }
 
 /*
@@ -574,7 +580,9 @@ void Screen_Reset(void) {
 	height = screen_h;
 
 	/* One function-key/model strip and one activity-LED bar. */
+#ifndef __EMSCRIPTEN__
 	height += FUNCTION_KEY_BAR_H + LED_BAR_H;
+#endif
 
 	/* User interface */
 	uiRect.x = 0;
