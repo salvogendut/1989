@@ -778,10 +778,12 @@ void Configuration_CheckPeripheralSettings(void) {
 }
 
 
-/* Compatibility migration only: neither retired option has a runtime path.
+/* Compatibility migration only: retired preferences/bindings have no runtime path.
  * Old temporary-overlay users must not silently acquire writable images. */
 static void Configuration_RetireLegacyOptions(void) {
     ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup = false;
+    ConfigureParams.Shortcut.withModifier[SHORTCUT_OPTIONS] = 0;
+    ConfigureParams.Shortcut.withoutModifier[SHORTCUT_OPTIONS] = 0;
     if (ConfigureParams.SCSI.nWriteProtection == WRITEPROT_ON) {
         for (int i = 0; i < ESP_MAX_DEVS; i++)
             if (ConfigureParams.SCSI.target[i].nDeviceType != SD_NONE)

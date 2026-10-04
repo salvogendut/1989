@@ -88,7 +88,7 @@ typedef struct
 
 
 typedef enum {
-  SHORTCUT_OPTIONS,
+  SHORTCUT_OPTIONS, /* Reserved for old config files; F9 owns options. */
   SHORTCUT_FULLSCREEN,
   SHORTCUT_MOUSEGRAB,
   SHORTCUT_COLDRESET,

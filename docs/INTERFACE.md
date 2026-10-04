@@ -1,10 +1,11 @@
 # Desktop interface and legacy-menu migration
 
-The F9 overlay is the primary interface. F1 opens **1989 – Legacy options**
-for the controls listed below that have not yet been migrated. The old menu
-is still compiled and functional; migration is incomplete.
-[Issue #1](https://github.com/salvogendut/1989/issues/1) tracks its retirement.
-Controls are being distributed among the existing four tabs.
+The F9 overlay and `1989.conf` are the configuration interfaces. The F1 menu,
+its config import/export and the old SDL GUI toolkit have been removed.
+Native recovery dialogs handle missing resources and CPU-halt decisions;
+ordinary error messages use shared notifications and logging.
+[Issue #1](https://github.com/salvogendut/1989/issues/1) records the migration
+into the existing General, Media, Extensions and Advanced tabs.
 
 ## Applying changes
 
@@ -43,12 +44,6 @@ filesystem caches. F5 and Ctrl+Alt+C now use the overlay restart confirmation,
 with **Cancel** selected initially. Restart-requiring F9 saves initially
 select **Discard**, and Esc lets you continue editing.
 
-F1 uses the same restart policy and per-drive media application. Its media
-selections are staged until the main dialog's OK; Cancel leaves attached
-media unchanged. Its explicit **Save config** button still writes a file,
-and its **Load config** button can change the active configuration filename.
-F1 remains a blocking legacy dialog, with its own alerts and file browser.
-
 There is no separate queue of hardware changes for a future launch. Save
 boot options at any time; shut down the guest before editing hardware that
 requires restarting. For preparing another machine entirely offline, edit
@@ -56,31 +51,68 @@ its configuration while the emulator is closed.
 
 ## Coverage against the legacy dialogs
 
-This inventory is based on `src/gui-sdl/dlg*.c` and the F9 row/actions code.
-“Remaining” means absent from F9, not absent from the emulation core.
+This inventory records how the removed Previous dialogs map to F9. Intentionally
+retired features are identified separately from effective emulator controls.
 
-| Legacy area | Available in F9 | Remaining in F1 |
+| Former area | Available in F9 | Migration status |
 | --- | --- | --- |
-| System | General: seven model variants, 16/20/25/33 MHz (40 on Turbo), fixed/variable clock, FPU, DSP mode, MMU status, Turbo ADB and model defaults; Advanced: DSP RAM, SCSI/RTC chip and Cube NBIC selection | None of the effective system controls |
-| Memory | General: model-appropriate total-RAM presets, individual bank editing and controller-specific memory speed | None |
-| ROM | 68030, 68040 and Turbo ROM pickers in Advanced; D restores discovered defaults | None |
-| Boot | Media: boot device, power-on test master switch, DRAM/sound/SCSI tests, repeat/extended tests, diagnostic video and verbose boot | None |
-| SCSI | Suggested roles and next-boot sdN preview; seven image slots; T disk/CD/floppy type; W protection; E eject; Delete disconnect; blank HDD/floppy images | Temporary write overlay retired; legacy browser remains for recovery |
-| Floppy | Native drive 0 on 68040 models, image selection, C connects empty, E eject, Delete disconnect, write protection, blank 720 KiB/1.44 MiB/2.88 MiB images; imported drive 1 can be removed | None of the supported hardware controls |
-| Magneto-optical | Drives 0/1 on non-Turbo Cubes, image selection, C connects empty, E eject, Delete disconnect, write protection, blank-image creation and second-drive warning | None |
-| Graphics | Extensions: slot-2 quick toggle; Advanced: slots 2/4/6, per-board ROM/RAM/defaults, boot console, single/separate/grouped displays, shown slot and 4 × 4 monitor arrangement; fullscreen, filtering, CRT and title bar | None of the effective controls (i860 threading is chosen automatically by the core) |
-| Network | Extensions: connection plus Network/NFS detail page with SLiRP/optional PCAP, host interface, cable, ROM/custom MAC, network time, four NFS folders and names | None |
-| Sound | Output enable in General; microphone in Extensions | No additional sound-menu toggle |
-| Keyboard | Clipboard paste; Extensions: scancode/symbolic mapping, Command/Alt swap and Input details for shortcut bindings | None |
-| Mouse/tablet | Extensions: tablet model, slow/fast motion presets, numeric linear/exponential scales, raw motion, automatic capture, wheel-to-arrow keys and Ctrl-click mapping; Ctrl+Enter release | None |
-| Printer | Extensions: connection, paper size, PNG/TIFF format and native output-folder picker | None |
-| Main menu | About; model hardware defaults; confirmed restart/quit | Configuration import/export; show-menu-at-startup retired |
+| System | General: seven model variants, 16/20/25/33 MHz (40 on Turbo), fixed/variable clock, FPU, DSP mode, MMU status, Turbo ADB and model defaults; Advanced: DSP RAM, SCSI/RTC chip and Cube NBIC selection | Complete |
+| Memory | General: model-appropriate total-RAM presets, individual bank editing and controller-specific memory speed | Complete |
+| ROM | 68030, 68040 and Turbo ROM pickers in Advanced; D restores discovered defaults | Complete |
+| Boot | Media: boot device, power-on test master switch, DRAM/sound/SCSI tests, repeat/extended tests, diagnostic video and verbose boot | Complete |
+| SCSI | Suggested roles and next-boot sdN preview; seven image slots; T disk/CD/floppy type; W protection; E eject; Delete disconnect; blank HDD/floppy images | Temporary write overlay retired; native recovery replaces the browser |
+| Floppy | Native drive 0 on 68040 models, image selection, C connects empty, E eject, Delete disconnect, write protection, blank 720 KiB/1.44 MiB/2.88 MiB images; imported drive 1 can be removed | Complete |
+| Magneto-optical | Drives 0/1 on non-Turbo Cubes, image selection, C connects empty, E eject, Delete disconnect, write protection, blank-image creation and second-drive warning | Complete |
+| Graphics | Extensions: slot-2 quick toggle; Advanced: slots 2/4/6, per-board ROM/RAM/defaults, boot console, single/separate/grouped displays, shown slot and 4 × 4 monitor arrangement; fullscreen, filtering, CRT and title bar | Complete (i860 threading is chosen automatically by the core) |
+| Network | Extensions: connection plus Network/NFS detail page with SLiRP/optional PCAP, host interface, cable, ROM/custom MAC, network time, four NFS folders and names | Complete |
+| Sound | Output enable in General; microphone in Extensions | Complete |
+| Keyboard | Clipboard paste; Extensions: scancode/symbolic mapping, Command/Alt swap and Input details for shortcut bindings | Complete |
+| Mouse/tablet | Extensions: tablet model, slow/fast motion presets, numeric linear/exponential scales, raw motion, automatic capture, wheel-to-arrow keys and Ctrl-click mapping; Ctrl+Enter release | Complete |
+| Printer | Extensions: connection, paper size, PNG/TIFF format and native output-folder picker | Complete |
+| Main menu | About; model hardware defaults; confirmed restart/quit | Configuration import/export and show-menu-at-startup retired |
 
-The m68k/i860 debuggers, legacy PNG/TIFF screenshots and AIFF recording remain
-available through their shortcuts. Missing-ROM/media recovery still uses
-legacy dialogs. These are separate migration tasks, not removed features.
+The m68k/i860 debuggers, PNG/TIFF screenshots and AIFF recording remain
+available through their shortcuts. Configuration import/export was deliberately
+retired without replacement; `1989.conf` remains supported.
+
+## Recovery and error dialogs
+
+`Recovery_CheckFiles` checks resources at startup and before applying a
+confirmed hardware change. Native host prompts and file/folder pickers cover:
+
+- A missing/unreadable machine ROM: choose another ROM, an available default,
+  or quit/cancel the pending changes.
+- A missing enabled NeXTdimension board ROM: choose a ROM/default or explicitly
+  disable the board, returning its console/view selection to the main display.
+- A missing inserted SCSI, native floppy or MO image: choose a replacement,
+  explicitly leave a removable drive empty, or disconnect a missing fixed disk.
+  Drive types/connections for removables and write protection are preserved.
+- Missing enabled SLiRP export folders (all four shares) or printer-output
+  folders: choose another directory or explicitly disable that share/printer.
+  Disabled resources and empty NFS paths do not prompt. No folder falls back
+  silently to the user's home directory.
+
+Recovery edits a temporary copy. **Cancel changes** abandons every recovery
+choice before live settings, subsystems or disks are changed. Cancelling a
+picker returns to the resource prompt. Startup uses **Quit** as the default;
+a hardware save uses **Cancel changes**. Closing a prompt or failure to open
+it also cancels. Only explicit replacement/removal choices change resources.
+
+A CPU halt pauses emulation and stops clipboard typing. A native confirmation
+offers **Quit** by default or **Restart machine**. Only Restart resets/resumes
+the machine; the prompt notes that guest disk caches cannot be flushed.
+Ordinary errors, including failure to save `1989.conf`, use notifications and
+logging. The file-overwrite helper uses a native Cancel/Overwrite choice.
+
+The legacy options dialogs, missing-file browser, alert renderer, GUI toolkit
+and unused font assets have been removed. Tests script native dialog responses;
+actual native picker appearance still needs validation on each host platform.
 
 ## Retired options
+
+The legacy-menu `kOptions` bindings are accepted then cleared. F1/Ctrl+Alt+O
+no longer open options; F9 remains the fixed options key. F1 can reach the
+guest or be assigned to a different action in Input details.
 
 The duplicate legacy status bar has been retired. The existing model/hint
 strip shows configured CPU frequency and total RAM; the LEDs handle activity,
@@ -203,8 +235,7 @@ use a known-compatible image or the supplied `empty.ecc.od.zip` template.
 F9 restricts native MO connections to non-Turbo Cubes and carries the legacy
 second-drive warning; those checks do not validate an image's sector layout.
 
-Remaining interface work includes configuration import/export,
-replacing missing-file/legacy alerts, and moving
-the optional FFmpeg post-processing pass off the UI thread. Browser/WASM is
+Remaining interface work includes moving the optional FFmpeg post-processing
+pass off the UI thread and validating native dialogs across host platforms. Browser/WASM is
 still a placeholder. UI/component tests do not establish NeXTstep desktop or
 disk-filesystem compatibility on every machine variant.

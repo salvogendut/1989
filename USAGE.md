@@ -8,7 +8,8 @@ There are no per-run command-line options for machine or media setup.
 
 The default NeXT Computer boots its ROM monitor. ROMs are found in the data
 or installed ROM directory, or `./roms` for a source-tree run. If a required
-file is missing, a legacy recovery dialog asks for a replacement.
+file is missing, a native recovery dialog offers a replacement or an available
+default ROM. Quit is the safe default; no missing disk is silently substituted.
 
 To boot an OS from the ROM monitor:
 
@@ -48,10 +49,18 @@ boot. Hardware changes need a separate, clearly labelled restart confirmation.
 See [CONTROLS.md](CONTROLS.md) and the
 [interface inventory](docs/INTERFACE.md) for details.
 
-F1 (also Ctrl+Alt+O by default) still provides config import/export. Its media
-changes are staged until OK. The legacy Save config button explicitly writes
-to the chosen file. Missing-file recovery and alerts also still use legacy
-dialogs. “Show menu at startup” is retired.
+The F1 menu and its configuration import/export are retired; use `1989.conf`
+and F9. Missing resources use native dialogs and file/folder pickers. You can
+explicitly leave a removable drive empty, disconnect a missing fixed disk,
+or disable an unavailable board/share/printer. Only enabled resources are
+checked; empty NFS paths remain disabled. All four enabled NFS shares are
+checked. No shared folder silently falls back to your home directory.
+
+Cancelling recovery during a hardware change cancels that application before
+changing live settings or restarting. A cancelled picker returns to the
+recovery prompt; the draft remains available in F9. CPU-halt recovery offers
+Quit or an explicit restart, with Quit selected by default. Ordinary errors
+use notifications and logs. “Show menu at startup” remains retired.
 
 The testing-only temporary SCSI write overlay is retired. Loading an old
 configuration with it enabled makes configured SCSI drives read-only. Use

@@ -16,17 +16,13 @@ There are no per-run machine or media command-line options.
 .PP
 All machine configuration (machine type, RAM, ROM paths, disk images,
 networking, sound, screen mode, shortcut keys) is stored in the per-user
-configuration file and edited through the SDL options dialog, opened with
-\fBF9\fR, with remaining legacy controls under \fBF1\fR (or \fBCtrl+Alt+O\fR).
+configuration file and edited through the \fBF9\fR overlay. The F1 menu and
+its config import/export are retired; edit 1989.conf while the emulator is closed.
 .SH KEYS
 1989 follows the shared "happy years" conventions: an F9 options overlay, an
 activity LED bar at the bottom of the window, and dedicated F-keys.
 .PP
 Default shortcut keys:
-.TP
-.B F1
-Open the legacy options dialog (kept until every option is migrated to the
-F9 overlay).
 .TP
 .B F4
 Save a screenshot (PPM).
@@ -56,8 +52,8 @@ Decrease the window scale.
 .B Ctrl+Enter
 Release the captured mouse (click into the window to capture it).
 .TP
-.B Ctrl+Alt+O / Ctrl+Alt+F / Ctrl+Alt+M / Ctrl+Alt+C / Ctrl+Alt+G / Ctrl+Alt+R
-Options dialog / fullscreen / mouse grab / cold reset / screenshot / sound
+.B Ctrl+Alt+F / Ctrl+Alt+M / Ctrl+Alt+C / Ctrl+Alt+G / Ctrl+Alt+R
+Fullscreen / mouse grab / cold reset / screenshot / sound
 recording.
 .TP
 .B Ctrl+Alt+P / Ctrl+Alt+D / Ctrl+Alt+I / Ctrl+Alt+T
@@ -91,7 +87,7 @@ Native floppy and magneto-optical drives use separate controllers.
 .TP
 .I ~/.config/1989/1989.conf
 Main configuration file, created with defaults on first run and written by
-the options overlay / dialog and on exit.
+the options overlay and on exit.
 .TP
 .I ./
 Working directory used for F4 screenshots and F6 GIF recordings.
@@ -103,6 +99,9 @@ Install-time location of the NeXT firmware images (see
 .SH SEE ALSO
 .BR SDL3 (3)
 .SH BUGS
-Based on Previous 4.4 plus r1854 fixes. Configuration import/export and
-file recovery/alerts still use the legacy interface.
+Based on Previous 4.4 plus r1854 fixes. Required-file recovery and CPU-halt
+decisions use native host dialogs; ordinary errors use notifications and logs.
+Cancelling resource recovery during a settings change leaves the running
+configuration and disks untouched. Native pickers have not been verified on
+every supported host platform.
 See Development.md and docs/INTERFACE.md for integration status and remaining controls.

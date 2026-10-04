@@ -15,7 +15,6 @@ const char SDLevent_fileid[] = "Previous sdlevent.c";
 #include "keymap.h"
 #include "screen.h"
 #include "shortcut.h"
-#include "sdlgui.h"
 #include "sdlaudio.h"
 #include "sdlkeymap.h"
 #include "sdlscreen.h"
@@ -549,13 +548,11 @@ void UI_Init(void) {
 	{
 		Main_ErrorExit("Could not initialize the SDL library:", SDL_GetError(), -1);
 	}
-	SDLGui_Init();
 	Screen_Init();
 	Keymap_Init();
 }
 
 void UI_UnInit(void) {
-	SDLGui_UnInit();
 	Screen_UnInit();
 }
 

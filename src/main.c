@@ -16,7 +16,7 @@ const char Main_fileid[] = "Previous main.c";
 #include "event.h"
 #include "timing.h"
 #include "configuration.h"
-#include "dialog.h"
+#include "recovery.h"
 #include "ioMem.h"
 #include "keymap.h"
 #include "log.h"
@@ -172,14 +172,8 @@ bool Main_UnPauseEmulation(void) {
  * Pause emulation if a fatal CPU error occured and ask if user wants to 
  * reset or quit.
  */
-void Main_HaltDialog(void) {
-	Main_PauseEmulation(true);
-	Log_Printf(LOG_WARN, "Fatal error: CPU halted!");
-	if (!DlgAlert_Query("Fatal error: CPU halted!\n\nPress OK to restart CPU or cancel to quit.")) {
-		Main_RequestQuit(false);
-	}
-	Main_UnPauseEmulation();
-}
+void Main_HaltDialog(void) { Recovery_Halt(); }
+
 void Main_Halt(void) {
 #ifdef ENABLE_RENDERING_THREAD
 	Main_HaltDialog();
@@ -311,10 +305,9 @@ static void Main_Loop(void) {
  * @return true if configuration is ready, false if we need to quit
  */
 static bool Main_CheckStartupFiles(void) {
-	if (!bQuitProgram) {
-		Dialog_CheckFiles();
-	}
-	return !bQuitProgram;
+    if (bQuitProgram || !Recovery_CheckFiles(&ConfigureParams, true)) return false;
+    Configuration_Apply(true); /* Normalize any explicitly disabled board/layout. */
+    return true;
 }
 
 /*-----------------------------------------------------------------------*/

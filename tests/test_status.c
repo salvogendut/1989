@@ -39,6 +39,10 @@ static int messages(void *id) {
 }
 
 int main(void) {
+    ConfigureParams.Shortcut.withModifier[SHORTCUT_OPTIONS] = SDLK_O;
+    ConfigureParams.Shortcut.withoutModifier[SHORTCUT_OPTIONS] = SDLK_F1;
+    assert(!ShortCut_CheckKeys(SDLK_F1, false, true));
+    assert(!ShortCut_CheckKeys(SDLK_O, true, true));
     SDL_Surface *surface = SDL_CreateSurface(1120, 870, SDL_PIXELFORMAT_RGBA32);
     SDL_Renderer *r = SDL_CreateSoftwareRenderer(surface);
     assert(surface && r);

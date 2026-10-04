@@ -25,7 +25,7 @@ const char File_fileid[] = "Hatari file.c";
 #include <winsock2.h>
 #endif
 
-#include "dialog.h"
+#include "host_dialog.h"
 #include "file.h"
 #include "str.h"
 #include "file_archive.h"
@@ -465,7 +465,8 @@ bool File_QueryOverwrite(const char *pszFileName)
 			return false;
 		sprintf(szString, fmt, pszFileName);
 		fprintf(stderr, "%s\n", szString);
-		ret = DlgAlert_Query(szString);
+		const char *choices[] = {"Cancel", "Overwrite"};
+		ret = HostDialog_Choose("1989 - overwrite file", szString, choices, 2) == 1;
 		free(szString);
 	}
 	return ret;

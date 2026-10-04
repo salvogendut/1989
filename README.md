@@ -49,10 +49,13 @@ optional i860-based NeXTdimension graphics board.
 - **F5** confirmed restart and **F12** confirmed quit. Shut down NeXT inside
   the guest before restarting or quitting, especially with writable disks.
 
-**F1 opens the legacy options menu.** Configuration import/export and legacy
-file recovery/alerts still need migration. See the
-[interface coverage table](docs/INTERFACE.md) for exactly what has and has
-not moved to F9, and [CONTROLS.md](CONTROLS.md) for keyboard controls.
+**F1's legacy menu is retired.** F9 and `1989.conf` cover configuration;
+menu-based configuration import/export was intentionally removed. Missing
+ROMs, disk images and enabled shared/output folders use native recovery
+prompts and file pickers. Cancelling recovery during a settings change leaves
+the running configuration and disks untouched. CPU-halt decisions use a
+native confirmation; ordinary errors use the shared notifications.
+See [interface coverage](docs/INTERFACE.md) and [CONTROLS.md](CONTROLS.md).
 
 “Show menu at startup” and the testing-only temporary SCSI write overlay are
 retired. Old configurations using that overlay become read-only per drive;
@@ -98,10 +101,10 @@ They do not replace testing a running NeXTstep installation.
 
 ## Project status
 
-Native integration and the shared desktop UI are implemented, with interface
-migration and compatibility validation ongoing. The browser frontend is
+Native integration, the shared desktop UI and legacy-menu retirement are
+implemented; guest compatibility validation is ongoing. The browser frontend is
 planned; `web/` is a placeholder. [Issue #1](https://github.com/salvogendut/1989/issues/1)
-tracks the remaining work before F1 can be retired. [Development.md](Development.md) describes
+records the completed F1 retirement. [Development.md](Development.md) describes
 the module boundaries and [ROADMAP.md](ROADMAP.md) tracks remaining work.
 Generated CPU sources are checked in; no CPU code-generation step is needed.
 

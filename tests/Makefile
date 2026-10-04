@@ -13,7 +13,7 @@ PCAP_LIBS ?= $(shell pkg-config --libs libpcap 2>/dev/null)
 PNG_CFLAGS ?= $(shell pkg-config --cflags libpng 2>/dev/null)
 PNG_LIBS ?= $(shell pkg-config --libs libpng 2>/dev/null)
 
-TESTS = test-str test-paste test-settings test-overlay test-devices test-devices-pcap test-input-media test-scsi test-hardware test-status test-sound test-grab test-printer
+TESTS = test-str test-paste test-settings test-overlay test-devices test-devices-pcap test-input-media test-scsi test-recovery test-hardware test-status test-sound test-grab test-printer
 
 all: $(TESTS) test-headers test-capture
 
@@ -49,6 +49,11 @@ test-input-media: test_input_media.c ui_test_support.c ui_test_support.h $(UI_SO
 test-scsi: test_scsi.c ../src/scsi.c ../src/file.c ../config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) -ffunction-sections -fdata-sections \
 		test_scsi.c ../src/file.c -Wl,--gc-sections -o $@
+
+# Real transactional recovery and native picker handoff, using scripted host dialogs.
+test-recovery: test_recovery.c ../src/recovery.c ../src/host_dialog.c ../src/file.c ../src/includes/recovery.h ../src/includes/host_dialog.h ../config.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) -ffunction-sections -fdata-sections \
+		test_recovery.c ../src/recovery.c ../src/host_dialog.c ../src/file.c $(SDL3_LIBS) -Wl,--gc-sections -o $@
 
 # Compile and exercise optional PCAP discovery without host capture privileges.
 test-devices-pcap: test_devices.c pcap_test_support.c stubs/pcap.h ui_test_support.c $(UI_SOURCES) ../src/includes/overlay_devices.h ../src/includes/ui_config.h ../config.h

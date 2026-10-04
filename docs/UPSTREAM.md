@@ -57,7 +57,7 @@ IDs or change a user's configuration or disk images.
   checks in `cpuemu_32.c`. Other generated CPU files were checked and did
   not change. Ordinary builds still use the checked-in generated files.
 
-Printer format is available in **F1 → Printer** and `[Printer] nFileFormat`
+Printer format is available in **F9 → Extensions → Printer output** and `[Printer] nFileFormat`
 (`0` PNG, `1` TIFF). It also selects the legacy screenshot format; without
 libpng, output falls back to TIFF. F4/F6 keep their existing formats.
 Printer format, paper size and the output directory are also available in

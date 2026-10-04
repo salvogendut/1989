@@ -218,12 +218,16 @@ int main(void) {
     test_nbic();
     test_dimension();
     ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup = true;
+    ConfigureParams.Shortcut.withModifier[SHORTCUT_OPTIONS] = SDLK_O;
+    ConfigureParams.Shortcut.withoutModifier[SHORTCUT_OPTIONS] = SDLK_F1;
     ConfigureParams.SCSI.nWriteProtection = WRITEPROT_ON;
     ConfigureParams.SCSI.target[1].nDeviceType = SD_HARDDISK;
     ConfigureParams.SCSI.target[3].nDeviceType = SD_CD;
     ConfigureParams.SCSI.target[4].nDeviceType = SD_FLOPPY;
     Configuration_Apply(false);
     assert(!ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup);
+    assert(!ConfigureParams.Shortcut.withModifier[SHORTCUT_OPTIONS]);
+    assert(!ConfigureParams.Shortcut.withoutModifier[SHORTCUT_OPTIONS]);
     assert(ConfigureParams.SCSI.nWriteProtection == WRITEPROT_OFF);
     assert(ConfigureParams.SCSI.target[1].bWriteProtected);
     assert(ConfigureParams.SCSI.target[3].bWriteProtected);

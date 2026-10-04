@@ -14,3 +14,5 @@ extern void *picker_userdata;
 extern int folder_requests, keymap_inits;
 extern char default_rom_dir[FILENAME_MAX];
 #endif
+
+extern bool recovery_ok;

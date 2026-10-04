@@ -1,7 +1,7 @@
 # 1989 configuration
 # Example keys for ~/.config/1989/1989.conf (created on first run).
 # This is a partial example; the generated file includes all defaults.
-# Edit while the emulator is closed, or use F9 / the F1 legacy dialog.
+# Edit while the emulator is closed, or use F9. F1/import-export are retired.
 # All paths may be absolute or relative to the current working directory.
 # Show-menu-at-startup is retired; its legacy key is ignored and cleared.
 
@@ -129,14 +129,15 @@ bShowTitlebar = 1
 
 [ShortcutsWithoutModifiers]
 # Edit bindings in F9 > Extensions > Input details. F4/F6/F9 are reserved.
-kOptions = F1
+# Retired legacy-menu binding: accepted then cleared.
+kOptions =
 kFullScreen = F11
 kQuit = F12
 kColdReset = F5
 
 [ShortcutsWithModifiers]
 # Modifier + key. The modifier is Ctrl+Alt.
-kOptions = O
+kOptions =
 kFullScreen = F
 kMouseMode = M
 kColdReset = C

@@ -44,6 +44,11 @@ int main(void) {
     before = ConfigureParams;
     assert(!Settings_Apply(&session, false));
     assert(!memcmp(&before, &ConfigureParams, sizeof(before)) && restarts == 0);
+    recovery_ok = false; /* Native recovery cancelled before applying hardware. */
+    assert(!Settings_Apply(&session, true));
+    assert(!memcmp(&before, &ConfigureParams, sizeof(before)) && restarts == 0);
+    assert(network == 1 && screen == 1 && scsi_in[0] == 0 && scsi_out[0] == 0);
+    recovery_ok = true;
     assert(Settings_Apply(&session, true));
     assert(restarts == 1);
 

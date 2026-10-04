@@ -16,7 +16,8 @@ int floppy_in[FLP_MAX_DRIVES], floppy_out[FLP_MAX_DRIVES];
 int mo_in[MO_MAX_DRIVES], mo_out[MO_MAX_DRIVES];
 
 void Configuration_Apply(bool reset) { (void)reset; }
-void Dialog_CheckFiles(void) {}
+bool recovery_ok = true;
+bool Recovery_CheckFiles(CNF_PARAMS *p, bool startup) { (void)p; (void)startup; return recovery_ok; }
 int Reset_Cold(void) { restarts++; return 0; }
 void Ethernet_Reset(bool hard) { assert(!hard); network++; }
 void Tablet_Reset(void) { tablet++; }

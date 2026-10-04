@@ -65,16 +65,16 @@ static void test_input(void) {
     KEY(F4); KEY(F6); KEY(LCTRL); KEY(V); /* Reserved Ctrl+Alt combinations. */
     KEY(ESCAPE); KEY(F9); assert(!overlay_is_visible());
     input(3); KEY(RETURN); KEY(O); discard(false);
-    assert(!ConfigureParams.Shortcut.withModifier[SHORTCUT_OPTIONS]);
+    assert(!ConfigureParams.Shortcut.withModifier[SHORTCUT_FULLSCREEN]);
     input(3); KEY(RETURN); KEY(O); save(false);
-    assert(ConfigureParams.Shortcut.withModifier[SHORTCUT_OPTIONS] == SDLK_O);
+    assert(ConfigureParams.Shortcut.withModifier[SHORTCUT_FULLSCREEN] == SDLK_O);
     assert(ShortCut_CheckKeys(SDLK_O, true, true));
     assert(!ShortCut_CheckKeys(SDLK_O, false, true));
-    input(2); KEY(RETURN); /* Fullscreen action. */
+    input(2); KEY(RETURN); /* Mouse-capture action. */
     KEY(DOWN); KEY(RETURN); KEY(O); KEY(ESCAPE); KEY(F9);
     assert(!overlay_is_visible()); /* Duplicate rejected, previous binding intact. */
-    assert(ConfigureParams.Shortcut.withModifier[SHORTCUT_OPTIONS] == SDLK_O);
-    assert(!ConfigureParams.Shortcut.withModifier[SHORTCUT_FULLSCREEN]);
+    assert(ConfigureParams.Shortcut.withModifier[SHORTCUT_FULLSCREEN] == SDLK_O);
+    assert(!ConfigureParams.Shortcut.withModifier[SHORTCUT_MOUSEGRAB]);
     input(4); KEY(RETURN); KEY(F8); save(false);
     assert(ShortCut_CheckKeys(SDLK_F8, false, true));
     input(4); KEY(DELETE); save(false);
@@ -84,12 +84,12 @@ static void test_input(void) {
     OverlayInput panel = {0}; OverlayInput_Open(&panel); panel.row = 2;
     SDL_Event event; SDL_zero(event); event.type = SDL_EVENT_KEY_DOWN; event.key.scancode = SDL_SCANCODE_RETURN;
     unsigned seen = 0;
-    for (int i = 0; i < SHORTCUT_KEYS - 1; i++) {
-        assert(panel.action != SHORTCUT_STATUSBAR);
+    for (int i = 0; i < SHORTCUT_KEYS - 2; i++) {
+        assert(panel.action != SHORTCUT_STATUSBAR && panel.action != SHORTCUT_OPTIONS);
         assert(!(seen & (1u << panel.action))); seen |= 1u << panel.action;
         OverlayInput_Event(&panel, &event, &ConfigureParams);
     }
-    assert(panel.action == SHORTCUT_OPTIONS);
+    assert(panel.action == SHORTCUT_FULLSCREEN);
     assert(!restarts && !network && !screen && !keymap_inits); no_disk_io();
 }
 

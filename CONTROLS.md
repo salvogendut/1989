@@ -1,14 +1,13 @@
 # Controls
 
 1989 uses the shared “happy years” F9 overlay, activity LEDs and function-key
-hint strip. [Interface coverage](docs/INTERFACE.md) lists the controls still
-available only in the F1 legacy menu.
+hint strip. [Interface coverage](docs/INTERFACE.md) records the completed
+legacy-menu migration and native recovery behavior.
 
 ## Default host shortcuts
 
 | Key | Action |
 | --- | --- |
-| F1 | Legacy options |
 | F4 | PPM screenshot |
 | F5 | Restart confirmation |
 | F6 | Start/stop GIF recording |
@@ -25,10 +24,10 @@ and Enter to choose, or Esc to cancel. Shut down NeXT in the guest before
 restarting or quitting.
 
 The configurable legacy shortcuts require **Ctrl+Alt**, not Alt alone:
-O options, F fullscreen, M mouse capture, C restart, G legacy screenshot,
+F fullscreen, M mouse capture, C restart, G legacy screenshot,
 R AIFF recording, S sound, P pause, D m68k debugger, I i860 debugger,
 Q quit, N display switch and T title bar. F9 → Extensions → **Input details**
-can rebind them, including the default F1/F5/F11/F12 bindings. The dedicated
+can rebind them, including the default F5/F11/F12 bindings. The dedicated
 F4/F6/F9 and Ctrl+V controls are handled separately.
 
 Clipboard paste sends timed key presses with Shift where needed; unsupported
@@ -193,8 +192,7 @@ with more than 32 MB on that board; the page shows a reminder.
 The bottom LEDs cover 68K CPU, DSP, SCSI, floppy, MO, Ethernet,
 sound and NeXTdimension. More than one attached SCSI target gets individually
 labelled LEDs. Activity lights briefly brighten after device operations.
-The function-key strip labels F1 as `legacy`, F9 as `options`, F5 as `reset`
-and F12 as `quit`. Beside the machine model it shows the configured CPU
+The function-key strip labels F9 as `options`, F5 as `reset` and F12 as `quit`. Beside the machine model it shows the configured CPU
 frequency and total RAM, for example `1989 NeXTcube | 25 MHz | 64 MB`.
 The label uses the running configuration; unconfirmed hardware edits do not
 change it. Variable CPU timing is identified explicitly.
@@ -203,3 +201,20 @@ The duplicate Previous status bar and Ctrl+Alt+B toggle are retired. Core
 messages (media, printer, audio and debugger notices) use the existing
 notification mode in Advanced: Screen, Console or Off. Old status-bar
 configuration keys are accepted but cannot restore the bar.
+
+## Native recovery
+
+Missing resources at startup or before a confirmed hardware change use
+native dialogs. Choose a replacement file/folder, an available default ROM,
+or explicitly remove the missing medium/disable the optional resource.
+Cancel changes leaves the running machine untouched; cancelling a file
+picker returns to the recovery choice. Missing removable media can leave an
+empty connected drive. No disk is silently replaced or made writable.
+
+A CPU halt pauses emulation and offers **Quit** (default) or **Restart machine**.
+A restart cannot flush guest disk caches. Errors without a decision, such as
+failure to save `1989.conf`, use shared notifications and logging.
+
+F1 and Ctrl+Alt+O no longer open a menu. Old `kOptions` bindings are ignored
+and cleared. F1 can reach the guest or be assigned to another action in Input
+details. Configuration import/export has no replacement; use `1989.conf`.

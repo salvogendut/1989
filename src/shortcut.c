@@ -9,7 +9,6 @@
 const char ShortCut_fileid[] = "Hatari shortcut.c";
 
 #include "main.h"
-#include "dialog.h"
 #include "dimension.hpp"
 #include "grab.h"
 #include "reset.h"
@@ -153,7 +152,7 @@ void ShortCut_ActKey(void)
 	switch (ShortCutKey)
 	{
 	 case SHORTCUT_OPTIONS:
-		Dialog_DoProperty();           /* Show options dialog */
+		/* Retired legacy-menu binding. F9 owns options. */
 		break;
 	 case SHORTCUT_FULLSCREEN:
 		ShortCut_FullScreen();         /* Switch between fullscreen/windowed mode */
@@ -259,7 +258,7 @@ static SHORTCUTKEYIDX ShortCut_CheckKey(int symkey, int *keys)
 	SHORTCUTKEYIDX key;
 	for (key = SHORTCUT_OPTIONS; key < SHORTCUT_KEYS; key++)
 	{
-		if (key == SHORTCUT_STATUSBAR) continue;
+		if (key == SHORTCUT_STATUSBAR || key == SHORTCUT_OPTIONS) continue;
 		if (symkey == keys[key])
 			return key;
 	}

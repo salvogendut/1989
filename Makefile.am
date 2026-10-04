@@ -10,7 +10,6 @@ dist_man1_MANS = 1989.1
 	src/change.c \
 	src/configuration.c \
 	src/cycInt.c \
-	src/dialog.c \
 	src/dma.c \
 	src/enet_pcap.c \
 	src/enet_slirp.c \
@@ -25,6 +24,8 @@ dist_man1_MANS = 1989.1
 	src/kms.c \
 	src/m68000.c \
 	src/main.c \
+	src/host_dialog.c \
+	src/recovery.c \
 	src/mo.c \
 	src/nbic.c \
 	src/ncc.c \
@@ -65,34 +66,10 @@ dist_man1_MANS = 1989.1
 	src/capture.c \
 	src/gui-sdl/sdlaudio.c \
 	src/gui-sdl/sdlevent.c \
-	src/gui-sdl/sdlgui.c \
 	src/gui-sdl/sdlhost.c \
 	src/gui-sdl/sdlkeymap.c \
 	src/gui-sdl/sdlscreen.c \
 	src/gui-sdl/sdlstatusbar.c \
-	src/gui-sdl/dlgAbout.c \
-	src/gui-sdl/dlgAdvanced.c \
-	src/gui-sdl/dlgAlert.c \
-	src/gui-sdl/dlgBoot.c \
-	src/gui-sdl/dlgDimension.c \
-	src/gui-sdl/dlgEthernet.c \
-	src/gui-sdl/dlgEthernetAdvanced.c \
-	src/gui-sdl/dlgFileSelect.c \
-	src/gui-sdl/dlgFloppy.c \
-	src/gui-sdl/dlgGraphics.c \
-	src/gui-sdl/dlgKeyboard.c \
-	src/gui-sdl/dlgMain.c \
-	src/gui-sdl/dlgMemory.c \
-	src/gui-sdl/dlgMemoryAdvanced.c \
-	src/gui-sdl/dlgMissingFile.c \
-	src/gui-sdl/dlgMouse.c \
-	src/gui-sdl/dlgNFS.c \
-	src/gui-sdl/dlgOpticalDisk.c \
-	src/gui-sdl/dlgPrinter.c \
-	src/gui-sdl/dlgRom.c \
-	src/gui-sdl/dlgSCSI.c \
-	src/gui-sdl/dlgSound.c \
-	src/gui-sdl/dlgSystem.c \
 	src/debug/68kDisass.c \
 	src/debug/breakcond.c \
 	src/debug/debugcpu.c \
@@ -246,10 +223,7 @@ noinst_HEADERS = \
 	src/dsp/dsp_cpu.h \
 	src/dsp/dsp_disasm.h \
 	src/dsp/dsp.h \
-	src/gui-sdl/font10x16.h \
-	src/gui-sdl/font5x8.h \
 	src/gui-sdl/sdlaudio.h \
-	src/gui-sdl/sdlgui.h \
 	src/gui-sdl/sdlkeymap.h \
 	src/gui-sdl/sdlscreen.h \
 	src/includes/adb.h \
@@ -259,7 +233,6 @@ noinst_HEADERS = \
 	src/includes/change.h \
 	src/includes/configuration.h \
 	src/includes/cycInt.h \
-	src/includes/dialog.h \
 	src/includes/dma.h \
 	src/includes/endianswap.h \
 	src/includes/enet_pcap.h \
@@ -278,6 +251,8 @@ noinst_HEADERS = \
 	src/includes/kms.h \
 	src/includes/m68000.h \
 	src/includes/main.h \
+	src/includes/host_dialog.h \
+	src/includes/recovery.h \
 	src/includes/mo.h \
 	src/includes/nbic.h \
 	src/includes/ncc.h \
@@ -480,5 +455,5 @@ EXTRA_DIST = LICENSE README.md ROMS.md Development.md USAGE.md CONTROLS.md INSTA
 	src/ditool_cpp/VirtualFS.h \
 	packaging/debian/build-deb.sh packaging/macos/package.sh \
 	web/README.md \
-	tests/Makefile tests/test_str.c tests/test_headers.c tests/test_capture.c tests/test_paste.c tests/test_settings.c tests/test_overlay.c tests/test_devices.c tests/test_input_media.c tests/test_scsi.c tests/pcap_test_support.c tests/stubs/pcap.h \
+	tests/Makefile tests/test_str.c tests/test_headers.c tests/test_capture.c tests/test_paste.c tests/test_settings.c tests/test_overlay.c tests/test_devices.c tests/test_input_media.c tests/test_scsi.c tests/test_recovery.c tests/pcap_test_support.c tests/stubs/pcap.h \
 	tests/ui_test_support.c tests/ui_test_support.h tests/test_hardware.c tests/test_status.c tests/test_sound.c tests/test_grab.c tests/test_printer.c

@@ -35,7 +35,9 @@ Keep machine-core changes contained so upstream fixes remain practical to merge.
 | `overlay_media.c` | Suggested SCSI roles/types, next-boot drive numbers, native-picker handoff, connect/eject/disconnect drafts, model restrictions, default-ROM lookup and exclusive sparse-file creation |
 | `ui_config.c` | Load/save/apply `[UI89]` desktop preferences |
 | `settings.c` | Private machine draft, merge with live state, restart policy and per-target media application |
-| `change.c` | Apply configuration to runtime subsystems; shared by F9 and the legacy dialog |
+| `change.c` | Validate recovery before applying configuration to runtime subsystems |
+| `recovery.c` | Transactional checks for required ROMs, inserted media and enabled directories; CPU-halt decisions |
+| `host_dialog.c` | Native SDL message boxes and file/folder pickers; modal event pumping without guest input; callback lifetime isolated from caller memory |
 
 The overlay never writes `ConfigureParams` while navigating. It snapshots
 configuration briefly under pause, edits its own machine/UI copies, then
@@ -49,7 +51,6 @@ boot. Network connection/cable/NFS, tablet, printer, sound and display changes u
 their own subsystems. Machine hardware and fixed-disk changes require explicit
 confirmation. Live removable-media changes call the selected drive's
 insert/eject functions; never reset every storage controller to apply one image.
-The legacy dialog stages media as well and uses this same application path.
 Media role suggestions apply only when loading an unused SCSI slot; they do
 not initialize drives on panel open or migrate existing configurations.
 Eject retains the device type/connection, while disconnect removes it and
@@ -62,9 +63,26 @@ panel invalidates the result; cancelled/late results cannot edit a later
 session. File creation never truncates an existing path. A created file is
 an independent host artifact and remains when the panel draft is discarded.
 
-The remaining legacy-menu inventory and user-facing apply rules are in
-[docs/INTERFACE.md](docs/INTERFACE.md). F1, missing-file recovery and legacy
-alerts remain; their full migration is not claimed by this refactor.
+The [interface inventory](docs/INTERFACE.md) records the retired legacy menu.
+F1, its config import/export, `dialog.c`, `dlg*.c`, `sdlgui` and the obsolete
+font assets are removed. The `1989.conf` load/save lifecycle remains.
+
+Recovery runs before any live configuration/subsystem changes for a hardware
+save. It edits a copy and commits only after all resource choices succeed.
+Startup uses the same checks, with Quit instead of Cancel changes. File
+checks reject directories in file slots and unreadable files. Disabled
+resources and empty NFS paths do not prompt; all four enabled SLiRP exports
+are checked. Default ROMs use `Rom_GetDefaultPath`. No directory silently
+falls back to HOME and no disk loses its write-protection preference.
+
+Native choices/pickers run only on the SDL window thread while emulation is
+paused. The picker pumps SDL events for portal support without recursively
+entering the overlay/event controller or forwarding input to the guest. A
+static synchronized result outlives cancellation/quit; late callbacks own
+no draft pointers. Window-close requests use `Main_RequestQuit(false)` to
+stop the CPU as well. Noninteractive `Log_AlertDlg` messages use the existing
+thread-safe notifications. CPU-halt recovery defaults to Quit; only an
+explicit Restart invokes `Reset_Cold` and resumes emulation.
 
 ## Configuration and resources
 
@@ -116,6 +134,12 @@ boot disks. It renders the input editors and MO warning through SDL software
 rendering. `test-hardware` also exercises the real retired-option migration;
 `test-scsi` checks persistent sector writes/readback and write-protection
 sense codes using the real command/sector handlers and a temporary disk file.
+`test-recovery` runs the real recovery and host-dialog code with scripted SDL
+responses: missing/default/replacement resources, all NFS shares, disabled
+resources, preserving protection, cancellation after earlier choices, picker
+failure/late callbacks and explicit CPU restart versus quit. Settings tests
+check that failed recovery performs no live apply/reset/disk I/O. Retired
+F1/Ctrl+Alt+O bindings are checked against actual shortcut matching.
 Status tests cover literal core messages, notification modes/expiry,
 concurrent posting/rendering and the retired shortcut. The model summary
 is checked against active settings while different hardware remains staged.

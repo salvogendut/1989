@@ -13,7 +13,6 @@ const char SDLscreen_fileid[] = "Previous sdlscreen.c";
 #include "screen.h"
 #include "sdlscreen.h"
 #include "statusbar.h"
-#include "sdlgui.h"
 #include "event.h"
 #include "dimension.hpp"
 #include "nd_sdl.hpp"
@@ -260,7 +259,7 @@ static void Screen89_RenderExtras(SDL_Renderer *r) {
 	char model[128];
 	overlay_machine_summary(model, sizeof(model));
 	const char *keys =
-	    "  F1=legacy  F4=screenshot  F5=reset  F6=gif  F9=options  "
+	    "  F4=screenshot  F5=reset  F6=gif  F9=options  "
 	    "F11=fullscreen  F12=quit";
 	float text_w = (float)(strlen(model) + strlen(keys)) * 8.0f;
 	float scale = text_w > (float)width - 12.0f
@@ -633,9 +632,6 @@ void Screen_Reset(void) {
 
 		/* Clear UI with mask */
 		SDL_FillSurfaceRect(sdlscrn, NULL, mask);
-
-		/* The remaining missing-file / alert dialogs need this surface. */
-		SDLGui_SetScreen(sdlscrn);
 
 		/* Allocate buffer for copy routines */
 		if (uiBuffer) {

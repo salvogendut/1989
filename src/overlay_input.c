@@ -4,7 +4,7 @@
 
 enum { INPUT_LINEAR, INPUT_EXPONENTIAL, INPUT_ACTION, INPUT_MOD, INPUT_PLAIN, INPUT_BACK };
 static const char *const actions[SHORTCUT_KEYS] = {
-    "Legacy options", "Fullscreen", "Mouse capture", "Restart (confirmed)",
+    NULL, "Fullscreen", "Mouse capture", "Restart (confirmed)",
     "Screenshot (PNG/TIFF)", "Sound recording (AIFF)", "Sound on/off", "68k debugger",
     "i860 debugger", "Pause", "Quit (confirmed)", "Switch display", NULL, "Title bar"
 };
@@ -13,7 +13,7 @@ void OverlayInput_Close(OverlayInput *s) {
     OverlayText_Close(&s->editor);
     memset(s, 0, sizeof(*s));
 }
-void OverlayInput_Open(OverlayInput *s) { OverlayInput_Close(s); s->visible = true; }
+void OverlayInput_Open(OverlayInput *s) { OverlayInput_Close(s); s->visible = true; s->action = SHORTCUT_FULLSCREEN; }
 
 static int *binding(OverlayInput *s, CNF_PARAMS *p) {
     return s->row == INPUT_MOD ? &p->Shortcut.withModifier[s->action] : &p->Shortcut.withoutModifier[s->action];
@@ -42,7 +42,7 @@ static void capture(OverlayInput *s, const SDL_KeyboardEvent *key, CNF_PARAMS *p
     }
     int *keys = modifier ? p->Shortcut.withModifier : p->Shortcut.withoutModifier;
     for (int i = 0; i < SHORTCUT_KEYS; i++) {
-        if (i == s->action || i == SHORTCUT_STATUSBAR || keys[i] != (int)key->key) continue;
+        if (i == s->action || !actions[i] || keys[i] != (int)key->key) continue;
         snprintf(s->message, sizeof(s->message), "Already assigned to %s. Clear that binding first.", actions[i]);
         return;
     }

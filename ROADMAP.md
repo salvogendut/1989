@@ -2,7 +2,7 @@
 
 1989 integrates the Previous 4.4 core plus r1854 development fixes with the shared SDL3 desktop experience.
 The [interface inventory](docs/INTERFACE.md) and
-[issue #1](https://github.com/salvogendut/1989/issues/1) track F1 migration.
+[issue #1](https://github.com/salvogendut/1989/issues/1) record the completed F1 retirement.
 
 ## Implemented
 
@@ -13,7 +13,7 @@ The [interface inventory](docs/INTERFACE.md) and
 - CPU clock/RAM beside the model in the hint strip; duplicate legacy status
   bar removed, with core messages routed through shared notifications.
 - Private settings drafts; Save/Discard; shared restart policy; confirmed
-  F5 restart; per-drive removable-media updates in F9 and F1.
+  F5 restart; per-drive removable-media updates in F9.
 - Live display/audio/network-connection/tablet/printer settings; boot options
   saved for the next boot without automatically resetting the guest.
 - Window/fullscreen persistence, relative mouse capture, clipboard typing.
@@ -41,9 +41,12 @@ The [interface inventory](docs/INTERFACE.md) and
 - Retired show-menu-at-startup and temporary SCSI writes; old temporary-write
   configurations migrate to per-drive read-only protection.
 
-## Next interface work
+- Native resource recovery and CPU-halt decisions; shared error notifications.
+  Recovery cancellation preserves live settings and disks. The F1 menu, its
+  config import/export and the unused SDL GUI toolkit are removed; `1989.conf`
+  and F9 remain the configuration interfaces.
 
-- Replace legacy missing-file dialogs, alerts and config import/export.
+## Next interface work
 - Validate created images against supported guest formats, particularly MO/ECC.
 - Provide a separate save-for-next-launch workflow for hardware changes.
 - Run FFmpeg post-processing asynchronously; extend capture beyond GIF.
