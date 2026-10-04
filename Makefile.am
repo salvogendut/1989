@@ -154,6 +154,13 @@ dist_man1_MANS = 1989.1
 	src/cpu/readcpu.c \
 	src/cpu/writelog.c
 
+if OS_MACOS
+1989_SOURCES += src/gui-osx/paths.m
+endif
+if OS_WINDOWS
+1989_SOURCES += src/gui-win/opencon.c
+endif
+
 ditool_SOURCES = \
 	src/ditool/ditool.c \
 	src/ditool/im.c \
@@ -164,6 +171,7 @@ ditool_SOURCES = \
 	src/slirp/rpc/vfs.c
 
 noinst_HEADERS = \
+	src/gui-win/opencon.h \
 	src/cpu/compat.h \
 	src/cpu/cpummu030.h \
 	src/cpu/cpummu.h \
@@ -368,7 +376,7 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/gui-sdl \
 	-I$(top_builddir)
 
-1989_CPPFLAGS = $(AM_CPPFLAGS) $(SDL3_CFLAGS) $(PNG_CFLAGS)
+1989_CPPFLAGS = $(AM_CPPFLAGS) $(SDL3_CFLAGS) $(PNG_CFLAGS) $(PCAP_CFLAGS)
 1989_CFLAGS = $(AM_CFLAGS) -Wall -Wextra \
 	-Wno-unused-variable -Wno-unused-function -Wno-unused-label \
 	-Wno-sign-compare -Wno-implicit-fallthrough -Wno-conversion \
@@ -382,7 +390,7 @@ AM_CPPFLAGS = \
 	-DROM_INSTALL_DIR=\"$(pkgdatadir)/roms\" \
 	-DCONFDIR=\"$(sysconfdir)\" \
 	-DPROG_GIT_COMMIT=\"$(PROG_GIT_COMMIT)\"
-1989_LDADD = $(SDL3_LIBS) $(PNG_LIBS) -lm $(WIN_LIBS) $(WIN_RC_OBJ)
+1989_LDADD = $(SDL3_LIBS) $(PNG_LIBS) $(PCAP_LIBS) -lm $(MAC_LIBS) $(WIN_LIBS) $(WIN_RC_OBJ)
 1989_DEPENDENCIES = $(WIN_RC_OBJ)
 
 ditool_CPPFLAGS = -I$(top_srcdir)/src/ditool -I$(top_srcdir)/src/includes \
@@ -453,7 +461,8 @@ EXTRA_DIST = LICENSE README.md ROMS.md Development.md USAGE.md CONTROLS.md INSTA
 	src/ditool_cpp/Partition.h \
 	src/ditool_cpp/UFS.h \
 	src/ditool_cpp/VirtualFS.h \
-	packaging/debian/build-deb.sh packaging/macos/package.sh \
+	packaging/debian/build-deb.sh packaging/macos/package.sh packaging/windows/package.sh \
+	packaging/io.github.salvogendut.Emulator1989.yml \
 	web/README.md \
 	tests/Makefile tests/test_str.c tests/test_headers.c tests/test_capture.c tests/test_paste.c tests/test_settings.c tests/test_overlay.c tests/test_devices.c tests/test_input_media.c tests/test_scsi.c tests/test_recovery.c tests/pcap_test_support.c tests/stubs/pcap.h \
-	tests/ui_test_support.c tests/ui_test_support.h tests/test_hardware.c tests/test_status.c tests/test_sound.c tests/test_grab.c tests/test_printer.c
+	tests/ui_test_support.c tests/ui_test_support.h tests/test_hardware.c tests/test_status.c tests/test_sound.c tests/test_grab.c tests/test_printer.c tests/test_rom_paths.c

@@ -29,7 +29,7 @@ install -m 0644 README.md ROMS.md INSTALL.md USAGE.md "$stage/usr/share/doc/1989
 install -d "$stage/debian"
 printf 'Source: 1989\nSection: games\nPriority: optional\nMaintainer: Salvatore Bognanni <salvogendut@gmail.com>\nStandards-Version: 4.7.0\n\nPackage: 1989\nArchitecture: any\nDepends: ${shlibs:Depends}\nDescription: NeXT (Motorola 68K) emulator\n' \
     > "$stage/debian/control"
-depends=$(cd "$stage" && dpkg-shlibdeps -O -eusr/bin/1989 |
+depends=$(cd "$stage" && dpkg-shlibdeps -O -eusr/bin/1989 -eusr/bin/ditool |
     sed -n 's/^shlibs:Depends=//p')
 rm "$stage/debian/control"
 rmdir "$stage/debian"

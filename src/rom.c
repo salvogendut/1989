@@ -14,6 +14,7 @@ const char Rom_fileid[] = "Previous rom.c";
 #include "file.h"
 #include "paths.h"
 #include "rom.h"
+#include <SDL3/SDL_filesystem.h>
 #include <unistd.h>
 
 
@@ -40,12 +41,24 @@ static void rom_config(uint8_t* buf) {
     }
 }
 
-/* Build the default ROM path for the given ROM name. Prefer the data
- * directory, then the install-time ROM_INSTALL_DIR, then a "roms" subfolder
- * of the current working directory (source-tree convenience). */
+/* Bundle resources come first: SDL returns Contents/Resources on macOS and
+ * the executable directory on Windows/Linux, independent of the launch CWD.
+ * Then use installed data, with a working-directory fallback for source runs. */
 void Rom_GetDefaultPath(char *path, int nMaxLen, const char *pszRomName)
 {
 	const char *pDir = Paths_GetDataDir();
+	const char *base = SDL_GetBasePath();
+	char *bundleRoms = base ? File_MakePath(base, "roms", NULL) : NULL;
+	char *bundlePath = bundleRoms ? File_MakePath(bundleRoms, pszRomName, "BIN") : NULL;
+	if (bundlePath && File_Exists(bundlePath))
+	{
+		File_MakePathBuf(path, nMaxLen, bundleRoms, pszRomName, "BIN");
+		free(bundlePath);
+		free(bundleRoms);
+		return;
+	}
+	free(bundlePath);
+	free(bundleRoms);
 #ifdef ROM_INSTALL_DIR
 	char *pszInstallPath = File_MakePath(ROM_INSTALL_DIR, pszRomName, "BIN");
 	if (pszInstallPath)

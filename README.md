@@ -72,6 +72,11 @@ PNG/TIFF printer output. See [hardware status](docs/STATUS.md) and the
 
 ## Quick start
 
+Download a package from [GitHub Releases](https://github.com/salvogendut/1989/releases):
+Debian (amd64), Fedora (x86_64), Flatpak (x86_64), Windows (x86_64), or macOS
+15+ (Apple Silicon / Intel). Packages include firmware and the `ditool` helper;
+you supply the NEXTSTEP disk images. See [installation instructions](INSTALL.md).
+
 On Fedora:
 
 ```sh
@@ -107,6 +112,11 @@ planned; `web/` is a placeholder. [Issue #1](https://github.com/salvogendut/1989
 records the completed F1 retirement. [Development.md](Development.md) describes
 the module boundaries and [ROADMAP.md](ROADMAP.md) tracks remaining work.
 Generated CPU sources are checked in; no CPU code-generation step is needed.
+
+The [build workflow](https://github.com/salvogendut/1989/actions/workflows/build.yml)
+builds all six packages on pushes to `main` and pull requests. A matching
+`v<version>` tag publishes the packages and SHA-256 checksums as a GitHub
+release after every platform succeeds. See [release maintenance](INSTALL.md#releases).
 
 ## License
 

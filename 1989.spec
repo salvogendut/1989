@@ -1,5 +1,5 @@
 Name:           1989
-Version:        0.1.0
+Version:        0.2.0
 Release:        1%{?dist}
 Summary:        NeXT (Motorola 68K) emulator
 
@@ -13,7 +13,10 @@ BuildRequires:  make
 BuildRequires:  autoconf
 BuildRequires:  automake
 BuildRequires:  libtool
-BuildRequires:  pkgconfig(sdl3)
+BuildRequires:  pkgconfig(sdl3) >= 3.2.0
+BuildRequires:  pkgconfig(libpng)
+BuildRequires:  pkgconfig(libpcap)
+BuildRequires:  readline-devel
 BuildRequires:  desktop-file-utils
 BuildRequires:  libappstream-glib
 
@@ -30,13 +33,14 @@ firmware images are distributed with the project.
 
 %build
 autoreconf -fiv
-%configure
+%configure --without-ffmpeg
 %make_build
 
 %install
 %make_install
 
 %check
+make -C tests check
 desktop-file-validate %{buildroot}%{_datadir}/applications/io.github.salvogendut.Emulator1989.desktop
 appstream-util validate-relax --nonet %{buildroot}%{_datadir}/metainfo/io.github.salvogendut.Emulator1989.metainfo.xml
 
@@ -49,6 +53,7 @@ appstream-util validate-relax --nonet %{buildroot}%{_datadir}/metainfo/io.github
 %{_datadir}/applications/io.github.salvogendut.Emulator1989.desktop
 %{_datadir}/metainfo/io.github.salvogendut.Emulator1989.metainfo.xml
 %{_datadir}/icons/hicolor/*/apps/io.github.salvogendut.Emulator1989.png
+%{_datadir}/pixmaps/1989.png
 %dir %{_datadir}/%{name}
 %dir %{_datadir}/%{name}/roms
 %{_datadir}/%{name}/roms/*.BIN
@@ -57,6 +62,10 @@ appstream-util validate-relax --nonet %{buildroot}%{_datadir}/metainfo/io.github
 %{_datadir}/%{name}/disks/*.zip
 
 %changelog
+* Sun Oct 04 2026 Salvatore Bognanni <salvogendut@gmail.com> - 0.2.0-1
+- Complete native overlay and recovery; retire the legacy F1 menu
+- Add Debian, Fedora, Flatpak, Windows and macOS release builds
+
 * Fri Oct 02 2026 Salvatore Bognanni <salvogendut@gmail.com> - 0.1.0-1
 - Initial scaffolding and integration of the Previous 4.3 NeXT emulator
   into the shared SDL3 "happy years" build conventions.

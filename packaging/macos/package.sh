@@ -25,8 +25,11 @@ fi
 
 mkdir -p "$macos" "$resources" "$frameworks" "$iconset"
 install -m 0755 "$binary" "$macos/1989"
-mkdir -p "$macos/roms"
-cp "$root/roms/README" "$macos/roms/"
+install -m 0755 "$(dirname "$binary")/ditool" "$macos/ditool"
+mkdir -p "$resources/roms" "$resources/disks"
+cp "$root"/roms/*.BIN "$root/roms/README" "$resources/roms/"
+cp "$root"/disks/*.zip "$resources/disks/"
+cp "$root/INSTALL.md" "$root/USAGE.md" "$root/1989.conf.example" "$resources/"
 cp "$root/LICENSE" "$resources/LICENSE.txt"
 cp "$root/README.md" "$resources/README.md"
 cp "$root/ROMS.md" "$resources/ROMS.md"
@@ -63,10 +66,11 @@ plutil -create xml1 "$plist"
 "$plistbuddy" -c "Add :LSApplicationCategoryType string public.app-category.entertainment" "$plist"
 "$plistbuddy" -c "Add :LSMinimumSystemVersion string 15.0" "$plist"
 "$plistbuddy" -c "Add :NSHighResolutionCapable bool true" "$plist"
+"$plistbuddy" -c "Add :NSMicrophoneUsageDescription string Emulate NeXT sound input when enabled in Extensions." "$plist"
 
 brew_prefix=$(brew --prefix)
 dylibbundler -od -b \
-    -x "$macos/1989" \
+    -x "$macos/1989" -x "$macos/ditool" \
     -d "$frameworks" \
     -p "@executable_path/../Frameworks/" \
     -s "$brew_prefix/lib" \

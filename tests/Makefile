@@ -13,9 +13,20 @@ PCAP_LIBS ?= $(shell pkg-config --libs libpcap 2>/dev/null)
 PNG_CFLAGS ?= $(shell pkg-config --cflags libpng 2>/dev/null)
 PNG_LIBS ?= $(shell pkg-config --libs libpng 2>/dev/null)
 
+ifeq ($(shell uname -s),Darwin)
+GC_LDFLAGS = -Wl,-dead_strip
+else
+GC_LDFLAGS = -Wl,--gc-sections
+endif
+
 TESTS = test-str test-paste test-settings test-overlay test-devices test-devices-pcap test-input-media test-scsi test-recovery test-hardware test-status test-sound test-grab test-printer
+TESTS += test-rom-paths
 
 all: $(TESTS) test-headers test-capture
+
+test-rom-paths: test_rom_paths.c ../src/rom.c ../src/file.c ../config.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) -ffunction-sections -fdata-sections \
+		test_rom_paths.c ../src/rom.c ../src/file.c $(GC_LDFLAGS) -o $@
 
 test-str: test_str.c ../src/str.c ../src/includes/str.h ../config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) test_str.c ../src/str.c -o $@
@@ -28,64 +39,64 @@ test-paste: test_paste.c ../src/paste.c ../src/includes/paste.h \
 
 test-settings: test_settings.c ui_test_support.c ui_test_support.h ../src/settings.c ../src/change.c ../src/includes/settings.h ../config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) -ffunction-sections -fdata-sections \
-		test_settings.c ui_test_support.c ../src/settings.c ../src/change.c -Wl,--gc-sections -o $@
+		test_settings.c ui_test_support.c ../src/settings.c ../src/change.c $(GC_LDFLAGS) -o $@
 
 UI_SOURCES = ../src/overlay_input.c ../src/overlay_text.c ../src/overlay_devices.c ../src/overlay.c ../src/overlay_controls.c ../src/overlay_view.c ../src/overlay_media.c ../src/settings.c ../src/change.c
 
 test-overlay: test_overlay.c ui_test_support.c ui_test_support.h $(UI_SOURCES) ../src/includes/overlay_devices.h ../src/includes/overlay.h ../src/includes/overlay_controls.h ../src/includes/ui_config.h ../src/includes/configuration.h ../src/includes/overlay_media.h ../src/includes/overlay_view.h ../src/includes/settings.h ../config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) $(PCAP_CFLAGS) -DTEST_OVERLAY -ffunction-sections -fdata-sections \
-		test_overlay.c ui_test_support.c $(UI_SOURCES) $(SDL3_LIBS) $(PCAP_LIBS) -Wl,--gc-sections -o $@
+		test_overlay.c ui_test_support.c $(UI_SOURCES) $(SDL3_LIBS) $(PCAP_LIBS) $(GC_LDFLAGS) -o $@
 
 test-devices: test_devices.c ui_test_support.c ui_test_support.h $(UI_SOURCES) ../src/includes/overlay_devices.h ../src/includes/configuration.h ../src/includes/ui_config.h ../config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) $(PCAP_CFLAGS) -DTEST_OVERLAY -ffunction-sections -fdata-sections \
-		test_devices.c ui_test_support.c $(UI_SOURCES) $(SDL3_LIBS) $(PCAP_LIBS) -Wl,--gc-sections -o $@
+		test_devices.c ui_test_support.c $(UI_SOURCES) $(SDL3_LIBS) $(PCAP_LIBS) $(GC_LDFLAGS) -o $@
 
 # New input controls, native drive constraints, empty connections and ROM defaults.
 test-input-media: test_input_media.c ui_test_support.c ui_test_support.h $(UI_SOURCES) ../src/shortcut.c ../src/includes/overlay_input.h ../src/includes/overlay_text.h ../src/includes/overlay_media.h ../config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) $(PCAP_CFLAGS) -DTEST_OVERLAY -ffunction-sections -fdata-sections \
-		test_input_media.c ui_test_support.c $(UI_SOURCES) ../src/shortcut.c $(SDL3_LIBS) $(PCAP_LIBS) -Wl,--gc-sections -o $@
+		test_input_media.c ui_test_support.c $(UI_SOURCES) ../src/shortcut.c $(SDL3_LIBS) $(PCAP_LIBS) $(GC_LDFLAGS) -o $@
 
 # Real SCSI sector reads/writes and guest-visible per-disk write protection.
 test-scsi: test_scsi.c ../src/scsi.c ../src/file.c ../config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) -ffunction-sections -fdata-sections \
-		test_scsi.c ../src/file.c -Wl,--gc-sections -o $@
+		test_scsi.c ../src/file.c $(GC_LDFLAGS) -o $@
 
 # Real transactional recovery and native picker handoff, using scripted host dialogs.
 test-recovery: test_recovery.c ../src/recovery.c ../src/host_dialog.c ../src/file.c ../src/includes/recovery.h ../src/includes/host_dialog.h ../config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) -ffunction-sections -fdata-sections \
-		test_recovery.c ../src/recovery.c ../src/host_dialog.c ../src/file.c $(SDL3_LIBS) -Wl,--gc-sections -o $@
+		test_recovery.c ../src/recovery.c ../src/host_dialog.c ../src/file.c $(SDL3_LIBS) $(GC_LDFLAGS) -o $@
 
 # Compile and exercise optional PCAP discovery without host capture privileges.
 test-devices-pcap: test_devices.c pcap_test_support.c stubs/pcap.h ui_test_support.c $(UI_SOURCES) ../src/includes/overlay_devices.h ../src/includes/ui_config.h ../config.h
 	$(CC) -Istubs $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) -DHAVE_PCAP=1 -DTEST_PCAP_STUB -DTEST_OVERLAY -ffunction-sections -fdata-sections \
-		test_devices.c pcap_test_support.c ui_test_support.c $(UI_SOURCES) $(SDL3_LIBS) -Wl,--gc-sections -o $@
+		test_devices.c pcap_test_support.c ui_test_support.c $(UI_SOURCES) $(SDL3_LIBS) $(GC_LDFLAGS) -o $@
 
 # Overlay RAM choices checked against the real core for all seven models.
 DEVICE_SOURCES = ../src/overlay_text.c ../src/overlay_devices.c ../src/overlay_media.c
 
 test-hardware: test_hardware.c $(DEVICE_SOURCES) ../src/includes/overlay_devices.h ../src/configuration.c ../src/overlay_controls.c ../src/overlay_view.c ../src/includes/overlay_controls.h ../src/includes/configuration.h ../config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) $(PCAP_CFLAGS) -ffunction-sections -fdata-sections \
-		test_hardware.c $(DEVICE_SOURCES) ../src/configuration.c ../src/overlay_controls.c ../src/overlay_view.c $(SDL3_LIBS) $(PCAP_LIBS) -Wl,--gc-sections -o $@
+		test_hardware.c $(DEVICE_SOURCES) ../src/configuration.c ../src/overlay_controls.c ../src/overlay_view.c $(SDL3_LIBS) $(PCAP_LIBS) $(GC_LDFLAGS) -o $@
 
 # Core status messages/LEDs and the retired shortcut, with threaded posting.
 test-status: test_status.c ../src/notify.c ../src/gui-sdl/sdlstatusbar.c ../src/shortcut.c ../src/includes/notify.h ../config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) -ffunction-sections -fdata-sections \
-		test_status.c ../src/notify.c ../src/gui-sdl/sdlstatusbar.c ../src/shortcut.c $(SDL3_LIBS) -Wl,--gc-sections -o $@
+		test_status.c ../src/notify.c ../src/gui-sdl/sdlstatusbar.c ../src/shortcut.c $(SDL3_LIBS) $(GC_LDFLAGS) -o $@
 
 # Audio byte order, double-rate modes, activity and timing with host sound off.
 test-sound: test_sound.c ../src/snd.c ../src/includes/snd.h ../config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) -ffunction-sections -fdata-sections \
-		test_sound.c ../src/snd.c -Wl,--gc-sections -lm -o $@
+		test_sound.c ../src/snd.c $(GC_LDFLAGS) -lm -o $@
 
 # Real framebuffer conversion and PNG/TIFF writers, independent of host display.
 test-grab: test_grab.c ../src/grab.c ../src/includes/grab.h ../config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) $(PNG_CFLAGS) -ffunction-sections -fdata-sections \
-		test_grab.c ../src/grab.c -Wl,--gc-sections $(PNG_LIBS) -o $@
+		test_grab.c ../src/grab.c $(GC_LDFLAGS) $(PNG_LIBS) -o $@
 
 # Printer page replacement and finishing, including zero-width guest commands.
 test-printer: test_printer.c ../src/printer.c ../src/includes/printer.h ../config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) -ffunction-sections -fdata-sections \
-		test_printer.c -Wl,--gc-sections -o $@
+		test_printer.c $(GC_LDFLAGS) -o $@
 
 # Compile-time sanity: pulls in the core headers as compiled by the emulator.
 test-headers: test_headers.c ../config.h
