@@ -1,0 +1,8 @@
+# Autoconf treats CRLF characters inside feature lists as part of the names.
+# Keep build inputs and shell scripts portable even with core.autocrlf=true.
+/configure.ac text eol=lf
+/Makefile.am text eol=lf
+/m4/*.m4 text eol=lf
+/tests/Makefile text eol=lf
+/packaging/**/*.sh text eol=lf
+/.github/workflows/*.yml text eol=lf

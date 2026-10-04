@@ -7,8 +7,9 @@ The [interface inventory](docs/INTERFACE.md) and
 ## Implemented
 
 - Previous core, checked-in generated CPU sources and Autotools native build.
-- Firmware/resource installation, desktop integration, RPM/Debian/macOS
-  packaging scaffolding and `ditool`.
+- Firmware/resource installation, desktop integration and `ditool`.
+- GitHub CI for Debian, Fedora, Flatpak, Windows and macOS ARM/Intel;
+  version tags publish all six release packages and checksums.
 - F9 General/Media/Extensions/Advanced tabs, activity LEDs and function hints.
 - CPU clock/RAM beside the model in the hint strip; duplicate legacy status
   bar removed, with core messages routed through shared notifications.

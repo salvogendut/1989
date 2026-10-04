@@ -155,7 +155,7 @@ jobs:
           version="$(sed -n 's/^PACKAGE_VERSION = //p' Makefile)"
           sh packaging/macos/package.sh ./1989 dist/1989.app "$version"
           dist/1989.app/Contents/MacOS/ditool -h
-          lipo -verify_arch ${{ matrix.arch }} dist/1989.app/Contents/MacOS/1989
+          lipo dist/1989.app/Contents/MacOS/1989 -verify_arch ${{ matrix.arch }}
           ditto -c -k --sequesterRsrc --keepParent \
             dist/1989.app "dist/1989-${version}-macos-${{ matrix.arch }}.zip"
       - uses: actions/upload-artifact@v4
