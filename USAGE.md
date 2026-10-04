@@ -12,14 +12,23 @@ file is missing, a legacy recovery dialog asks for a replacement.
 
 To boot an OS from the ROM monitor:
 
-1. Open F9 → Media, choose a SCSI target and select a compatible disk image.
-2. Use T to select the correct SCSI type (hard disk or CD for an ISO).
+1. Open F9 → Media, choose **ID 1 System disk** and press Enter to select a compatible disk image.
+2. For an installation CD, use **ID 3 CD-ROM**. An unused ID 3 loads as CD-ROM;
+   T changes the type if the slot already has a different configuration.
 3. Choose the boot device. Confirm Save/Restart when closing F9.
 4. If only the boot preference changed, F5 explicitly requests a restart.
 
 With an OS already running, shut it down before confirming a restart or
 replacing a fixed disk. Eject/unmount removable media in the guest first.
 Closing the emulator or resetting the CPU does not perform a guest shutdown.
+To eject removable media, select its row, press **E**, then close F9 and choose
+**Save**. Ejection keeps the drive connected, needs no reset, and leaves other
+disks open. Enter loads another image. Delete disconnects the drive and requires
+a restart. Native floppy/MO drives are grouped separately from the SCSI bus.
+
+The row labels are suggested roles, not forced assignments; existing disks
+are never moved. H explains SCSI IDs versus NEXTSTEP `sdN` drive numbers.
+See the [layout and examples](docs/INTERFACE.md#scsi-layout-and-drive-numbers).
 
 ## Options
 

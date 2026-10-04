@@ -144,6 +144,7 @@ static int adv_logical_row(int row) {
 static struct {
     bool      visible;
     bool      about_visible;
+    bool      media_help_visible;
     OvSection section;
     int       row;
 
@@ -201,6 +202,22 @@ static const char *const about_lines[] = {
     "Previous 4.3 core - WinUAE 68k, Hatari, i860 by Jason Eckhardt"
 };
 #define ABOUT_LINE_COUNT ((int)(sizeof(about_lines) / sizeof(about_lines[0])))
+
+static const char *const media_help_lines[] = {
+    "NeXT SCSI layout - suggested roles, not fixed assignments",
+    "ID 1: system disk   ID 2: data disk   ID 3: CD-ROM",
+    "ID 0: alternate boot   ID 4: SCSI floppy   ID 5: spare",
+    "ID 6: extra/swap disk   ID 7: host controller (reserved)",
+    "NEXTSTEP assigns sdN in ascending order of attached IDs.",
+    "IDs 1, 2, 3, 6 become sd0, sd1, sd2, sd3 at boot.",
+    "Adding ID 0 makes it sd0 and shifts higher-ID drives.",
+    "The preview describes the next boot, not live guest names.",
+    "Native floppy and MO drives use separate controllers.",
+    "Enter loads/replaces. E ejects media, keeping its drive.",
+    "Del disconnects a drive and requires a restart.",
+    "Eject/unmount in NeXT first. Eject applies on Save, no reset."
+};
+#define MEDIA_HELP_LINE_COUNT ((int)(sizeof(media_help_lines) / sizeof(media_help_lines[0])))
 
 /* ------------------------------------------------------------------ */
 /* helpers                                                             */
@@ -265,12 +282,6 @@ static const char *boot_string(char *buf, size_t size) {
     return buf;
 }
 
-static const char *scsi_label(int i) {
-    static char buf[32];
-    snprintf(buf, sizeof(buf), "SCSI %d", i);
-    return buf;
-}
-
 /* Elide the leading directories of a long image path so the row hints stay
  * visible. */
 static const char *media_path(const char *path, char *buf, size_t size) {
@@ -284,52 +295,38 @@ static const char *media_path(const char *path, char *buf, size_t size) {
 }
 
 static const char *scsi_value(int i, char *buf, size_t size) {
-    if (!g_settings.draft.SCSI.target[i].bDiskInserted)
-        snprintf(buf, size, "%s [empty]%s  Enter=load N=new",
-                 g_settings.draft.SCSI.target[i].nDeviceType == SD_CD ? "CD" :
-                 g_settings.draft.SCSI.target[i].nDeviceType == SD_FLOPPY ? "FLOPPY" : "DISK",
-                 g_settings.draft.SCSI.target[i].bWriteProtected ? " [WP]" : "");
-    else {
-        char pbuf[64];
-        const char *type = g_settings.draft.SCSI.target[i].nDeviceType == SD_CD
-                           ? "CD" :
-                           g_settings.draft.SCSI.target[i].nDeviceType == SD_FLOPPY
-                           ? "FLOPPY" : "DISK";
-        snprintf(buf, size, "%s %s%s  Enter=eject, Del=clear", type,
-                 media_path(g_settings.draft.SCSI.target[i].szImageName[0]
-                    ? g_settings.draft.SCSI.target[i].szImageName : "(unnamed)",
-                    pbuf, sizeof(pbuf)),
-                 g_settings.draft.SCSI.target[i].bWriteProtected ? " [WP]" : "");
-    }
+    const SCSIDISK *disk = &g_settings.draft.SCSI.target[i];
+    SCSI_DEVTYPE device = OverlayMedia_ScsiType(&g_settings.draft, i);
+    const char *type = device == SD_CD ? "CD-ROM" : device == SD_FLOPPY ? "SCSI floppy" : "HDD";
+    char pbuf[64];
+    if (disk->nDeviceType == SD_NONE || (device == SD_HARDDISK && !disk->bDiskInserted))
+        snprintf(buf, size, "Not connected - load as %s", type);
+    else
+        snprintf(buf, size, "%s [%s]  %s", type,
+                 disk->bWriteProtected || device == SD_CD ? "read-only" : "read/write",
+                 disk->bDiskInserted ? media_path(disk->szImageName, pbuf, sizeof(pbuf)) : "[empty drive]");
+    return buf;
+}
+
+static const char *removable_value(bool connected, bool inserted, bool protected,
+                                   const char *path, char *buf, size_t size) {
+    char pbuf[64];
+    if (!connected) snprintf(buf, size, "Not connected - load to attach");
+    else snprintf(buf, size, "[%s]  %s", protected ? "read-only" : "read/write",
+                  inserted ? media_path(path, pbuf, sizeof(pbuf)) : "[empty drive]");
     return buf;
 }
 
 static const char *floppy_value(int i, char *buf, size_t size) {
-    if (!g_settings.draft.Floppy.drive[i].bDiskInserted)
-        snprintf(buf, size, "[empty]  Enter=load, N=new, Del=clear");
-    else {
-        char pbuf[64];
-        snprintf(buf, size, "%s%s  Enter=eject, Del=clear",
-                 media_path(g_settings.draft.Floppy.drive[i].szImageName[0]
-                    ? g_settings.draft.Floppy.drive[i].szImageName : "(unnamed)",
-                    pbuf, sizeof(pbuf)),
-                 g_settings.draft.Floppy.drive[i].bWriteProtected ? " [WP]" : "");
-    }
-    return buf;
+    const FLPDISK *disk = &g_settings.draft.Floppy.drive[i];
+    return removable_value(disk->bDriveConnected, disk->bDiskInserted,
+                           disk->bWriteProtected, disk->szImageName, buf, size);
 }
 
 static const char *mo_value(int i, char *buf, size_t size) {
-    if (!g_settings.draft.MO.drive[i].bDiskInserted)
-        snprintf(buf, size, "[empty]  Enter=load, N=new, Del=clear");
-    else {
-        char pbuf[64];
-        snprintf(buf, size, "%s%s  Enter=eject, Del=clear",
-                 media_path(g_settings.draft.MO.drive[i].szImageName[0]
-                    ? g_settings.draft.MO.drive[i].szImageName : "(unnamed)",
-                    pbuf, sizeof(pbuf)),
-                 g_settings.draft.MO.drive[i].bWriteProtected ? " [WP]" : "");
-    }
-    return buf;
+    const MODISK *disk = &g_settings.draft.MO.drive[i];
+    return removable_value(disk->bDriveConnected, disk->bDiskInserted,
+                           disk->bWriteProtected, disk->szImageName, buf, size);
 }
 
 static const char *tablet_string(char *buf, size_t size) {
@@ -381,6 +378,12 @@ static OvDialogKind media_row_dialog(int row) {
  * created. */
 static const OvNewSize *overlay_new_sizes(OvDialogKind kind, int *count) {
     if (kind >= OV_DIALOG_SCSI0 && kind <= OV_DIALOG_SCSI6) {
+        SCSI_DEVTYPE type = OverlayMedia_ScsiType(&g_settings.draft, kind - OV_DIALOG_SCSI0);
+        if (type == SD_CD) return NULL;
+        if (type == SD_FLOPPY) {
+            *count = (int)(sizeof(new_floppy_sizes) / sizeof(new_floppy_sizes[0]));
+            return new_floppy_sizes;
+        }
         *count = (int)(sizeof(new_scsi_sizes) / sizeof(new_scsi_sizes[0]));
         return new_scsi_sizes;
     }
@@ -403,14 +406,10 @@ static void overlay_new_media(void) {
     if (g_ov.section != OV_MEDIA)
         return;
     kind = media_row_dialog(g_ov.row);
-    if (kind >= OV_DIALOG_SCSI0 && kind <= OV_DIALOG_SCSI6 &&
-        (g_settings.draft.SCSI.target[kind - OV_DIALOG_SCSI0].nDeviceType == SD_CD ||
-         g_settings.draft.SCSI.target[kind - OV_DIALOG_SCSI0].nDeviceType == SD_FLOPPY)) {
-        notify_post("CHOOSE A HARD DISK TYPE TO CREATE A BLANK IMAGE");
+    if (!overlay_new_sizes(kind, &count)) {
+        if (kind != OV_DIALOG_NONE) notify_post("LOAD AN EXISTING CD IMAGE, OR USE T TO CHANGE DRIVE TYPE");
         return;
     }
-    if (!overlay_new_sizes(kind, &count))
-        return;
     g_ov.choice_visible = true;
     g_ov.choice_kind = kind;
     g_ov.choice_index = 0;
@@ -515,25 +514,7 @@ static void overlay_activate(void) {
                 b = (BOOT_DEVICE)(((int)b + 1) % 5);
                 g_settings.draft.Boot.nBootDevice = b;
                 notify_post("BOOT DEVICE SELECTED FOR THE NEXT BOOT");
-            } else if (g_ov.row >= MED_SCSI0 && g_ov.row <= MED_SCSI6) {
-                int i = g_ov.row - MED_SCSI0;
-                if (g_settings.draft.SCSI.target[i].bDiskInserted)
-                    OverlayMedia_Set(&g_settings.draft, OV_DIALOG_SCSI0 + i, NULL);
-                else
-                    OverlayMedia_Request((OvDialogKind)(OV_DIALOG_SCSI0 + i), &g_edit_ui, 0);
-            } else if (g_ov.row >= MED_FLOPPY0 && g_ov.row <= MED_FLOPPY1) {
-                int i = g_ov.row - MED_FLOPPY0;
-                if (g_settings.draft.Floppy.drive[i].bDiskInserted)
-                    OverlayMedia_Set(&g_settings.draft, OV_DIALOG_FLOPPY0 + i, NULL);
-                else
-                    OverlayMedia_Request((OvDialogKind)(OV_DIALOG_FLOPPY0 + i), &g_edit_ui, 0);
-            } else if (g_ov.row >= MED_MO0 && g_ov.row <= MED_MO1) {
-                int i = g_ov.row - MED_MO0;
-                if (g_settings.draft.MO.drive[i].bDiskInserted)
-                    OverlayMedia_Set(&g_settings.draft, OV_DIALOG_MO0 + i, NULL);
-                else
-                    OverlayMedia_Request((OvDialogKind)(OV_DIALOG_MO0 + i), &g_edit_ui, 0);
-            }
+            } else OverlayMedia_Request(media_row_dialog(g_ov.row), &g_edit_ui, 0);
             break;
 
         case OV_EXTENSIONS:
@@ -662,27 +643,6 @@ static void overlay_activate(void) {
     }
 }
 
-/* Delete on a Media row clears (ejects) the attached image. */
-static void overlay_clear_media(void) {
-    if (g_ov.section != OV_MEDIA)
-        return;
-    if (g_ov.row >= MED_SCSI0 && g_ov.row <= MED_SCSI6) {
-        int i = g_ov.row - MED_SCSI0;
-        if (g_settings.draft.SCSI.target[i].bDiskInserted)
-            OverlayMedia_Set(&g_settings.draft, OV_DIALOG_SCSI0 + i, NULL);
-    } else if (g_ov.row >= MED_FLOPPY0 && g_ov.row <= MED_FLOPPY1) {
-        int i = g_ov.row - MED_FLOPPY0;
-        if (g_settings.draft.Floppy.drive[i].bDiskInserted)
-            OverlayMedia_Set(&g_settings.draft, OV_DIALOG_FLOPPY0 + i, NULL);
-    } else if (g_ov.row >= MED_MO0 && g_ov.row <= MED_MO1) {
-        int i = g_ov.row - MED_MO0;
-        if (g_settings.draft.MO.drive[i].bDiskInserted)
-            OverlayMedia_Set(&g_settings.draft, OV_DIALOG_MO0 + i, NULL);
-    } else {
-        return;
-    }
-}
-
 /* ------------------------------------------------------------------ */
 /* rendering                                                           */
 
@@ -751,6 +711,45 @@ static void overlay_render_choice(SDL_Renderer *r) {
     OverlayView_Choices(r, "New blank image: choose size", choices, count, g_ov.choice_index);
 }
 
+static void overlay_media_rows(OverlayView *view, char *hint, size_t hint_size) {
+    char label[64], value[128];
+    OverlayView_Add(view, "Next boot device", boot_string(value, sizeof(value)), g_ov.row == MED_BOOT);
+    OverlayView_Heading(view, "SCSI bus - suggested roles; actual drive types are on the right");
+    for (int id = 0; id < ESP_MAX_DEVS; id++) {
+        snprintf(label, sizeof(label), "ID %d  %s", id, OverlayMedia_ScsiRole(id));
+        OverlayView_Add(view, label, scsi_value(id, value, sizeof(value)), g_ov.row == MED_SCSI0 + id);
+    }
+    OverlayView_Add(view, "ID 7  Host controller", "Reserved - no peripheral", false);
+    OverlayView_Heading(view, "Native removable drives - separate from the SCSI bus");
+    for (int i = 0; i < 2; i++) {
+        snprintf(label, sizeof(label), "Floppy drive %d", i);
+        OverlayView_Add(view, label, floppy_value(i, value, sizeof(value)), g_ov.row == MED_FLOPPY0 + i);
+    }
+    for (int i = 0; i < 2; i++) {
+        snprintf(label, sizeof(label), "MO drive %d", i);
+        OverlayView_Add(view, label, mo_value(i, value, sizeof(value)), g_ov.row == MED_MO0 + i);
+    }
+    view->hint = "SCSI IDs are not sdN numbers. H explains drive order and suggested roles.";
+    view->footer = "Arrows=navigate  Enter=change  H=help  F9/Esc=close";
+    if (g_ov.row >= MED_SCSI0 && g_ov.row <= MED_SCSI6) {
+        int id = g_ov.row - MED_SCSI0;
+        int number = OverlayMedia_ScsiDiskNumber(&g_settings.draft, id);
+        if (number >= 0) {
+            snprintf(hint, hint_size, "Expected next boot: ID %d -> sd%d. Adding/removing lower IDs shifts drive numbers.", id, number);
+            view->hint = hint;
+        }
+        SCSI_DEVTYPE type = OverlayMedia_ScsiType(&g_settings.draft, id);
+        view->footer = type == SD_HARDDISK
+            ? "Enter=load/replace  N=new  T=type  W=protect  Del=disconnect  H=help  F9=close"
+            : type == SD_CD
+            ? "Enter=load/replace  E=eject  T=type  Del=disconnect  H=help  F9=close"
+            : "Enter=load/replace  E=eject  N=new  T=type  W=protect  Del=disconnect  H=help";
+    } else if (g_ov.row >= MED_FLOPPY0) {
+        view->hint = "Eject removes only the medium. The connected drive stays available; Save applies.";
+        view->footer = "Enter=load/replace  E=eject  N=new  W=protect  Del=disconnect  H=help  F9=close";
+    }
+}
+
 void overlay_render(SDL_Renderer *r) {
     if (g_ov.confirm_kind != OV_CONFIRM_NONE) {
         overlay_render_confirm(r);
@@ -761,6 +760,10 @@ void overlay_render(SDL_Renderer *r) {
         return;
     }
     if (!g_ov.visible) return;
+    if (g_ov.media_help_visible) {
+        OverlayView_Dialog(r, media_help_lines, MEDIA_HELP_LINE_COUNT, "OK", NULL, true);
+        return;
+    }
 
     OverlayView view = {0};
     for (int section = 0; section < OV_SECTION_COUNT; section++) {
@@ -769,7 +772,8 @@ void overlay_render(SDL_Renderer *r) {
         view.tabs[view.tab_count++] = section_name(section);
     }
     char vbuf[FILENAME_MAX + 8];
-    char s1[64], s2[64];
+    char s1[64], media_hint[128];
+    view.footer = "Arrows=navigate  Enter=change  F9/Esc=close";
 
     if (g_ov.section == OV_GENERAL) {
         OverlayView_Add(&view, "Machine", machine_name(), g_ov.row == GEN_MACHINE);
@@ -792,22 +796,7 @@ void overlay_render(SDL_Renderer *r) {
         OverlayView_Add(&view, "About", "Program details", g_ov.row == GEN_ABOUT);
         OverlayView_Add(&view, "Machine defaults", "Restore this model's hardware defaults", g_ov.row == GEN_RESET);
     } else if (g_ov.section == OV_MEDIA) {
-        OverlayView_Add(&view, "Boot device", boot_string(s1, sizeof(s1)),
-                 g_ov.row == MED_BOOT);
-        for (int i = 0; i < 7; i++) {
-            OverlayView_Add(&view, scsi_label(i),
-                     scsi_value(i, vbuf, sizeof(vbuf)), g_ov.row == MED_SCSI0 + i);
-        }
-        for (int i = 0; i < 2; i++) {
-            snprintf(s2, sizeof(s2), "Floppy %d", i);
-            OverlayView_Add(&view, s2, floppy_value(i, vbuf, sizeof(vbuf)),
-                     g_ov.row == MED_FLOPPY0 + i);
-        }
-        for (int i = 0; i < 2; i++) {
-            snprintf(s2, sizeof(s2), "Mag-opt %d", i);
-            OverlayView_Add(&view, s2, mo_value(i, vbuf, sizeof(vbuf)),
-                     g_ov.row == MED_MO0 + i);
-        }
+        overlay_media_rows(&view, media_hint, sizeof(media_hint));
     } else if (g_ov.section == OV_EXTENSIONS) {
         OverlayView_Add(&view, "NeXTdimension",
                  g_settings.draft.Dimension.board[0].bEnabled ? "On" : "Off",
@@ -890,9 +879,6 @@ void overlay_render(SDL_Renderer *r) {
                  g_ov.row == dr);
     }
 
-    view.footer = g_ov.section == OV_MEDIA
-        ? "Arrows=navigate Enter=load/eject N=new T=type W=protect Del=clear"
-        : "Arrows=navigate  Enter=change  F9/Esc=close";
     OverlayView_Draw(r, &view);
     if (g_ov.about_visible)
         OverlayView_Dialog(r, about_lines, ABOUT_LINE_COUNT, "OK", NULL, true);
@@ -933,6 +919,7 @@ void overlay_confirm_reset(void) {
 static void overlay_close_now(void) {
     OverlayMedia_Cancel();
     g_ov.about_visible = g_ov.visible = g_ov.choice_visible = false;
+    g_ov.media_help_visible = false;
     g_ov.need_reset = g_ov.need_media = false;
 }
 
@@ -1008,6 +995,11 @@ bool overlay_handle_event(const SDL_Event *ev) {
         else if (sc == SDL_SCANCODE_ESCAPE) g_ov.choice_visible = false;
         return true;
     }
+    if (g_ov.media_help_visible) {
+        if (sc == SDL_SCANCODE_RETURN || sc == SDL_SCANCODE_ESCAPE || sc == SDL_SCANCODE_H)
+            g_ov.media_help_visible = false;
+        return true;
+    }
     if (sc == SDL_SCANCODE_F9) {
         if (!g_ov.visible) {
             bool active = Main_PauseEmulation(false);
@@ -1041,12 +1033,25 @@ bool overlay_handle_event(const SDL_Event *ev) {
         case SDL_SCANCODE_UP: if (g_ov.row > 0) g_ov.row--; break;
         case SDL_SCANCODE_DOWN: if (g_ov.row < section_rows() - 1) g_ov.row++; break;
         case SDL_SCANCODE_RETURN: overlay_activate(); break;
-        case SDL_SCANCODE_DELETE: overlay_clear_media(); break;
+        case SDL_SCANCODE_DELETE:
+            if (g_ov.section == OV_MEDIA &&
+                OverlayMedia_Disconnect(&g_settings.draft, media_row_dialog(g_ov.row)))
+                notify_post("DRIVE DISCONNECT STAGED - RESTART REQUIRED");
+            break;
+        case SDL_SCANCODE_E:
+            if (g_ov.section == OV_MEDIA &&
+                OverlayMedia_Eject(&g_settings.draft, media_row_dialog(g_ov.row)))
+                notify_post("EJECT STAGED - DRIVE STAYS CONNECTED");
+            break;
+        case SDL_SCANCODE_H:
+            if (g_ov.section == OV_MEDIA) g_ov.media_help_visible = true;
+            break;
         case SDL_SCANCODE_N: overlay_new_media(); break;
         case SDL_SCANCODE_T:
             if (g_ov.section == OV_MEDIA && g_ov.row >= MED_SCSI0 && g_ov.row <= MED_SCSI6) {
                 SCSIDISK *disk = &g_settings.draft.SCSI.target[g_ov.row - MED_SCSI0];
-                disk->nDeviceType = disk->nDeviceType == SD_FLOPPY ? SD_HARDDISK : disk->nDeviceType + 1;
+                SCSI_DEVTYPE type = OverlayMedia_ScsiType(&g_settings.draft, g_ov.row - MED_SCSI0);
+                disk->nDeviceType = type == SD_FLOPPY ? SD_HARDDISK : type + 1;
                 if (disk->nDeviceType == SD_CD) disk->bWriteProtected = true;
             }
             break;
@@ -1056,7 +1061,8 @@ bool overlay_handle_event(const SDL_Event *ev) {
                 bool *protect = NULL;
                 if (kind >= OV_DIALOG_SCSI0 && kind <= OV_DIALOG_SCSI6) {
                     SCSIDISK *disk = &g_settings.draft.SCSI.target[kind - OV_DIALOG_SCSI0];
-                    if (disk->nDeviceType != SD_CD) protect = &disk->bWriteProtected;
+                    if (OverlayMedia_ScsiType(&g_settings.draft, kind - OV_DIALOG_SCSI0) != SD_CD)
+                        protect = &disk->bWriteProtected;
                 } else if (kind == OV_DIALOG_FLOPPY0 || kind == OV_DIALOG_FLOPPY1)
                     protect = &g_settings.draft.Floppy.drive[kind - OV_DIALOG_FLOPPY0].bWriteProtected;
                 else if (kind == OV_DIALOG_MO0 || kind == OV_DIALOG_MO1)

@@ -67,8 +67,15 @@ While the overlay is open, use Left/Right to switch tabs, Up/Down to select
 a row and Enter to change a draft setting. Esc or F9 opens Save/Discard.
 Esc in that confirmation returns to editing. Hardware and fixed-disk
 changes require explicit restart confirmation; boot options apply next boot.
-In Media, T changes SCSI type, W changes write protection, N creates a blank
-image and Delete clears media. Existing images are never overwritten.
+In Media, Enter loads or replaces an image. E ejects removable media on Save
+without disconnecting the drive or resetting the machine. Delete disconnects
+the drive and requires restart confirmation. T changes SCSI type, W changes
+write protection, N creates a blank image, and H explains SCSI roles and
+NEXTSTEP drive numbering. Existing images are never overwritten.
+.PP
+The suggested layout uses ID 1 for the system disk and ID 3 for CD-ROM;
+ID 7 is reserved for the host controller. Existing assignments are preserved.
+Native floppy and magneto-optical drives use separate controllers.
 .SH FILES
 .TP
 .I ~/.config/1989/1989.conf

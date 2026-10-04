@@ -51,10 +51,17 @@ void OverlayView_Add(OverlayView *view, const char *label, const char *value, bo
     snprintf(row->label, sizeof(row->label), "%s", label);
     snprintf(row->value, sizeof(row->value), "%s", value ? value : "");
     row->selected = selected;
+    row->heading = false;
+}
+
+void OverlayView_Heading(OverlayView *view, const char *title) {
+    if (view->row_count >= OVERLAY_MAX_ROWS) return;
+    OverlayView_Add(view, title, NULL, false);
+    view->rows[view->row_count - 1].heading = true;
 }
 
 void OverlayView_Draw(SDL_Renderer *r, const OverlayView *view) {
-    int w, h, panel_h = 48 + view->row_count * LINE_H + 42;
+    int w, h, panel_h = 48 + view->row_count * LINE_H + 42 + (view->hint ? LINE_H : 0);
     if (!begin(r, 860, SDL_max(panel_h + 8, 510), &w, &h)) return;
     int panel_w = SDL_min(w - 20, 840);
     panel(r, (SDL_FRect){ 8, 8, (float)panel_w, (float)panel_h });
@@ -71,6 +78,14 @@ void OverlayView_Draw(SDL_Renderer *r, const OverlayView *view) {
     for (int i = 0; i < view->row_count; i++) {
         const OverlayRow *row = &view->rows[i];
         float y = 48 + i * LINE_H;
+        if (row->heading) {
+            SDL_SetRenderDrawColor(r, 0x30, 0x40, 0x60, 255);
+            SDL_FRect rect = { 10, y, (float)panel_w - 4, LINE_H - 3 };
+            SDL_RenderFillRect(r, &rect);
+            SDL_SetRenderDrawColor(r, 170, 195, 230, 255);
+            SDL_RenderDebugText(r, 20, y + 2, row->label);
+            continue;
+        }
         if (row->selected) {
             SDL_SetRenderDrawColor(r, 0x80, 0x60, 0x20, 255);
             SDL_FRect rect = { 10, y, (float)panel_w - 4, LINE_H - 4 };
@@ -87,6 +102,7 @@ void OverlayView_Draw(SDL_Renderer *r, const OverlayView *view) {
         SDL_RenderDebugText(r, VALUE_X, y, shown);
     }
     SDL_SetRenderDrawColor(r, 170, 170, 170, 255);
+    if (view->hint) SDL_RenderDebugText(r, 20, panel_h - 40, view->hint);
     SDL_RenderDebugText(r, 20, panel_h - 20, view->footer);
     finish(r);
 }

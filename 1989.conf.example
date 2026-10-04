@@ -58,12 +58,16 @@ nRomCustomMac4 = 0
 nRomCustomMac5 = 0
 
 [HardDisk]
-# SCSI target images (sd, raw, ISO/ECC optical disk images)
-szImageName0 =
-nDeviceType0 = 0
-bDiskInserted0 = 0
-bWriteProtected0 = 0
-# ... targets 1..6 follow the same pattern
+# SCSI target IDs: 1 system HDD, 2 data, 3 CD-ROM, 4 SCSI floppy,
+# 0 alternate boot, 5 spare, 6 extra/swap. ID 7 is the host controller.
+# Type: 0 disconnected, 1 HDD, 2 CD-ROM, 3 SCSI floppy.
+# Example system slot, left disconnected until an image is selected:
+szImageName1 =
+nDeviceType1 = 0
+bDiskInserted1 = 0
+bWriteProtected1 = 0
+# Other target IDs use the same keys with their ID suffix, never an sdN number.
+# MO/ECC images belong in [MO], not in a SCSI CD-ROM slot.
 
 [Floppy]
 # 720 KiB, 1.44 MiB or 2.88 MiB raw floppy images

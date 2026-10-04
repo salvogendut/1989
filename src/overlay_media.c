@@ -7,6 +7,60 @@
 #include <SDL3/SDL.h>
 #include <string.h>
 
+const char *OverlayMedia_ScsiRole(int id) {
+    static const char *const roles[ESP_MAX_DEVS] = {
+        "Alternate boot", "System disk", "Data disk", "CD-ROM",
+        "External floppy", "Spare device", "Extra / swap disk"
+    };
+    return id >= 0 && id < ESP_MAX_DEVS ? roles[id] : "Host controller";
+}
+
+SCSI_DEVTYPE OverlayMedia_ScsiType(const CNF_PARAMS *p, int id) {
+    if (id < 0 || id >= ESP_MAX_DEVS) return SD_NONE;
+    SCSI_DEVTYPE type = p->SCSI.target[id].nDeviceType;
+    if (type != SD_NONE) return type;
+    return id == 3 ? SD_CD : id == 4 ? SD_FLOPPY : SD_HARDDISK;
+}
+
+static bool scsi_attached(const SCSIDISK *disk) {
+    return disk->nDeviceType != SD_NONE &&
+           (disk->nDeviceType != SD_HARDDISK || disk->bDiskInserted);
+}
+
+int OverlayMedia_ScsiDiskNumber(const CNF_PARAMS *p, int id) {
+    if (id < 0 || id >= ESP_MAX_DEVS || !scsi_attached(&p->SCSI.target[id]))
+        return -1;
+    int number = 0;
+    for (int i = 0; i < id; i++)
+        if (scsi_attached(&p->SCSI.target[i])) number++;
+    return number;
+}
+
+bool OverlayMedia_Eject(CNF_PARAMS *p, OvDialogKind kind) {
+    if (kind >= OV_DIALOG_SCSI0 && kind <= OV_DIALOG_SCSI6) {
+        SCSI_DEVTYPE type = p->SCSI.target[kind - OV_DIALOG_SCSI0].nDeviceType;
+        if (type != SD_CD && type != SD_FLOPPY) {
+            notify_post("EJECT IS FOR REMOVABLE MEDIA; DEL DISCONNECTS A FIXED DISK");
+            return false;
+        }
+    } else if (kind < OV_DIALOG_FLOPPY0 || kind > OV_DIALOG_MO1) {
+        return false;
+    }
+    return OverlayMedia_Set(p, kind, NULL);
+}
+
+bool OverlayMedia_Disconnect(CNF_PARAMS *p, OvDialogKind kind) {
+    if (kind < OV_DIALOG_SCSI0 || kind > OV_DIALOG_MO1) return false;
+    if (!OverlayMedia_Set(p, kind, NULL)) return false;
+    if (kind <= OV_DIALOG_SCSI6)
+        p->SCSI.target[kind - OV_DIALOG_SCSI0].nDeviceType = SD_NONE;
+    else if (kind <= OV_DIALOG_FLOPPY1)
+        p->Floppy.drive[kind - OV_DIALOG_FLOPPY0].bDriveConnected = false;
+    else
+        p->MO.drive[kind - OV_DIALOG_MO0].bDriveConnected = false;
+    return true;
+}
+
 static SDL_SpinLock request_lock;
 static struct {
     bool busy, ready, cancelled;
@@ -94,7 +148,9 @@ bool OverlayMedia_Set(CNF_PARAMS *p, OvDialogKind kind, const char *path) {
     if (kind >= OV_DIALOG_SCSI0 && kind <= OV_DIALOG_SCSI6) {
         SCSIDISK *d = &p->SCSI.target[kind - OV_DIALOG_SCSI0];
         if (!inserted && d->nDeviceType == SD_HARDDISK) d->nDeviceType = SD_NONE;
-        if (inserted && d->nDeviceType == SD_NONE) d->nDeviceType = SD_HARDDISK;
+        if (inserted && d->nDeviceType == SD_NONE)
+            d->nDeviceType = OverlayMedia_ScsiType(p, kind - OV_DIALOG_SCSI0);
+        if (d->nDeviceType == SD_CD) d->bWriteProtected = true;
         d->bDiskInserted = inserted;
         snprintf(d->szImageName, FILENAME_MAX, "%s", inserted ? path : "");
     } else if (kind == OV_DIALOG_FLOPPY0 || kind == OV_DIALOG_FLOPPY1) {

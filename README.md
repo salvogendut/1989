@@ -21,8 +21,12 @@ optional i860-based NeXTdimension graphics board.
   without rebooting the machine. Boot options take effect on the next boot.
 - Hardware changes and fixed-disk replacement require an explicit restart
   confirmation. Removable-media changes touch only the selected drive.
-- SCSI image/type/write-protection controls, floppy and magneto-optical
-  media, native file pickers with remembered directories, and blank images.
+- Media grouped by NeXT SCSI roles, with ID 1 system disk, ID 3 CD-ROM,
+  reserved ID 7, and a next-boot `sdN` preview. Native floppy/MO drives are separate.
+- **E** stages removable-media eject without disconnecting the drive; Save
+  applies it without a reset. Enter loads/replaces; Delete disconnects with
+  restart confirmation. Native file pickers remember directories; blank-image
+  creation, device types and write protection are available in the same tab.
 - Activity LEDs, function-key hints, toast notifications, window/fullscreen
   persistence, optional CRT scanlines and framebuffer filtering.
 - **F4** PPM screenshot, **F6** GIF capture with optional FFmpeg optimization,
@@ -55,7 +59,8 @@ make -j"$(nproc)"
 Firmware images supplied with Previous are included in `roms/` and installed
 to `$(pkgdatadir)/roms`; a source-tree run finds `./roms`. See [ROMS.md](ROMS.md).
 The default machine boots the ROM monitor. To boot an OS, choose a compatible
-SCSI image and boot device in F9 → Media, then confirm the required restart.
+SCSI image at ID 1 (System disk) and boot device in F9 → Media, then confirm
+the required restart. Existing configurations can keep their current IDs.
 See [USAGE.md](USAGE.md) and [INSTALL.md](INSTALL.md).
 
 ```sh

@@ -58,9 +58,9 @@ This inventory is based on `src/gui-sdl/dlg*.c` and the F9 row/actions code.
 | Memory | Model-appropriate total-RAM presets with bank sizes displayed | Individual bank editing and RAM speed |
 | ROM | 68030, 68040 and Turbo ROM pickers in Advanced | Restore-default-path buttons |
 | Boot | Boot device in Media; DRAM test and verbose boot in Advanced | Power-on test master switch, sound/SCSI tests, test loop, extended diagnostics, diagnostic VRAM display |
-| SCSI | Seven image slots, T to cycle disk/CD/floppy type, W for per-target write protection, eject/clear, blank hard-disk creation | Legacy browser and testing-only global disk-write overlay |
-| Floppy | Drives 0/1, image selection, eject/clear, write protection, blank 720 KiB/1.44 MiB/2.88 MiB images | Explicit drive connection/disconnection switches |
-| Magneto-optical | Drives 0/1, image selection, eject/clear, write protection, blank-image creation | Explicit drive connection switches and legacy second-drive warning |
+| SCSI | Suggested roles and next-boot sdN preview; seven image slots; T disk/CD/floppy type; W protection; E eject; Delete disconnect; blank HDD/floppy images | Legacy browser and testing-only global disk-write overlay |
+| Floppy | Drives 0/1, image selection, E eject, Delete disconnect, write protection, blank 720 KiB/1.44 MiB/2.88 MiB images | Connect an empty drive without loading media |
+| Magneto-optical | Drives 0/1, image selection, E eject, Delete disconnect, write protection, blank-image creation | Connect an empty drive without media; legacy second-drive warning |
 | Graphics | First NeXTdimension board enable; fullscreen, filtering, CRT, status/title bars | Boards in slots 4/6; per-board ROM/RAM; console/display slot; separate/grouped displays and monitor arrangement |
 | Network | Connected/disconnected | SLiRP/pcap selection, host interface, twisted-pair selection, MAC address, network time, NFS shares and names |
 | Sound | Output enable in General; microphone in Extensions | No additional sound-menu toggle |
@@ -72,6 +72,42 @@ This inventory is based on `src/gui-sdl/dlg*.c` and the F9 row/actions code.
 The m68k/i860 debuggers, legacy PNG screenshots and AIFF recording remain
 available through their shortcuts. Missing-ROM/media recovery still uses
 legacy dialogs. These are separate migration tasks, not removed features.
+
+## SCSI layout and drive numbers
+
+Media labels follow the suggested assignments in [NeXT Hardware Service,
+Appendix C, page 153](https://www.nextcomputers.org/NeXTfiles/Docs/Hardware/NeXTServiceManualPages1-160_OCR.pdf).
+These are conventions, not enforced device restrictions:
+
+| SCSI ID | Suggested use |
+| --- | --- |
+| 0 | Alternate/external boot disk |
+| 1 | Internal system disk |
+| 2 | Data disk |
+| 3 | CD-ROM |
+| 4 | External SCSI floppy |
+| 5 | Spare device |
+| 6 | Extra/swap disk |
+| 7 | Host controller, reserved and not selectable |
+
+Opening Media changes nothing. Existing devices keep their IDs and types.
+When loading an unused slot, F9 suggests CD-ROM at ID 3, SCSI floppy at ID 4
+and HDD elsewhere. T overrides the type. Native floppy and MO entries use
+separate controllers; neither is SCSI ID 4 or 5.
+
+NEXTSTEP assigns drive numbers in ascending SCSI-ID order, starting at zero;
+the factory system disk was normally ID 1. This is described in [Installing
+and Configuring NEXTSTEP 3.3, “SCSI IDs and Drive Numbers,” page 7](https://bitsavers.org/pdf/next/Installing_and_Configuring_NeXTSTEP_Release_3.3_1994.pdf).
+Thus IDs 1/2/3/6 map to sd0/sd1/sd2/sd3; IDs 1/6 alone map to sd0/sd1.
+Adding ID 0 shifts higher-ID drives up. The selected-row preview uses the
+draft's connected drives, including empty removable drives, to describe the
+expected next boot; it does not read device names from the running OS.
+
+**E ejects only removable media**, preserving the drive and its SCSI ID.
+Close F9 and Save to apply it without a reset or reopening other disks.
+Enter selects a replacement image. **Delete disconnects the drive** and
+requires restart confirmation. Ejection alone does not require a restart;
+other pending hardware edits still follow the normal restart policy.
 
 ## Media creation and remaining polish
 

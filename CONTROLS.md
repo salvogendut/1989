@@ -40,11 +40,13 @@ fullscreen are restored from `1989.conf` on the next launch.
 | --- | --- |
 | Left/Right | Switch tab |
 | Up/Down | Select a row; holding the key repeats |
-| Enter | Change a setting; load/eject selected media |
-| Delete | Clear selected media |
+| Enter | Change a setting; load/replace selected media |
+| E | Eject removable media while keeping the drive connected |
+| Delete | Disconnect the selected drive; requires a restart |
 | N | Create a blank image for selected media |
 | T | Cycle selected SCSI type: hard disk, CD, floppy |
 | W | Toggle selected media's write protection; CDs stay read-only |
+| H | Media help: SCSI roles, drive numbering and eject/disconnect |
 | Esc / F9 | Close or show Save/Discard confirmation |
 
 Settings are staged in private copies while NeXT keeps running. **Save**
@@ -61,17 +63,29 @@ model's hardware defaults; it does not clear media or desktop preferences.
 
 ### Media
 
-Boot device, seven SCSI targets, two floppy and two magneto-optical entries.
+Boot device, seven SCSI targets and a separate group for native floppy/MO drives.
+SCSI rows show suggested NeXT roles: ID 1 system disk, 2 data, 3 CD-ROM,
+4 external SCSI floppy, 0 alternate boot, 5 spare and 6 extra/swap.
+ID 7 is displayed as the reserved host controller and cannot be selected.
+Existing assignments stay intact. Loading an unused ID 3 defaults to CD-ROM,
+ID 4 to SCSI floppy and other IDs to HDD; T overrides these suggestions.
+
 Boot selection is saved for the next boot and does not restart the current OS.
-File pickers remember a directory per entry. Set a SCSI type with T before
-loading an ISO or SCSI floppy image. Fixed hard-disk changes require a restart;
+File pickers remember a directory per entry. Fixed hard-disk changes require a restart;
 exchanging media in an already connected removable drive does not.
 
-Eject/unmount media inside NeXT first. Clearing a floppy or MO image leaves
-the drive connected. Selecting media for an unconnected drive connects it,
-which requires a restart. Drive-disconnection controls remain in F1.
+Eject/unmount media inside NeXT first, select the drive and press **E**, then
+close F9 and choose **Save**. This ejects only that medium without resetting
+the machine or reopening other disks. The CD, SCSI floppy, native floppy or
+MO drive stays connected and can accept another image with Enter. E does
+not remove a fixed hard disk. **Delete disconnects the drive**, which needs
+restart confirmation. Loading an unconnected drive also requires a restart.
 
-N offers blank hard-disk files of 1–32 GiB, 720 KiB/1.44 MiB/2.88 MiB floppies,
+The selected SCSI row previews its expected `sdN` number on the next boot.
+It is not a query of the running guest. H explains why adding a lower-ID
+drive shifts later numbers; see [SCSI layout](docs/INTERFACE.md#scsi-layout-and-drive-numbers).
+
+N offers blank hard-disk files of 1–32 GiB, 720 KiB/1.44 MiB/2.88 MiB native or SCSI floppies,
 and MO file-size choices. Creation never overwrites an existing file; choose
 a new name. Files need guest-side formatting, and existing files survive
 Discard. See the [MO format caveat](docs/INTERFACE.md#media-creation-and-remaining-polish).

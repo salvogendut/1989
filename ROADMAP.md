@@ -17,6 +17,8 @@ The [interface inventory](docs/INTERFACE.md) is the checklist for F1 migration.
 - PPM/GIF capture, optional FFmpeg optimization, CRT, notifications.
 - Native image/ROM pickers, SCSI type and media protection, exclusive sparse
   blank-image creation, and tests for edit/apply/file-picker boundaries.
+- Media roles matching NeXT's suggested SCSI layout, next-boot drive-number
+  preview, separate native drives, and explicit eject versus disconnect.
 
 ## Next interface work
 

@@ -27,7 +27,7 @@ changes contained so upstream fixes remain practical to merge.
 | --- | --- |
 | `overlay.c` | Sections/rows, keyboard navigation, edit-session and confirmation flow |
 | `overlay_view.c` | Stateless SDL drawing of copied rows, tabs, choices and dialogs; no device/configuration calls |
-| `overlay_media.c` | Native-picker handoff, media draft updates, image validation and exclusive sparse-file creation |
+| `overlay_media.c` | Suggested SCSI roles/types, next-boot drive-number preview, native-picker handoff, eject/disconnect draft updates, image validation and exclusive sparse-file creation |
 | `ui_config.c` | Load/save/apply `[UI89]` desktop preferences |
 | `settings.c` | Private machine draft, merge with live state, restart policy and per-target media application |
 | `change.c` | Apply configuration to runtime subsystems; shared by F9 and the legacy dialog |
@@ -45,6 +45,10 @@ their own subsystems. Machine hardware and fixed-disk changes require explicit
 confirmation. Live removable-media changes call the selected drive's
 insert/eject functions; never reset every storage controller to apply one image.
 The legacy dialog stages media as well and uses this same application path.
+Media role suggestions apply only when loading an unused SCSI slot; they do
+not initialize drives on panel open or migrate existing configurations.
+Eject retains the device type/connection, while disconnect removes it and
+uses the hardware restart path. Native floppy/MO entries do not consume SCSI IDs.
 
 Native file callbacks publish a result under an SDL spinlock and hold no
 pointer to an edit session. Only one request may be outstanding. Closing the

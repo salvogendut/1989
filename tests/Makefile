@@ -27,7 +27,7 @@ test-settings: test_settings.c ui_test_support.c ui_test_support.h ../src/settin
 
 UI_SOURCES = ../src/overlay.c ../src/overlay_view.c ../src/overlay_media.c ../src/settings.c ../src/change.c
 
-test-overlay: test_overlay.c ui_test_support.c ui_test_support.h $(UI_SOURCES) ../src/includes/overlay.h ../src/includes/settings.h ../config.h
+test-overlay: test_overlay.c ui_test_support.c ui_test_support.h $(UI_SOURCES) ../src/includes/overlay.h ../src/includes/overlay_media.h ../src/includes/overlay_view.h ../src/includes/settings.h ../config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) -DTEST_OVERLAY -ffunction-sections -fdata-sections \
 		test_overlay.c ui_test_support.c $(UI_SOURCES) $(SDL3_LIBS) -Wl,--gc-sections -o $@
 
