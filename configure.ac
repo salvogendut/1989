@@ -36,9 +36,11 @@ PKG_CHECK_MODULES([PCAP], [libpcap],
          PCAP_LIBS="-lpcap"],
         [:])])
 AC_CHECK_HEADERS([readline/readline.h])
-AC_CHECK_LIB([readline], [readline],
+PKG_CHECK_MODULES([READLINE], [readline],
     [AC_DEFINE([HAVE_LIBREADLINE], [1], [Define if you have a readline compatible library])],
-    [:])
+    [AC_CHECK_LIB([readline], [readline],
+        [AC_DEFINE([HAVE_LIBREADLINE], [1], [Define if you have a readline compatible library])
+         READLINE_LIBS="-lreadline"], [:])])
 
 # ffmpeg - optional. Enables the post-capture GIF optimization pass selected
 # with the "GIF encoder" option. The binary path is hardcoded as FFMPEG_PATH
@@ -56,14 +58,14 @@ AS_IF([test -n "$FFMPEG"],
       [AC_MSG_NOTICE([GIF optimization: disabled (no ffmpeg found)])])
 
 # Headers
-AC_CHECK_HEADERS([byteswap.h strings.h sys/time.h sys/xattr.h arpa/inet.h \
-                  netinet/in.h sys/ioctl.h sys/select.h sys/signal.h sys/stat.h \
-                  sys/stropts.h sys/types.h sys/utime.h sys/wait.h sys/filio.h \
+AC_CHECK_HEADERS([byteswap.h strings.h sys/time.h sys/xattr.h arpa/inet.h
+                  netinet/in.h sys/ioctl.h sys/select.h sys/signal.h sys/stat.h
+                  sys/stropts.h sys/types.h sys/utime.h sys/wait.h sys/filio.h
                   unistd.h utime.h values.h stdint.h stdlib.h string.h])
 
 # Functions
-AC_CHECK_FUNCS([setenv select gettimeofday nanosleep strerror \
-                alphasort scandir fseeko ftello flock strdup \
+AC_CHECK_FUNCS([setenv select gettimeofday nanosleep strerror
+                alphasort scandir fseeko ftello flock strdup
                 lsetxattr lgetxattr posix_memalign aligned_alloc])
 
 # Previous uses the combined HAVE_LXETXATTR to select the portable 5-argument
@@ -113,7 +115,7 @@ case $host_os in
     AC_CHECK_TOOL([WINDRES], [windres], [windres])
     os_windows=yes
     WIN_RC_OBJ="icons/1989-rc.o"
-    WIN_LIBS="-lws2_32"
+    WIN_LIBS="-lws2_32 -liphlpapi -lshell32"
     ;;
   *)
     WIN_RC_OBJ=""

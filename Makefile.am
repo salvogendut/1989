@@ -376,7 +376,7 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/gui-sdl \
 	-I$(top_builddir)
 
-1989_CPPFLAGS = $(AM_CPPFLAGS) $(SDL3_CFLAGS) $(PNG_CFLAGS) $(PCAP_CFLAGS)
+1989_CPPFLAGS = $(AM_CPPFLAGS) $(SDL3_CFLAGS) $(PNG_CFLAGS) $(PCAP_CFLAGS) $(READLINE_CFLAGS)
 1989_CFLAGS = $(AM_CFLAGS) -Wall -Wextra \
 	-Wno-unused-variable -Wno-unused-function -Wno-unused-label \
 	-Wno-sign-compare -Wno-implicit-fallthrough -Wno-conversion \
@@ -390,7 +390,7 @@ AM_CPPFLAGS = \
 	-DROM_INSTALL_DIR=\"$(pkgdatadir)/roms\" \
 	-DCONFDIR=\"$(sysconfdir)\" \
 	-DPROG_GIT_COMMIT=\"$(PROG_GIT_COMMIT)\"
-1989_LDADD = $(SDL3_LIBS) $(PNG_LIBS) $(PCAP_LIBS) -lm $(MAC_LIBS) $(WIN_LIBS) $(WIN_RC_OBJ)
+1989_LDADD = $(SDL3_LIBS) $(PNG_LIBS) $(PCAP_LIBS) $(READLINE_LIBS) -lm $(MAC_LIBS) $(WIN_LIBS) $(WIN_RC_OBJ)
 1989_DEPENDENCIES = $(WIN_RC_OBJ)
 
 ditool_CPPFLAGS = -I$(top_srcdir)/src/ditool -I$(top_srcdir)/src/includes \
@@ -449,6 +449,7 @@ EXTRA_DIST = LICENSE README.md ROMS.md Development.md USAGE.md CONTROLS.md INSTA
 	ROADMAP.md docs/STATUS.md docs/INTERFACE.md docs/UPSTREAM.md docs/ROMV66-0001E-02588.ASM \
 	1989.conf.example 1989.spec 1989.png 1989-logo.png \
 	roms/README \
+	icons/1989.rc icons/1989.ico \
 	tools/regenerate-cpu.sh src/cpu/build68k.c src/cpu/gencpu.c src/cpu/table68k \
 	src/cpu/winuae_readme.txt \
 	src/dimension/i860dec.cpp src/dimension/i860dbg.cpp \

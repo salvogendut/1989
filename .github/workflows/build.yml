@@ -112,9 +112,10 @@ jobs:
             automake
       - name: Configure and build
         run: |
+          git config --global --add safe.directory "$(pwd -W)"
           autoreconf -iv
           ./configure --without-ffmpeg
-          make -j$(nproc)
+          make -k -j$(nproc)
       - name: Stage portable bundle
         run: |
           sh packaging/windows/package.sh dist/windows
