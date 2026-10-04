@@ -22,13 +22,14 @@ static void touch(const char *path)
 int main(void)
 {
     char temporary[] = "/tmp/1989-rom-paths-XXXXXX";
-    char oldcwd[FILENAME_MAX], result[FILENAME_MAX];
+    char oldcwd[FILENAME_MAX], result[FILENAME_MAX], resolved[FILENAME_MAX];
     assert(getcwd(oldcwd, sizeof(oldcwd)));
     assert(mkdtemp(temporary));
-    char *resources = File_MakePath(temporary, "bundle resources", NULL);
+    assert(realpath(temporary, resolved)); /* /tmp is a symlink on macOS. */
+    char *resources = File_MakePath(resolved, "bundle resources", NULL);
     char *roms = File_MakePath(resources, "roms", NULL);
-    char *installed = File_MakePath(temporary, "installed", NULL);
-    char *local = File_MakePath(temporary, "roms", NULL);
+    char *installed = File_MakePath(resolved, "installed", NULL);
+    char *local = File_MakePath(resolved, "roms", NULL);
     assert(mkdir(resources, 0700) == 0);
     assert(mkdir(roms, 0700) == 0);
     assert(mkdir(installed, 0700) == 0);
