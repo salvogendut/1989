@@ -155,6 +155,10 @@ static bool folder_kind(OvDialogKind kind) {
 }
 
 bool OverlayMedia_Request(OvDialogKind kind, const UI89Config *ui, long long size) {
+#ifdef __EMSCRIPTEN__
+    (void)kind; (void)ui; (void)size;
+    return false; /* Browser file selection is provided by the HTML shell. */
+#else
     static const SDL_DialogFileFilter filters[] = {
         { "NeXT images", "sd;SD;fd;FD;dsk;DSK;img;IMG;bin;BIN;iso;ISO;od;OD" },
         { "All files", "*" }
@@ -177,6 +181,7 @@ bool OverlayMedia_Request(OvDialogKind kind, const UI89Config *ui, long long siz
     else
         SDL_ShowOpenFileDialog(selected, NULL, sdlWindow, filters, 2, dir, false);
     return true;
+#endif
 }
 
 void OverlayMedia_Cancel(void) {

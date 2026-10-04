@@ -58,8 +58,11 @@ The [interface inventory](docs/INTERFACE.md) and
 - Validate a usable NeXTstep desktop and disk operations across machine
   variants; component tests alone do not establish OS compatibility.
 - Grow ROM, CPU and device integration tests.
-- Browser/Emscripten frontend (`web/` is currently a placeholder).
-- Flatpak manifest and continuous integration builds.
+- Browser/Emscripten frontend: [issue #3](https://github.com/salvogendut/1989/issues/3)
+  and [browser build documentation](web/README.md). ROM startup, shared themes,
+  the NeXT enclosure, monitor/keyboard logos, input, and four media slots with
+  independent eject/session export are implemented. Remaining: real NEXTSTEP
+  validation, larger persistent images, audio, browser recovery and deployment.
 
 ## Upstream alignment
 

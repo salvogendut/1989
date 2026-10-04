@@ -464,6 +464,12 @@ EXTRA_DIST = LICENSE README.md ROMS.md Development.md USAGE.md CONTROLS.md INSTA
 	src/ditool_cpp/VirtualFS.h \
 	packaging/debian/build-deb.sh packaging/macos/package.sh packaging/windows/package.sh \
 	packaging/io.github.salvogendut.Emulator1989.yml \
-	web/README.md \
+	web/README.md web/Makefile web/config.h web/web_host.h web/web_host.c \
+	web/assemble.py web/serve.py web/app.js web/shell.js web/keyboard.js web/media.js web/models.js \
+	web/runtime.css web/package.json web/package-lock.json web/test-unit.js web/test-browser.js \
+	web/preview/index.html web/preview/preview.css web/preview/preview.js \
+	web/preview/themes/theme-retro-crt.css web/preview/themes/theme-sapporo.css \
+	web/preview/themes/theme-sapporo-dark.css web/preview/themes/preview-controls.css \
+	POC/IllustratorScreenshot.jpg \
 	tests/Makefile tests/test_str.c tests/test_headers.c tests/test_capture.c tests/test_paste.c tests/test_settings.c tests/test_overlay.c tests/test_devices.c tests/test_input_media.c tests/test_scsi.c tests/test_recovery.c tests/pcap_test_support.c tests/stubs/pcap.h \
 	tests/ui_test_support.c tests/ui_test_support.h tests/test_hardware.c tests/test_status.c tests/test_sound.c tests/test_grab.c tests/test_printer.c tests/test_rom_paths.c

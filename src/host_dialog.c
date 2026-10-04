@@ -46,6 +46,11 @@ static void SDLCALL picked(void *unused, const char *const *files, int filter) {
 }
 
 HostPickResult HostDialog_Pick(char *path, size_t size, bool folder) {
+#ifdef __EMSCRIPTEN__
+    /* Browser file selection is asynchronous and belongs to the HTML shell. */
+    (void)path; (void)size; (void)folder;
+    return HOST_PICK_ERROR;
+#else
     if (bQuitProgram) return HOST_PICK_QUIT;
     SDL_LockSpinlock(&picker_lock);
     if (picker.busy && !picker.ready) {
@@ -85,4 +90,5 @@ HostPickResult HostDialog_Pick(char *path, size_t size, bool folder) {
 #endif
     }
     return HOST_PICK_QUIT;
+#endif
 }

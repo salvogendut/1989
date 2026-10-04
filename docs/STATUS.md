@@ -41,12 +41,16 @@ See [upstream integration details](UPSTREAM.md).
 - The build system is autotools (the upstream build is CMake). Generated CPU
   sources are checked in, so no codegen step is required.
 - `ditool` (NeXT disk image tool) builds alongside the emulator.
-- A browser/WASM frontend is planned; `web/` is a placeholder.
+- The experimental [SDL3/WASM frontend](../web/README.md) offers all seven models
+  before startup, locks the model while running, boots the ROM monitor,
+  accepts keyboard input, and provides model-aware media slots with independent eject
+  and session-image downloads. Full NEXTSTEP validation and persistent storage
+  remain open; sound/networking are disabled in the browser profile.
 
 ## Desktop status
 
-F9 is the primary settings UI; F1 and missing-file recovery still use the
-legacy dialogs. See [interface coverage and apply rules](INTERFACE.md) for
+F9 is the primary desktop settings UI. F1 is retired and missing-file recovery
+uses native host dialogs. See [interface coverage and apply rules](INTERFACE.md) for
 the complete migration inventory. Settings/application tests cover reset
 classification and per-drive media changes; OS/disk compatibility still
 requires testing with a running NeXTstep guest.
