@@ -108,7 +108,9 @@ They do not replace testing a running NeXTstep installation.
 
 Native integration, the shared desktop UI and legacy-menu retirement are
 implemented; guest compatibility validation is ongoing. The browser frontend is
-planned; `web/` is a placeholder. [Issue #1](https://github.com/salvogendut/1989/issues/1)
+planned in [issue #3](https://github.com/salvogendut/1989/issues/3); see the
+[WebAssembly brief](web/README.md) for its NeXT theme, keyboard and media scope.
+[Issue #1](https://github.com/salvogendut/1989/issues/1)
 records the completed F1 retirement. [Development.md](Development.md) describes
 the module boundaries and [ROADMAP.md](ROADMAP.md) tracks remaining work.
 Generated CPU sources are checked in; no CPU code-generation step is needed.

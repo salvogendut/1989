@@ -58,8 +58,10 @@ The [interface inventory](docs/INTERFACE.md) and
 - Validate a usable NeXTstep desktop and disk operations across machine
   variants; component tests alone do not establish OS compatibility.
 - Grow ROM, CPU and device integration tests.
-- Browser/Emscripten frontend (`web/` is currently a placeholder).
-- Flatpak manifest and continuous integration builds.
+- Browser/Emscripten frontend: [issue #3](https://github.com/salvogendut/1989/issues/3)
+  and the [browser implementation brief](web/README.md). Reuse 1984's shared
+  themes with a NeXT hardware theme, 1989 monitor logo, collapsible NeXT
+  keyboard, and SCSI disk/CD-ROM plus native floppy/MO media controls.
 
 ## Upstream alignment
 
