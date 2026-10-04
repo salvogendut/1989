@@ -92,7 +92,9 @@ nHostInterface = 0
 szInterfaceName =
 bNetworkTime = 0
 # NFS directory/name keys are szNFSPathName0..3 and szNFSHostName0..3.
-# Keep the generated first share path or select a valid directory in F1.
+# Choose export folders in F9 > Extensions > Network / NFS (SLiRP only).
+# Share 0 keeps the name nfs; additional names are unique DNS labels.
+# Unmount in the guest before changing/removing an export.
 
 [Sound]
 bEnableSound = 1
@@ -104,6 +106,8 @@ bEnableMicrophone = 1
 nFileFormat = 0
 
 [Screen]
+# F9 > Advanced > NeXTdimension / displays (enable Tinker in General).
+# Modes: 0 = single, 1 = separate windows, 2 = grouped (at least two displays).
 nMode = 0
 nGroupModePos0 = 0
 nGroupModePos1 = -1

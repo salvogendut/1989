@@ -115,8 +115,23 @@ mapping and automatic mouse capture. Imported custom sensitivity values are
 shown and preserved until edited; exact numeric entry and shortcut remapping
 remain in F1. Ctrl+Enter still releases the mouse.
 
-Only NeXTdimension requires a machine restart here. Other changes apply on
-Save; Discard and cancelled folder selections leave the runtime unchanged.
+**Network / NFS** opens a detail page for SLiRP/PCAP, PCAP host interface,
+thinwire/twisted-pair cable, network time, ROM/custom MAC and four NFS exports.
+PCAP is selectable only when compiled in; Enter cycles available interfaces.
+The 68030 Cube uses thinwire. NFS and network time are SLiRP features.
+Share 0 is always named `nfs`; shares 1–3 have editable host names. Enter on a
+folder opens a native picker; Delete stops exporting it. Unmount exports in
+NeXT before changing them. NFS and cable changes apply without a machine
+reset. Backend, network-time, MAC and NeXTdimension hardware changes require
+restart confirmation.
+
+In detail pages, Up/Down selects a row, Enter edits, Esc returns to the parent
+tab and F9 opens Save/Discard. Text fields initially select the whole value:
+type to replace, Ctrl+A selects all, Ctrl+V pastes, Backspace/Delete removes
+the selection or last character, Enter accepts, Esc cancels. MAC editing
+changes only the last three bytes (`aa:bb:cc`); the ROM's manufacturer prefix
+is retained. Share names are unique single DNS labels, without `.home`.
+Discard and cancelled folder selections leave the runtime unchanged.
 
 ### Advanced
 
@@ -132,6 +147,21 @@ and verbose boot, and do not require Tinker.
 Cube-only and cannot be disabled while any NeXTdimension board is enabled.
 These hardware changes require a restart; RTC local/UTC remains a live
 host-clock preference.
+
+**NeXTdimension / displays** opens a detail page for slots 2, 4 and 6.
+Choose the board, then its connection, ROM and four RAM banks. Bank 0 allows
+4/16 MB; other banks also allow empty. Board RAM defaults restore 16 MB total.
+Disconnected boards can have ROM/RAM preferences saved without a restart.
+
+Boot console selects the main display or a connected NeXTdimension and
+requires restart confirmation. Display mode selects one display, separate
+windows, or a grouped display; Shown display selects the single-mode output.
+Separate windows temporarily use a single display in fullscreen.
+Each Group row cycles through free positions on a 4 × 4 grid, then Hidden.
+Prepare at least two visible positions before saving Grouped mode. These
+view/layout changes apply live. The editor reports disconnected console/view
+selections and invalid groups before Save. The NeXTdimension boot console may not appear
+with more than 32 MB on that board; the page shows a reminder.
 
 ## Activity display
 

@@ -10,6 +10,7 @@
 #include "overlay_media.h"
 #include "overlay_view.h"
 #include "overlay_controls.h"
+#include "overlay_devices.h"
 #include "paste.h"
 #include "configuration.h"
 #include "ffmpeg_gif.h"
@@ -34,6 +35,8 @@
 #endif
 
 static SettingsSession g_settings;
+static OverlayDevices g_devices;
+static const char *g_validation_error;
 static UI89Config g_edit_ui, g_saved_ui89;
 
 typedef struct {
@@ -329,7 +332,9 @@ void overlay_update_leds(void) {
 	leds_set_enabled(LED_MO, true);
 	leds_set_enabled(LED_NET, ConfigureParams.Ethernet.bEthernetConnected);
 	leds_set_enabled(LED_SND, ConfigureParams.Sound.bEnableSound);
-	leds_set_enabled(LED_ND, ConfigureParams.Dimension.board[0].bEnabled);
+	bool dimension = false;
+	for (int i = 0; i < ND_MAX_BOARDS; i++) dimension |= ConfigureParams.Dimension.board[i].bEnabled;
+	leds_set_enabled(LED_ND, dimension);
 }
 
 /* Name of the currently selected machine model. */
@@ -507,12 +512,20 @@ static void overlay_activate(void) {
             break;
 
         case OV_EXTENSIONS: {
+            if (g_ov.row == OverlayControls_Count(OV_EXTENSIONS)) {
+                OverlayDevices_Open(&g_devices, OV_DEVICES_NETWORK, &g_settings.draft);
+                break;
+            }
             OvDialogKind picker = OverlayControls_Activate(OV_EXTENSIONS, g_ov.row, &g_settings.draft);
             if (picker != OV_DIALOG_NONE) OverlayMedia_Request(picker, &g_edit_ui, 0);
             break;
         }
 
         case OV_ADVANCED:
+            if (g_ov.row == adv_row_count() + OverlayControls_Count(OV_ADVANCED)) {
+                OverlayDevices_Open(&g_devices, OV_DEVICES_DIMENSION, &g_settings.draft);
+                break;
+            }
             if (g_ov.row >= adv_row_count()) {
                 OverlayControls_Activate(OV_ADVANCED, g_ov.row - adv_row_count(), &g_settings.draft);
                 break;
@@ -601,8 +614,8 @@ static int section_rows(void) {
     switch (g_ov.section) {
         case OV_GENERAL:    return GEN_ROWS + OverlayControls_Count(OV_GENERAL);
         case OV_MEDIA:      return MED_ROWS + OverlayControls_Count(OV_MEDIA);
-        case OV_EXTENSIONS: return OverlayControls_Count(OV_EXTENSIONS);
-        case OV_ADVANCED:   return adv_row_count() + OverlayControls_Count(OV_ADVANCED);
+        case OV_EXTENSIONS: return OverlayControls_Count(OV_EXTENSIONS) + 1;
+        case OV_ADVANCED:   return adv_row_count() + OverlayControls_Count(OV_ADVANCED) + 1;
         default:            return 0;
     }
 }
@@ -702,6 +715,11 @@ static void overlay_media_rows(OverlayView *view, char *hint, size_t hint_size) 
 }
 
 void overlay_render(SDL_Renderer *r) {
+    if (g_validation_error) {
+        const char *lines[] = {"Settings need attention", g_validation_error, "Return to editing, or Discard changes when closing."};
+        OverlayView_Dialog(r, lines, 3, "OK", NULL, true);
+        return;
+    }
     if (g_ov.confirm_kind != OV_CONFIRM_NONE) {
         overlay_render_confirm(r);
         return;
@@ -721,6 +739,12 @@ void overlay_render(SDL_Renderer *r) {
         if (!section_available(section)) continue;
         if (section == (int)g_ov.section) view.active_tab = view.tab_count;
         view.tabs[view.tab_count++] = section_name(section);
+    }
+    if (g_devices.page != OV_DEVICES_NONE) {
+        OverlayDevices_AddRows(&g_devices, &view, &g_settings.draft);
+        OverlayView_Draw(r, &view);
+        OverlayDevices_DrawEditor(&g_devices, r);
+        return;
     }
     char vbuf[FILENAME_MAX + 8];
     char s1[64], media_hint[128];
@@ -752,6 +776,8 @@ void overlay_render(SDL_Renderer *r) {
         OverlayControls_AddRows(&view, OV_MEDIA, g_ov.row - MED_ROWS, &g_settings.draft);
     } else if (g_ov.section == OV_EXTENSIONS) {
         OverlayControls_AddRows(&view, OV_EXTENSIONS, g_ov.row, &g_settings.draft);
+        OverlayView_Add(&view, "Network / NFS", "Backend, cable, MAC and shared folders...",
+                        g_ov.row == OverlayControls_Count(OV_EXTENSIONS));
     } else {
         char vbuf2[64];
         int dr = 0;
@@ -809,6 +835,8 @@ void overlay_render(SDL_Renderer *r) {
         OverlayView_Add(&view, "Version", PACKAGE_VERSION,
                  g_ov.row == dr);
         OverlayControls_AddRows(&view, OV_ADVANCED, g_ov.row - adv_row_count(), &g_settings.draft);
+        OverlayView_Add(&view, "NeXTdimension / displays", "Boards, RAM, ROMs and monitor layout...",
+                        g_ov.row == adv_row_count() + OverlayControls_Count(OV_ADVANCED));
     }
 
     OverlayView_Draw(r, &view);
@@ -825,7 +853,7 @@ void overlay_init(void) {
     UI89_Apply();
 }
 
-void overlay_quit(void) { OverlayMedia_Cancel(); }
+void overlay_quit(void) { OverlayDevices_Close(&g_devices); OverlayMedia_Cancel(); }
 bool overlay_is_visible(void) { return g_ov.visible; }
 bool overlay_confirm_visible(void) { return g_ov.confirm_kind != OV_CONFIRM_NONE; }
 
@@ -849,6 +877,8 @@ void overlay_confirm_reset(void) {
 }
 
 static void overlay_close_now(void) {
+    OverlayDevices_Close(&g_devices);
+    g_validation_error = NULL;
     OverlayMedia_Cancel();
     g_ov.about_visible = g_ov.visible = g_ov.choice_visible = false;
     g_ov.media_help_visible = false;
@@ -861,6 +891,8 @@ static bool overlay_changed(void) {
 }
 
 static bool overlay_apply_pending(void) {
+    g_validation_error = OverlayDevices_Validate(&g_settings.original, &g_settings.draft);
+    if (g_validation_error) return false;
     bool active = Main_PauseEmulation(false);
     bool ok = Settings_Apply(&g_settings, g_ov.need_reset);
     if (ok) {
@@ -889,6 +921,16 @@ void overlay_close(void) {
 
 bool overlay_handle_event(const SDL_Event *ev) {
     bool modal = g_ov.visible || overlay_confirm_visible();
+    if (g_validation_error) {
+        if (ev->type == SDL_EVENT_KEY_DOWN &&
+            (ev->key.scancode == SDL_SCANCODE_RETURN || ev->key.scancode == SDL_SCANCODE_ESCAPE))
+            g_validation_error = NULL;
+        return true;
+    }
+    if (g_ov.visible && !overlay_confirm_visible() && g_devices.editing) {
+        OverlayDevices_Event(&g_devices, ev, &g_settings.draft);
+        return true;
+    }
     if (ev->type != SDL_EVENT_KEY_DOWN) return modal;
     SDL_Scancode sc = ev->key.scancode;
     if (ev->key.repeat && sc != SDL_SCANCODE_UP && sc != SDL_SCANCODE_DOWN) return modal;
@@ -949,6 +991,11 @@ bool overlay_handle_event(const SDL_Event *ev) {
     if (!g_ov.visible) return false;
     if (g_ov.about_visible) {
         if (sc == SDL_SCANCODE_RETURN || sc == SDL_SCANCODE_ESCAPE) g_ov.about_visible = false;
+        return true;
+    }
+    if (g_devices.page != OV_DEVICES_NONE) {
+        OvDialogKind picker = OverlayDevices_Event(&g_devices, ev, &g_settings.draft);
+        if (picker != OV_DIALOG_NONE) OverlayMedia_Request(picker, &g_edit_ui, 0);
         return true;
     }
     switch (sc) {
@@ -1020,9 +1067,7 @@ void overlay_tick(void) {
     }
     if (OverlayMedia_Set(&g_settings.draft, kind, path)) {
         OverlayMedia_Remember(&g_edit_ui, kind, path);
-        notify_post(kind == OV_DIALOG_PRINTER_DIR
-                    ? "OUTPUT DIRECTORY SELECTED - APPLY WHEN CLOSING OPTIONS"
-                    : "IMAGE SELECTED - APPLY WHEN CLOSING OPTIONS");
+        notify_post("SELECTION STAGED - APPLY WHEN CLOSING OPTIONS");
         Screen_RequestRepaint();
     }
 }

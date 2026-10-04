@@ -30,10 +30,14 @@ The [interface inventory](docs/INTERFACE.md) and
   Advanced: DSP RAM, SCSI/RTC chips and NBIC, with model-specific choices
   and restart confirmation.
 
+- Extensions Network/NFS detail page: SLiRP/optional PCAP, interface, cable,
+  network time, MAC suffix, four exports and validated names; live export updates.
+- Advanced NeXTdimension/display detail page: all three boards, ROM/RAM,
+  console, single/separate/grouped outputs and live monitor arrangement.
+
 ## Next interface work
 
-- Migrate shortcut editing, custom numeric mouse scales, NFS/network detail
-  and full NeXTdimension configuration.
+- Migrate shortcut editing and custom numeric mouse scales.
 - Replace legacy missing-file dialogs, alerts and config import/export.
 - Match hardware-specific media restrictions and second-MO-drive guidance
   throughout F9; validate created images against supported guest formats.

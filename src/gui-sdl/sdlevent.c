@@ -411,6 +411,10 @@ void GuiEvent_EventHandler(void) {
 #endif
 				break;
 
+			case SDL_EVENT_TEXT_INPUT:
+				if (overlay_handle_event(&event)) Screen_RequestRepaint();
+				break;
+
 			case SDL_EVENT_KEY_DOWN:
 				/* 1989 happy-years F-keys + options overlay (F9). */
 				if (overlay_handle_event(&event)) {

@@ -84,13 +84,17 @@ bool OverlayMedia_Busy(void) {
     return busy;
 }
 
+static bool folder_kind(OvDialogKind kind) {
+    return kind == OV_DIALOG_PRINTER_DIR || (kind >= OV_DIALOG_NFS0 && kind <= OV_DIALOG_NFS3);
+}
+
 bool OverlayMedia_Request(OvDialogKind kind, const UI89Config *ui, long long size) {
     static const SDL_DialogFileFilter filters[] = {
         { "NeXT images", "sd;SD;fd;FD;dsk;DSK;img;IMG;bin;BIN;iso;ISO;od;OD" },
         { "All files", "*" }
     };
     if (kind <= OV_DIALOG_NONE || kind >= OV_DIALOG_COUNT ||
-        (kind == OV_DIALOG_PRINTER_DIR && size != 0)) return false;
+        (folder_kind(kind) && size != 0)) return false;
     SDL_LockSpinlock(&request_lock);
     if (request.busy) { SDL_UnlockSpinlock(&request_lock); return false; }
     memset(&request, 0, sizeof(request));
@@ -100,7 +104,7 @@ bool OverlayMedia_Request(OvDialogKind kind, const UI89Config *ui, long long siz
     SDL_UnlockSpinlock(&request_lock);
     const char *dir = ui->szLastDir[kind];
     if (!dir[0] || !File_DirExists(dir)) dir = NULL;
-    if (kind == OV_DIALOG_PRINTER_DIR)
+    if (folder_kind(kind))
         SDL_ShowOpenFolderDialog(selected, NULL, sdlWindow, dir, false);
     else if (size > 0)
         SDL_ShowSaveFileDialog(selected, NULL, sdlWindow, filters, 2, dir);
@@ -130,7 +134,7 @@ bool OverlayMedia_Poll(OvDialogKind *kind, char *path, long long *size) {
 
 void OverlayMedia_Remember(UI89Config *ui, OvDialogKind kind, const char *path) {
     if (kind <= OV_DIALOG_NONE || kind >= OV_DIALOG_COUNT) return;
-    if (kind == OV_DIALOG_PRINTER_DIR) {
+    if (folder_kind(kind)) {
         if (File_DirExists(path)) snprintf(ui->szLastDir[kind], FILENAME_MAX, "%s", path);
         return;
     }
@@ -148,6 +152,14 @@ void OverlayMedia_Remember(UI89Config *ui, OvDialogKind kind, const char *path) 
 
 bool OverlayMedia_Set(CNF_PARAMS *p, OvDialogKind kind, const char *path) {
     bool inserted = path && path[0];
+    if (kind >= OV_DIALOG_NFS0 && kind <= OV_DIALOG_NFS3) {
+        if (inserted && !File_DirExists(path)) {
+            notify_post("CHOOSE AN EXISTING NFS DIRECTORY");
+            return false;
+        }
+        snprintf(p->Ethernet.nfs[kind - OV_DIALOG_NFS0].szPathName, FILENAME_MAX, "%s", inserted ? path : "");
+        return true;
+    }
     if (kind == OV_DIALOG_PRINTER_DIR) {
         if (!inserted || !File_DirExists(path)) {
             notify_post("CHOOSE AN EXISTING OUTPUT DIRECTORY");
@@ -191,6 +203,9 @@ bool OverlayMedia_Set(CNF_PARAMS *p, OvDialogKind kind, const char *path) {
         char *rom = kind == OV_DIALOG_ROM030 ? p->Rom.szRom030FileName :
                     kind == OV_DIALOG_ROM040 ? p->Rom.szRom040FileName : p->Rom.szRomTurboFileName;
         snprintf(rom, FILENAME_MAX, "%s", path);
+    } else if (kind >= OV_DIALOG_NDROM0 && kind <= OV_DIALOG_NDROM2) {
+        if (!inserted) return false;
+        snprintf(p->Dimension.board[kind - OV_DIALOG_NDROM0].szRomFileName, FILENAME_MAX, "%s", path);
     } else return false;
     return true;
 }

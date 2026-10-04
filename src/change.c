@@ -93,6 +93,7 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 		/* Do we need to change Ethernet configuration? */
 		for (i = 0; i < EN_MAX_SHARES; i++) {
 			if (current->Ethernet.bEthernetConnected != changed->Ethernet.bEthernetConnected ||
+				current->Ethernet.bTwistedPair != changed->Ethernet.bTwistedPair ||
 				strcmp(current->Ethernet.szInterfaceName, changed->Ethernet.szInterfaceName) ||
 				strcmp(current->Ethernet.nfs[i].szHostName, changed->Ethernet.nfs[i].szHostName) ||
 				strcmp(current->Ethernet.nfs[i].szPathName, changed->Ethernet.nfs[i].szPathName)) {
@@ -110,7 +111,9 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 		bReInitPrinter = current->Printer.bPrinterConnected != changed->Printer.bPrinterConnected;
 
 		/* Do we need to change Screen configuration? */
-		if (current->Screen.nMode != changed->Screen.nMode) {
+		if (current->Screen.nMode != changed->Screen.nMode ||
+			(changed->Screen.nMode == SCREEN_SINGLE &&
+			 current->Screen.nSingleModeSlot != changed->Screen.nSingleModeSlot)) {
 			bScreenModeChange = true;
 		} else if (current->Screen.nMode == SCREEN_GROUP) {
 			for (i = 0; i < NUM_MONITORS; i++) {

@@ -32,6 +32,11 @@ optional i860-based NeXTdimension graphics board.
   in Extensions; all next-boot diagnostics grouped in Media.
 - Individual RAM banks, memory speed and fixed/variable CPU clock in General;
   DSP RAM, SCSI/RTC chips and NBIC in Advanced, with model-specific choices.
+- Network/NFS details in Extensions: SLiRP/optional PCAP, cable, MAC, network
+  time and four shared folders. Export changes apply without restarting NeXT.
+- NeXTdimension details in Advanced: all three boards, per-board ROM/RAM, boot
+  console, single/separate/grouped displays and a 4 × 4 monitor layout. Display
+  changes apply live; board hardware changes require restart confirmation.
 - Activity LEDs, function-key hints, toast notifications, window/fullscreen
   persistence, optional CRT scanlines and framebuffer filtering.
 - Model, configured CPU frequency and total RAM share the bottom hint strip.
@@ -42,7 +47,8 @@ optional i860-based NeXTdimension graphics board.
   the guest before restarting or quitting, especially with writable disks.
 
 **F1 opens the legacy options menu.** It still provides shortcut editing,
-custom numeric mouse scales, networking/NFS and full NeXTdimension settings. See the
+custom numeric mouse scales, configuration import/export and remaining media
+and recovery controls. See the
 [interface coverage table](docs/INTERFACE.md) for exactly what has and has
 not moved to F9, and [CONTROLS.md](CONTROLS.md) for keyboard controls.
 

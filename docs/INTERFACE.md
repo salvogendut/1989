@@ -17,13 +17,13 @@ produces no save prompt or restart.
 | Change | Effect when confirmed |
 | --- | --- |
 | Smoothing, CRT, notifications, GIF settings, debug output, RTC local/UTC | Apply without a machine restart |
-| Fullscreen, title bar | Update the window without rebooting NeXT |
-| Sound/microphone, Ethernet connection, tablet, printer connection | Update the affected host/peripheral subsystem; disks stay attached |
+| Fullscreen, title bar, single/separate/grouped display mode, shown display and group positions | Update the windows without rebooting NeXT |
+| Sound/microphone, Ethernet connection/cable, PCAP interface, NFS folders/names, tablet, printer connection | Update the affected host/peripheral subsystem; disks stay attached |
 | Boot device, power-on diagnostics, verbose boot | Save for the next boot; the current OS keeps running |
 | Media in an already connected removable drive | Exchange only the changed drive's media; other disks stay open |
-| Model, CPU/FPU/DSP and DSP RAM, RAM banks/speed, SCSI/RTC chips, NBIC, active ROM, enabled NeXTdimension hardware, drive connections or SCSI device type | Require an explicit restart |
+| Model, CPU/FPU/DSP and DSP RAM, RAM banks/speed, SCSI/RTC chips, NBIC, active ROM, enabled NeXTdimension hardware/boot console, drive connections or SCSI device type | Require an explicit restart |
 | Fixed SCSI hard-disk image, insertion/removal or write protection | Require an explicit restart |
-| Legacy network backend or network-time source | Require an explicit restart |
+| Network backend, network-time source or active custom MAC | Require an explicit restart |
 
 ROM paths for inactive machine variants and disabled NeXTdimension boards can
 be saved without restarting.
@@ -68,8 +68,8 @@ This inventory is based on `src/gui-sdl/dlg*.c` and the F9 row/actions code.
 | SCSI | Suggested roles and next-boot sdN preview; seven image slots; T disk/CD/floppy type; W protection; E eject; Delete disconnect; blank HDD/floppy images | Legacy browser and testing-only global disk-write overlay |
 | Floppy | Drives 0/1, image selection, E eject, Delete disconnect, write protection, blank 720 KiB/1.44 MiB/2.88 MiB images | Connect an empty drive without loading media |
 | Magneto-optical | Drives 0/1, image selection, E eject, Delete disconnect, write protection, blank-image creation | Connect an empty drive without media; legacy second-drive warning |
-| Graphics | First NeXTdimension board enable; fullscreen, filtering, CRT and title bar | Boards in slots 4/6; per-board ROM/RAM; console/display slot; separate/grouped displays and monitor arrangement |
-| Network | Connected/disconnected | SLiRP/pcap selection, host interface, twisted-pair selection, MAC address, network time, NFS shares and names |
+| Graphics | Extensions: slot-2 quick toggle; Advanced: slots 2/4/6, per-board ROM/RAM/defaults, boot console, single/separate/grouped displays, shown slot and 4 × 4 monitor arrangement; fullscreen, filtering, CRT and title bar | None of the effective controls (i860 threading is chosen automatically by the core) |
+| Network | Extensions: connection plus Network/NFS detail page with SLiRP/optional PCAP, host interface, cable, ROM/custom MAC, network time, four NFS folders and names | None |
 | Sound | Output enable in General; microphone in Extensions | No additional sound-menu toggle |
 | Keyboard | Clipboard paste; Extensions: scancode/symbolic mapping and Command/Alt swap | Configurable legacy shortcuts |
 | Mouse/tablet | Extensions: tablet model, slow/fast motion presets, raw motion, automatic capture, wheel-to-arrow keys and Ctrl-click mapping; Ctrl+Enter release | Exact numeric linear/exponential scales |
@@ -85,6 +85,35 @@ strip shows configured CPU frequency and total RAM; the LEDs handle activity,
 and core status messages use shared notifications. The old visibility setting
 and status-bar shortcut keys are accepted for configuration compatibility,
 then cleared. They cannot trigger window recreation or bring back the bar.
+
+## Network/NFS and NeXTdimension detail pages
+
+Extensions → **Network / NFS** and Advanced → **NeXTdimension / displays**
+keep these larger sets of controls within the existing tabs. Esc goes back
+without dropping the draft; F9 opens the usual Save/Discard confirmation.
+Text editing has its own Enter/Esc boundary and does not send keystrokes to
+the guest. Native folder/ROM selections share the existing cancellable picker.
+
+NFS exports are SLiRP-only. Share 0 keeps `nfs.home`; shares 1–3 accept unique
+DNS labels, with `.home` supplied by SLiRP. `nfs`, `dns` and `previous` are
+reserved. Delete on an export folder disables it. Unmount the export in the
+guest first. Save restarts network services without resetting the CPU or
+reopening disks. MAC editing changes only the final three bytes; the ROM
+prefix remains intact. PCAP interface choices depend on build support and
+host capture permissions; an unavailable backend is labelled explicitly.
+
+Board hardware edits require restart confirmation. Disconnected boards'
+ROM/RAM preferences can be saved without a reset. Board bank 0 must contain
+4 or 16 MB; the other banks also support empty. Boot-console selection uses
+the main display or a connected board. The page warns when the console board
+exceeds 32 MB, matching the legacy ROM-compatibility guidance.
+
+Display selection, mode and group positions update the display subsystem
+without restarting NeXT. Grouped mode needs at least two visible monitors in
+different cells of the 4 × 4 grid. Positions can be prepared before selecting
+the mode. Save validation leaves invalid drafts open for correction, and
+Discard remains available. Board connect/disconnect cycles do not change
+NBIC, console or layout preferences as hidden side effects.
 
 ## SCSI layout and drive numbers
 
@@ -137,8 +166,7 @@ The legacy menu restricts MO to non-Turbo Cubes and warns about a second MO
 drive; F9 does not yet reproduce all of those hardware-specific affordances.
 
 Remaining interface work includes shortcut editing, exact numeric mouse
-scales, NFS controls, richer
-NeXTdimension configuration, replacing missing-file/legacy alerts, and moving
+scales, replacing missing-file/legacy alerts, and moving
 the optional FFmpeg post-processing pass off the UI thread. Browser/WASM is
 still a placeholder. UI/component tests do not establish NeXTstep desktop or
 disk-filesystem compatibility on every machine variant.

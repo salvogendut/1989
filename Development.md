@@ -27,6 +27,7 @@ Keep machine-core changes contained so upstream fixes remain practical to merge.
 | --- | --- |
 | `overlay.c` | Sections/rows, keyboard navigation, edit-session and confirmation flow |
 | `overlay_controls.c` | Shared control definitions across the four tabs; typed draft accessors, model-dependent choices/availability, labels and hints; no runtime or dialog calls |
+| `overlay_devices.c` | Networking/NFS and NeXTdimension detail-page navigation, draft edits, constrained text entry and Save validation; read-only ROM MAC/PCAP discovery |
 | `overlay_view.c` | Stateless SDL drawing of copied rows, tabs, choices and dialogs; no device/configuration calls |
 | `sdlstatusbar.c` | Compatibility hooks forwarding core activity/messages to LEDs and notifications; no legacy status-bar drawing |
 | `overlay_media.c` | Suggested SCSI roles/types, next-boot drive-number preview, native-picker handoff, eject/disconnect draft updates, image validation and exclusive sparse-file creation |
@@ -42,7 +43,7 @@ not undone. Discard has no runtime undo path because it has no runtime effects.
 
 Restart decisions compare the resulting configuration, rather than trusting
 flags set by individual row handlers. Boot options are saved for the next
-boot. Network connection, tablet, printer, sound and display changes update
+boot. Network connection/cable/NFS, tablet, printer, sound and display changes update
 their own subsystems. Machine hardware and fixed-disk changes require explicit
 confirmation. Live removable-media changes call the selected drive's
 insert/eject functions; never reset every storage controller to apply one image.
@@ -53,8 +54,8 @@ Eject retains the device type/connection, while disconnect removes it and
 uses the hardware restart path. Native floppy/MO entries do not consume SCSI IDs.
 
 Native file callbacks publish a result under an SDL spinlock and hold no
-pointer to an edit session. Image/ROM and printer-directory requests share
-this handoff. Only one request may be outstanding. Closing the
+pointer to an edit session. Machine/board ROMs, media images, printer folders
+and all four NFS-directory requests share this handoff. Only one request may be outstanding. Closing the
 panel invalidates the result; cancelled/late results cannot edit a later
 session. File creation never truncates an existing path. A created file is
 an independent host artifact and remains when the panel draft is discarded.
@@ -92,7 +93,13 @@ and preservation of attached disks without resets. Hardware controls exercise
 Save/Discard/restart and model-specific availability, with the Advanced
 scanline row both present and hidden. `test-hardware` links the real
 configuration code to check RAM choices for all seven models against core
-normalization, Turbo memory-speed labels and NBIC dependencies.
+normalization, Turbo memory-speed labels and NBIC dependencies, plus
+NeXTdimension RAM/monitor choices. `test-devices` covers detail-page navigation,
+all four NFS pickers, share-name/MAC editing and validation, Save/Discard,
+slots 4/6, console selection, display layouts and unchanged disk I/O counters.
+`test-devices-pcap` builds the optional PCAP UI with simulated interface
+enumeration, including empty/error results and allocation cleanup.
+These checks do not replace a guest NFS mount or a multi-board NEXTSTEP boot.
 Status tests cover literal core messages, notification modes/expiry,
 concurrent posting/rendering and the retired shortcut. The model summary
 is checked against active settings while different hardware remains staged.

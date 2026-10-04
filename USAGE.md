@@ -46,8 +46,7 @@ See [CONTROLS.md](CONTROLS.md) and the
 [interface inventory](docs/INTERFACE.md) for details.
 
 F1 (also Ctrl+Alt+O) opens the legacy options dialog for shortcut remapping
-and custom numeric mouse scales, network/NFS
-configuration, NeXTdimension boards/displays, and config
+and custom numeric mouse scales, remaining media controls and config
 import/export. Its media changes are staged until OK. The legacy Save config
 button explicitly writes to the chosen file.
 
@@ -59,9 +58,26 @@ since accepted UI changes and exit save the runtime configuration.
 
 ## Networking and peripherals
 
-The SLiRP backend provides user-mode networking. F9 toggles the connection;
-F1 → Network selects SLiRP/pcap, host interface, guest cable type, custom MAC,
-network time and NFS shares. pcap controls depend on build support.
+The SLiRP backend provides user-mode networking. F9 → Extensions toggles the
+connection; **Network / NFS** selects SLiRP/PCAP, host interface, guest cable,
+custom MAC, network time and up to four NFS shares. PCAP requires build support
+and host capture permissions. NFS shares and network time use SLiRP.
+
+Select each exported folder with Enter. The first export uses `nfs.home`;
+additional exports use their configured name plus `.home`. Names must be
+unique DNS labels; `nfs`, `dns` and `previous` are reserved. Delete on a folder
+stops exporting it. Unmount exports inside NeXT before replacing/removing
+them. Saving export or cable changes restarts only network services, leaving
+guest disks attached. Backend, network-time and MAC edits require explicit
+machine restart confirmation. MAC editing preserves the ROM prefix.
+
+F9 → General → Tinker enables Advanced. Its **NeXTdimension / displays** page
+configures Cube boards in slots 2/4/6, per-board ROM and RAM, boot console,
+single/separate/grouped displays and monitor arrangement. Prepare at least
+two grid positions for Grouped mode. Display selection and arrangement apply
+without rebooting NeXT; connected-board hardware and boot-console changes
+require restart confirmation. ROM/RAM settings for disconnected boards can
+be saved without rebooting. Esc returns to the tab; F9 opens Save/Discard.
 
 F9 toggles sound, microphone, tablet and printer connection without restarting
 NeXT. Extensions also provides printer paper, PNG/TIFF format and output

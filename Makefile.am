@@ -50,6 +50,7 @@ dist_man1_MANS = 1989.1
 	src/video.c \
 	src/overlay.c \
 	src/overlay_controls.c \
+	src/overlay_devices.c \
 	src/overlay_media.c \
 	src/overlay_view.c \
 	src/ui_config.c \
@@ -303,6 +304,7 @@ noinst_HEADERS = \
 	src/includes/vs-fix.h \
 	src/includes/overlay.h \
 	src/includes/overlay_controls.h \
+	src/includes/overlay_devices.h \
 	src/includes/leds.h \
 	src/includes/notify.h \
 	src/includes/paste.h \
@@ -474,5 +476,5 @@ EXTRA_DIST = LICENSE README.md ROMS.md Development.md USAGE.md CONTROLS.md INSTA
 	src/ditool_cpp/VirtualFS.h \
 	packaging/debian/build-deb.sh packaging/macos/package.sh \
 	web/README.md \
-	tests/Makefile tests/test_str.c tests/test_headers.c tests/test_capture.c tests/test_paste.c tests/test_settings.c tests/test_overlay.c \
+	tests/Makefile tests/test_str.c tests/test_headers.c tests/test_capture.c tests/test_paste.c tests/test_settings.c tests/test_overlay.c tests/test_devices.c tests/pcap_test_support.c tests/stubs/pcap.h \
 	tests/ui_test_support.c tests/ui_test_support.h tests/test_hardware.c tests/test_status.c tests/test_sound.c tests/test_grab.c tests/test_printer.c

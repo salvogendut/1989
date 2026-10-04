@@ -1,6 +1,7 @@
 /* Verify overlay choices against the real core's hardware normalization. */
 #include "main.h"
 #include "overlay_controls.h"
+#include "overlay_devices.h"
 #include "file.h"
 #include "host.h"
 #include "m68000.h"
@@ -15,6 +16,11 @@ int host_num_cpus(void) { return 1; }
 void File_CleanFileName(char *path) { (void)path; }
 void File_MakeAbsoluteName(char *path) { (void)path; }
 void File_MakeAbsoluteSpecialName(char *path) { (void)path; }
+SDL_Window *sdlWindow;
+bool File_Exists(const char *path) { (void)path; return true; }
+bool File_DirExists(const char *path) { (void)path; return false; }
+off_t File_Length(const char *path) { (void)path; return 0; }
+void notify_post(const char *fmt, ...) { (void)fmt; }
 
 static int row(OvSection section, const char *label, const CNF_PARAMS *p) {
     OverlayView view = {0};
@@ -140,6 +146,65 @@ static void test_nbic(void) {
     assert(!draft.System.bNBIC);
 }
 
+static void dimension_edit(OverlayDevices *s, CNF_PARAMS *p, const char *label) {
+    OverlayView view = {0};
+    OverlayDevices_AddRows(s, &view, p);
+    int row = 0;
+    for (int i = 0; i < view.row_count; i++) {
+        if (view.rows[i].heading) continue;
+        if (!strcmp(view.rows[i].label, label)) {
+            s->row = row;
+            SDL_Event event; SDL_zero(event);
+            event.type = SDL_EVENT_KEY_DOWN; event.key.scancode = SDL_SCANCODE_RETURN;
+            OverlayDevices_Event(s, &event, p);
+            return;
+        }
+        row++;
+    }
+    assert(!"missing dimension control");
+}
+
+static void test_dimension(void) {
+    static CNF_PARAMS draft;
+    draft.System.nMachineType = NEXT_CUBE040;
+    draft.Screen.nGroupModePos[0] = 0;
+    OverlayDevices s = {0}; s.page = OV_DEVICES_DIMENSION;
+    for (int i = 0; i < ND_MAX_BOARDS; i++) {
+        s.board = i;
+        draft.Dimension.board[i].bEnabled = true;
+        dimension_edit(&s, &draft, "Board RAM defaults");
+        for (int bank = 0; bank < 4; bank++) {
+            char label[32]; snprintf(label, sizeof(label), "RAM bank %d", bank);
+            for (int j = 0; j < (bank ? 3 : 2); j++) {
+                dimension_edit(&s, &draft, label);
+                int banks[4]; memcpy(banks, draft.Dimension.board[i].nMemoryBankSize, sizeof(banks));
+                assert(Configuration_CheckDimensionMemory(banks) >= 4);
+                assert(!memcmp(banks, draft.Dimension.board[i].nMemoryBankSize, sizeof(banks)));
+            }
+            assert(draft.Dimension.board[i].nMemoryBankSize[bank] == 4);
+        }
+        draft.Screen.nGroupModePos[i + 1] = i + 1;
+    }
+    for (int i = 0; i < 4; i++) {
+        dimension_edit(&s, &draft, "Boot console");
+        dimension_edit(&s, &draft, "Shown display");
+        ConfigureParams = draft; Configuration_Apply(false);
+        assert(ConfigureParams.Dimension.nConsoleSlot == draft.Dimension.nConsoleSlot);
+        assert(ConfigureParams.Screen.nSingleModeSlot == draft.Screen.nSingleModeSlot);
+    }
+    dimension_edit(&s, &draft, "Display mode"); assert(draft.Screen.nMode == SCREEN_ALL);
+    ConfigureParams = draft; Configuration_Apply(false);
+    assert(ConfigureParams.Screen.nMode == SCREEN_ALL);
+    dimension_edit(&s, &draft, "Display mode"); assert(draft.Screen.nMode == SCREEN_GROUP);
+    /* Cycling positions skips occupied cells. The real core must preserve the
+     * resulting layout, including hiding a board while others remain visible. */
+    for (int i = 0; i < 17; i++) {
+        dimension_edit(&s, &draft, "Group slot 6");
+        ConfigureParams = draft; Configuration_Apply(false);
+        assert(!memcmp(&ConfigureParams.Screen, &draft.Screen, sizeof(draft.Screen)));
+    }
+}
+
 int main(void) {
     test_model(NEXT_CUBE030, false, false);
     test_model(NEXT_CUBE040, false, false);
@@ -149,6 +214,7 @@ int main(void) {
     test_model(NEXT_STATION, false, true);
     test_model(NEXT_STATION, true, true);
     test_nbic();
+    test_dimension();
     /* Imported legacy preferences cannot resurrect the duplicate bar. */
     ConfigureParams.Screen.bShowStatusbar = true;
     ConfigureParams.Shortcut.withModifier[SHORTCUT_STATUSBAR] = SDLK_B;
