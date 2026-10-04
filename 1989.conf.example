@@ -98,6 +98,11 @@ bNetworkTime = 0
 bEnableSound = 1
 bEnableMicrophone = 1
 
+[Printer]
+# 0 = PNG (default), 1 = TIFF; also selects the legacy screenshot format.
+# Without libpng, image output uses TIFF. F4 PPM / F6 GIF are independent.
+nFileFormat = 0
+
 [Screen]
 nMode = 0
 nGroupModePos0 = 0

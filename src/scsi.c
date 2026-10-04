@@ -181,7 +181,7 @@ struct known_disk {
     uint32_t bs;
 };
 
-#define KNOWN_SIZE(x,n) (x[n].c * x[n].h * x[n].s * x[n].bs)
+#define KNOWN_SIZE(x,n) ((off_t)x[n].c * x[n].h * x[n].s * x[n].bs)
 
 static const struct known_disk known_disks[] =
 {

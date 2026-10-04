@@ -9,6 +9,7 @@
 #define PREV_GRAB_H
 
 extern void Grab_Screen(void);
+extern void Grab_Print(uint8_t* data, int width, int height, int dpi);
 
 /* Convert the NeXT framebuffer (single display, or all group monitors) to
  * RGBA (0xRRGGBBAA, 4 bytes per pixel) into a buffer of screen_w*screen_h

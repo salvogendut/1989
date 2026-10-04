@@ -2,9 +2,10 @@
 
 ![1989](1989.png)
 
-1989 integrates the [Previous](https://previous.sourceforge.net/) 4.3 NeXT
-emulator with the SDL3 desktop conventions of the sibling “happy years”
-emulators (1983, 1984, 1985, 1986). It is a C/C++ fork of Previous, retaining
+1989 integrates the [Previous](https://previous.sourceforge.net/) NeXT
+emulator (4.4 plus development fixes through SVN r1854) with the SDL3 desktop
+conventions of the sibling “happy years” emulators (1983, 1984, 1985, 1986).
+It is a C/C++ fork of Previous, retaining
 its WinUAE m68k core and peripheral emulation, built through Autotools.
 
 ## Emulated machines
@@ -42,7 +43,10 @@ not moved to F9, and [CONTROLS.md](CONTROLS.md) for keyboard controls.
 The core includes 68030/68040 CPU, MMU/FPU, DSP56001, monochrome/color
 1120 × 832 video, SCSI, floppy, magneto-optical, sound, SLiRP networking
 (optional pcap), and m68k/i860 debuggers. The companion `ditool` manipulates
-NeXT disk images. See [hardware status](docs/STATUS.md).
+NeXT disk images. The r1854 integration brings CPU/MMU corrections, improved
+audio buffering, faster framebuffer conversion, DSP recording updates and
+PNG/TIFF printer output. See [hardware status](docs/STATUS.md) and the
+[pinned upstream integration notes](docs/UPSTREAM.md).
 
 ## Quick start
 
@@ -67,7 +71,8 @@ See [USAGE.md](USAGE.md) and [INSTALL.md](INSTALL.md).
 make -C tests check
 ```
 
-Tests cover strings, headers, clipboard typing, PPM/GIF capture, settings
+Tests cover strings, headers, clipboard typing, framebuffer conversion,
+PPM/GIF and PNG/TIFF output, audio samples/timing, printer buffers, settings
 application, and overlay save/discard/restart and file-selection behavior.
 They do not replace testing a running NeXTstep installation.
 

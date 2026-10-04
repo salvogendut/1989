@@ -244,6 +244,7 @@ noinst_HEADERS = \
 	src/dsp/dsp.h \
 	src/gui-sdl/font10x16.h \
 	src/gui-sdl/font5x8.h \
+	src/gui-sdl/sdlaudio.h \
 	src/gui-sdl/sdlgui.h \
 	src/gui-sdl/sdlkeymap.h \
 	src/gui-sdl/sdlscreen.h \
@@ -455,9 +456,11 @@ dist_pixmaps_DATA = icons/1989.png
 
 # Files shipped in the dist tarball but not built (license, docs, examples).
 EXTRA_DIST = LICENSE README.md ROMS.md Development.md USAGE.md CONTROLS.md INSTALL.md \
-	ROADMAP.md docs/STATUS.md docs/INTERFACE.md docs/ROMV66-0001E-02588.ASM \
+	ROADMAP.md docs/STATUS.md docs/INTERFACE.md docs/UPSTREAM.md docs/ROMV66-0001E-02588.ASM \
 	1989.conf.example 1989.spec 1989.png 1989-logo.png \
 	roms/README \
+	tools/regenerate-cpu.sh src/cpu/build68k.c src/cpu/gencpu.c src/cpu/table68k \
+	src/cpu/winuae_readme.txt \
 	src/dimension/i860dec.cpp src/dimension/i860dbg.cpp \
 	src/ditool_cpp/compat.h \
 	src/ditool_cpp/DiskImage.h \
@@ -471,4 +474,4 @@ EXTRA_DIST = LICENSE README.md ROMS.md Development.md USAGE.md CONTROLS.md INSTA
 	packaging/debian/build-deb.sh packaging/macos/package.sh \
 	web/README.md \
 	tests/Makefile tests/test_str.c tests/test_headers.c tests/test_capture.c tests/test_paste.c tests/test_settings.c tests/test_overlay.c \
-	tests/ui_test_support.c tests/ui_test_support.h
+	tests/ui_test_support.c tests/ui_test_support.h tests/test_sound.c tests/test_grab.c tests/test_printer.c

@@ -1,8 +1,8 @@
 # Development notes for 1989
 
-1989 builds Previous 4.3's C/C++ emulation core through Autotools and adapts
-its SDL3 frontend to the sibling emulator conventions. Keep machine-core
-changes contained so upstream fixes remain practical to merge.
+1989 builds Previous 4.4 plus development fixes through SVN r1854 using
+Autotools and adapts its SDL3 frontend to the sibling emulator conventions.
+Keep machine-core changes contained so upstream fixes remain practical to merge.
 
 ## Structure
 
@@ -84,10 +84,17 @@ change/apply code. Overlay tests send key events through the real controller,
 exercise software rendering, reject unconfirmed resets, preserve guest
 ejects, cancel late file-picker results, and check exclusive large-image
 creation. Capture tests use a synthetic framebuffer and real PPM/GIF encoding.
-Tests do not boot NeXTstep or verify host-native dialogs on every platform.
+The grab tests exercise real framebuffer conversion and PNG/TIFF writing;
+sound tests check byte order, double-rate modes and timing with host sound
+disabled. Printer tests cover page replacement/finalization. Tests do not
+boot NeXTstep or verify host-native dialogs on every platform.
 
 ## Upstream
 
-Previous 4.3: https://previous.sourceforge.net/; WinUAE m68k core;
-NeXTdimension i860 emulation by Jason Eckhardt. See the source headers and
-LICENSE for licensing details.
+Previous: https://previous.sourceforge.net/; WinUAE m68k core;
+NeXTdimension i860 emulation by Jason Eckhardt. The imported source is the
+SDL3 `branch_filesharing` tree at SVN r1854. See [docs/UPSTREAM.md](docs/UPSTREAM.md)
+for provenance, local adaptations and validation limits. After changing the
+CPU generator, run `tools/regenerate-cpu.sh`; `--check` verifies that checked-in
+outputs match without rewriting them. See the source headers and LICENSE
+for licensing details.

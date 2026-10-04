@@ -8,7 +8,10 @@ CPPFLAGS ?= -I../src -I../src/includes -I../src/cpu -I../src/debug \
 SDL3_CFLAGS ?= $(shell pkg-config --cflags sdl3)
 SDL3_LIBS ?= $(shell pkg-config --libs sdl3)
 
-TESTS = test-str test-paste test-settings test-overlay
+PNG_CFLAGS ?= $(shell pkg-config --cflags libpng 2>/dev/null)
+PNG_LIBS ?= $(shell pkg-config --libs libpng 2>/dev/null)
+
+TESTS = test-str test-paste test-settings test-overlay test-sound test-grab test-printer
 
 all: $(TESTS) test-headers test-capture
 
@@ -30,6 +33,21 @@ UI_SOURCES = ../src/overlay.c ../src/overlay_view.c ../src/overlay_media.c ../sr
 test-overlay: test_overlay.c ui_test_support.c ui_test_support.h $(UI_SOURCES) ../src/includes/overlay.h ../src/includes/overlay_media.h ../src/includes/overlay_view.h ../src/includes/settings.h ../config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) -DTEST_OVERLAY -ffunction-sections -fdata-sections \
 		test_overlay.c ui_test_support.c $(UI_SOURCES) $(SDL3_LIBS) -Wl,--gc-sections -o $@
+
+# Audio byte order, double-rate modes, activity and timing with host sound off.
+test-sound: test_sound.c ../src/snd.c ../src/includes/snd.h ../config.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) -ffunction-sections -fdata-sections \
+		test_sound.c ../src/snd.c -Wl,--gc-sections -lm -o $@
+
+# Real framebuffer conversion and PNG/TIFF writers, independent of host display.
+test-grab: test_grab.c ../src/grab.c ../src/includes/grab.h ../config.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) $(PNG_CFLAGS) -ffunction-sections -fdata-sections \
+		test_grab.c ../src/grab.c -Wl,--gc-sections $(PNG_LIBS) -o $@
+
+# Printer page replacement and finishing, including zero-width guest commands.
+test-printer: test_printer.c ../src/printer.c ../src/includes/printer.h ../config.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) -ffunction-sections -fdata-sections \
+		test_printer.c -Wl,--gc-sections -o $@
 
 # Compile-time sanity: pulls in the core headers as compiled by the emulator.
 test-headers: test_headers.c ../config.h

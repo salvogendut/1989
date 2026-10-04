@@ -66,10 +66,10 @@ This inventory is based on `src/gui-sdl/dlg*.c` and the F9 row/actions code.
 | Sound | Output enable in General; microphone in Extensions | No additional sound-menu toggle |
 | Keyboard | Host clipboard paste shortcut | Scancode/symbolic mapping, Command/Alt swap, configurable legacy shortcuts |
 | Mouse/tablet | Tablet model; click-to-capture and Ctrl+Enter release | Motion presets, linear/exponential/raw motion, automatic capture, mouse-to-key and Ctrl-click options |
-| Printer | Connected/disconnected | Paper size and output directory |
+| Printer | Connected/disconnected | Paper size, PNG/TIFF file format and output directory |
 | Main menu | About; model hardware defaults; confirmed restart/quit | Configuration import/export and show-legacy-menu-at-startup setting |
 
-The m68k/i860 debuggers, legacy PNG screenshots and AIFF recording remain
+The m68k/i860 debuggers, legacy PNG/TIFF screenshots and AIFF recording remain
 available through their shortcuts. Missing-ROM/media recovery still uses
 legacy dialogs. These are separate migration tasks, not removed features.
 

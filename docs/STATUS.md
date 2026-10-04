@@ -1,7 +1,8 @@
 # 1989 status
 
 Status of the machine emulation. Unless noted, capability comes from the
-upstream Previous 4.3 code base integrated into 1989.
+upstream Previous 4.4 code base plus development fixes through SVN r1854.
+See [upstream integration details](UPSTREAM.md).
 
 ## Machines
 
@@ -26,16 +27,16 @@ upstream Previous 4.3 code base integrated into 1989.
 | SCSI               | NCR 53C90 controller, up to 7 targets         |
 | Floppy             | 720 KiB/1.44 MiB/2.88 MiB raw images                  |
 | Magneto-optical    | Previous MO sector/ECC format; see INTERFACE.md        |
-| Sound              | 16-bit PCM + DSP56001 emulation               |
+| Sound              | 16-bit PCM, CD de-emphasis, DSP56001 serial input               |
 | Ethernet           | SLiRP NAT; pcap when built with it            |
 | ADB                | Keyboard and mouse                            |
 | Tablet             | Supported                                     |
-| Printer            | NeXT Laser Printer emulation                  |
+| Printer            | NeXT Laser Printer, PNG/TIFF output                  |
 | RTC/NVRAM          | MC68HC68T1 / MCCS1850                         |
 
 ## Integration-specific notes
 
-- The machine core derives from Previous 4.3. Desktop integration changes
+- The machine core tracks SDL3 `branch_filesharing` at r1854. Desktop integration changes
   and module boundaries are documented in [Development.md](../Development.md).
 - The build system is autotools (the upstream build is CMake). Generated CPU
   sources are checked in, so no codegen step is required.

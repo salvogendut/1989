@@ -199,7 +199,7 @@ static const char *const about_lines[] = {
     "1989 NeXT (Motorola 68K) emulator",
     "(c) 2026 salvogendut",
     "Version " PACKAGE_VERSION " (commit " PROG_GIT_COMMIT ")",
-    "Previous 4.3 core - WinUAE 68k, Hatari, i860 by Jason Eckhardt"
+    "Previous 4.4 + r1854 - WinUAE 68k, Hatari, i860 by Jason Eckhardt"
 };
 #define ABOUT_LINE_COUNT ((int)(sizeof(about_lines) / sizeof(about_lines[0])))
 

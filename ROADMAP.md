@@ -1,6 +1,6 @@
 # Roadmap
 
-1989 integrates the Previous 4.3 core with the shared SDL3 desktop experience.
+1989 integrates the Previous 4.4 core plus r1854 development fixes with the shared SDL3 desktop experience.
 The [interface inventory](docs/INTERFACE.md) is the checklist for F1 migration.
 
 ## Implemented
