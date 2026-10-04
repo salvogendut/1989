@@ -11,7 +11,7 @@ export function validateImage(id, size) {
   if (size % block) throw new Error(`The ${id} image must contain complete ${block}-byte sectors.`);
 }
 
-export function createMedia(core, {isRunning, status, refresh}) {
+export function createMedia(core, {isRunning, isAvailable, status, refresh}) {
   const selections = new Map();
   let busy = false;
   core.FS.mkdirTree('/media');
@@ -45,6 +45,7 @@ export function createMedia(core, {isRunning, status, refresh}) {
   }
   async function load(id, file) {
     return operation(async()=>{
+      if (!isAvailable(id)) throw new Error('This drive is unavailable on the selected model.');
       if (id === 'disk' && isRunning()) throw new Error('Select the system disk before starting the computer.');
       validateImage(id, file.size);
       const total = [...selections].reduce((n,[key,value])=>n + (key === id ? 0 : value.size),file.size);
@@ -102,8 +103,8 @@ export function createMedia(core, {isRunning, status, refresh}) {
   function sync() {
     if (busy || !isRunning()) return;
     for (const [id,selection] of selections) {
-      selection.used = true;
       selection.inserted = Boolean(core._web_media_present(devices.indexOf(id)));
+      selection.used ||= isAvailable(id);
     }
     refresh();
   }

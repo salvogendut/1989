@@ -1,8 +1,9 @@
 import {mountShell} from './shell.js';
 import {createKeyboard} from './keyboard.js';
 import {createMedia,devices} from './media.js';
+import {createModelPicker} from './models.js';
 
-let core, media, running = false, starting = false, failed = false;
+let core, media, models, running = false, starting = false, failed = false;
 const $ = id => document.getElementById(id);
 function status(message,error=false) { $('runStatus').textContent=message; $('runStatus').classList.toggle('error',error); }
 const keyboard = createKeyboard(()=>running ? core : null);
@@ -23,18 +24,28 @@ for (const [id,slot] of slots) {
     slot.querySelector('.write-state').textContent='SESSION COPY';
     const note=document.createElement('p');note.className='media-hint';note.textContent='Choose before starting the computer.';slot.append(note);
   }
+  if(id==='floppy' || id==='mo') {
+    const note=document.createElement('p');note.className='media-hint model-unavailable';note.hidden=true;slot.append(note);
+  }
 }
 function refresh() {
+  models?.refresh(running || starting || failed);
   for (const [id,slot] of slots) {
     const selection=media?.selections.get(id), unavailable=!media || media.busy || starting;
-    slot.querySelector('input').disabled=unavailable || (id==='disk' && running);
-    const eject=slot.querySelector('.eject-button');if(eject) eject.disabled=unavailable || !selection?.inserted;
+    const supported=models?.supports(id) ?? true;
+    slot.querySelector('input').disabled=unavailable || !supported || (id==='disk' && running);
+    const eject=slot.querySelector('.eject-button');if(eject) eject.disabled=unavailable || !selection?.inserted || (running && !supported);
     const save=slot.querySelector('.save-button');if(save) save.disabled=unavailable || !selection;
     if(selection) {
-      slot.querySelector('output').textContent=(selection.inserted ? '' : 'Ejected · ')+selection.name;
+      slot.querySelector('output').textContent=(!supported ? 'Not connected · ' : selection.inserted ? '' : 'Ejected · ')+selection.name;
       slot.querySelector('output').title=selection.name;
     } else {slot.querySelector('output').textContent='No image selected';slot.querySelector('output').removeAttribute('title');}
-    slot.classList.toggle('loaded',Boolean(selection?.inserted));
+    slot.classList.toggle('loaded',supported && Boolean(selection?.inserted));
+    const note=slot.querySelector('.model-unavailable');
+    if(note) {
+      note.hidden=supported;
+      note.textContent=(id==='mo' ? 'Native MO requires a non-Turbo Cube.' : 'Native floppy requires a 68040 model.')+(selection ? ' Your selected image is kept and can still be downloaded.' : '');
+    }
   }
   $('startButton').disabled=!media || media.busy || starting || running || failed;
 }
@@ -63,7 +74,8 @@ try {
     printErr:message=>console.warn('[1989]',message),
     onAbort:message=>status(`Emulator stopped: ${message}`,true)
   });
-  media=createMedia(core,{isRunning:()=>running,status,refresh});
+  models=createModelPicker(core,{canChange:()=>Boolean(media) && !media.busy && !starting && !running && !failed,onChange:refresh});
+  media=createMedia(core,{isRunning:()=>running,isAvailable:id=>models.supports(id),status,refresh});
   $('startButton').textContent='Start NeXT'; refresh();
-  status('Ready · load your images, then start. Guest disk changes stay in this tab until downloaded.');
+  status('Ready · choose a model, load your images, then start. Guest disk changes stay in this tab until downloaded.');
 } catch(error) {status(error.message,true);$('startButton').textContent='Unable to start';}

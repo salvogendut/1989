@@ -40,11 +40,31 @@ Firmware comes from the existing `roms/` directory, as on desktop; see
 [ROMS.md](../ROMS.md) for provenance and licensing notes. Guest OS/disk images
 are supplied by the user and are not uploaded.
 
-## Media and saving
+## Models
 
-The initial machine is a **non-Turbo 68040 NeXTcube, 25 MHz, 32 MB**. A Cube
-supports both native floppy and native MO; a NeXTstation does not support the
-native MO controller. The enclosure theme does not change the emulated model.
+Use **Model** above the monitor before starting the computer. The default is
+a non-Turbo NeXTcube. All browser profiles use **32 MB RAM**, with the correct
+memory-bank layout and bundled firmware selected automatically.
+
+| Model | CPU | Display | Native floppy | Native MO |
+| --- | --- | --- | --- | --- |
+| NeXT Computer | 68030, 25 MHz | Monochrome | No | Yes |
+| NeXTcube | 68040, 25 MHz | Monochrome | Yes | Yes |
+| NeXTcube Turbo | 68040, 33 MHz | Monochrome | Yes | No |
+| NeXTstation | 68040, 25 MHz | Monochrome | Yes | No |
+| NeXTstation Turbo | 68040, 33 MHz | Monochrome | Yes | No |
+| NeXTstation Color | 68040, 25 MHz | Color | Yes | No |
+| NeXTstation Turbo Color | 68040, 33 MHz | Color | Yes | No |
+
+The model is locked after startup: it cannot reset an active disk session.
+To change it, shut down NEXTSTEP, download your writable images, then reload
+and select a new model. The enclosure theme is independent of the model.
+
+Unsupported drive pickers are disabled. Images already selected for those
+drives are kept for download or another model choice before startup, but are
+not connected to the guest. SCSI disk and CD-ROM are available on every model.
+
+## Media and saving
 
 | Device | Connection | Behavior |
 | --- | --- | --- |
@@ -53,7 +73,7 @@ native MO controller. The enclosure theme does not change the emulated model.
 | Floppy | Native controller, drive 0 | Load/eject at runtime; writable session copy, downloadable |
 | Magneto-optical | Native MO controller, drive 0 | Load/eject at runtime; writable session copy, downloadable |
 
-Removable drives are connected from power-on, so inserting/ejecting an image
+Supported removable drives are connected from power-on, so inserting/ejecting an image
 does not change controller topology or reset the machine. Host and guest eject
 are reflected in the panel. Eject leaves a writable session image available for
 download. The other disks stay attached. Replacing the fixed hard disk requires
@@ -111,7 +131,8 @@ npm run test:browser
 ```
 
 The browser test starts its own isolated local server. It uses disposable
-images and the real WASM build to check ROM startup, rendered output, virtual
+images and the real WASM build to check all seven models' ROM startup, model
+locking and drive compatibility, rendered output, virtual
 and physical input, independent host/guest eject, insertion, invalid-image
 rejection, byte-exact export, keyboard folding and all four responsive themes.
 These checks do not establish NEXTSTEP installation or long-running disk
@@ -120,6 +141,7 @@ reliability. The native suite remains `make -C tests check`.
 - `web_host.c`: initial hardware profile, guest input, acknowledged CPU pause,
   removable-media operations. CPU/MMU/device implementations stay in `src/`.
 - `app.js`: runtime startup and status, connecting the UI to the core.
+- `models.js`: model picker, core-provided descriptions and drive availability.
 - `media.js`: session copies, validation, serialized media operations and export.
 - `keyboard.js`: on-screen key translation and key release.
 - `shell.js`: shared theme, media-row and keyboard presentation.

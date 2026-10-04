@@ -41,8 +41,9 @@ See [upstream integration details](UPSTREAM.md).
 - The build system is autotools (the upstream build is CMake). Generated CPU
   sources are checked in, so no codegen step is required.
 - `ditool` (NeXT disk image tool) builds alongside the emulator.
-- The experimental [SDL3/WASM frontend](../web/README.md) boots the ROM monitor,
-  accepts keyboard input, and provides four media slots with independent eject
+- The experimental [SDL3/WASM frontend](../web/README.md) offers all seven models
+  before startup, locks the model while running, boots the ROM monitor,
+  accepts keyboard input, and provides model-aware media slots with independent eject
   and session-image downloads. Full NEXTSTEP validation and persistent storage
   remain open; sound/networking are disabled in the browser profile.
 

@@ -14,9 +14,70 @@
 #include <SDL3/SDL.h>
 
 static int ready;
+static int selected_model = 1, configured;
 static SDL_AtomicInt pause_requested, paused, present[4];
 
 static const char *media_paths[] = {"/media/disk.img", "/media/cd.img", "/media/floppy.img", "/media/mo.img"};
+
+static const struct {
+    const char *name;
+    MACHINETYPE machine;
+    bool turbo, color;
+} models[] = {
+    {"NeXT Computer", NEXT_CUBE030, false, false},
+    {"NeXTcube", NEXT_CUBE040, false, false},
+    {"NeXTcube Turbo", NEXT_CUBE040, true, false},
+    {"NeXTstation", NEXT_STATION, false, false},
+    {"NeXTstation Turbo", NEXT_STATION, true, false},
+    {"NeXTstation Color", NEXT_STATION, false, true},
+    {"NeXTstation Turbo Color", NEXT_STATION, true, true},
+};
+
+static bool valid_model(int model) {
+    return model >= 0 && model < (int)(sizeof(models) / sizeof(models[0]));
+}
+
+static void configure_model(CNF_PARAMS *params, int model) {
+    params->System.nMachineType = models[model].machine;
+    params->System.bTurbo = models[model].turbo;
+    params->System.bColor = models[model].color;
+    Configuration_SetSystemDefaultsFor(params);
+    /* Keep each browser profile at 32 MB using banks valid for its hardware. */
+    for (int i = 0; i < 4; i++)
+        params->Memory.nMemoryBankSize[i] = params->System.bTurbo ? (i == 0 ? 32 : 0) :
+            params->System.bColor ? 8 : (i < 2 ? 16 : 0);
+    params->Floppy.drive[0].bDriveConnected = models[model].machine != NEXT_CUBE030;
+    params->MO.drive[0].bDriveConnected = models[model].machine != NEXT_STATION && !models[model].turbo;
+}
+
+/* The browser reads the same profiles used at power-on. A negative index asks
+ * for the selected profile; an empty string terminates catalog enumeration. */
+const char *web_model_info(int model) {
+    static char info[256];
+    if (model < 0) model = selected_model;
+    if (!valid_model(model)) return "";
+    CNF_PARAMS params = {0};
+    configure_model(&params, model);
+    snprintf(info, sizeof(info),
+             "{\"index\":%d,\"name\":\"%s\",\"cpu\":%d,\"mhz\":%d,\"memory\":32,\"color\":%s,\"floppy\":%s,\"mo\":%s}",
+             model, models[model].name, params.System.nCpuLevel == 3 ? 68030 : 68040,
+             params.System.nCpuFreq, params.System.bColor ? "true" : "false",
+             params.Floppy.drive[0].bDriveConnected ? "true" : "false",
+             params.MO.drive[0].bDriveConnected ? "true" : "false");
+    return info;
+}
+
+int web_set_model(int model) {
+    if (configured || !valid_model(model)) return 0;
+    selected_model = model;
+    return 1;
+}
+
+static bool device_available(int device) {
+    if (device == 2) return ConfigureParams.Floppy.drive[0].bDriveConnected;
+    if (device == 3) return ConfigureParams.MO.drive[0].bDriveConnected;
+    return device >= 0 && device < 4;
+}
 
 static void publish_media(void) {
     SDL_SetAtomicInt(&present[0], ConfigureParams.SCSI.target[1].bDiskInserted);
@@ -26,15 +87,8 @@ static void publish_media(void) {
 }
 
 void Web_Configure(void) {
-    /* A non-Turbo 040 Cube supports both native floppy and MO controllers. */
-    ConfigureParams.System.nMachineType = NEXT_CUBE040;
-    ConfigureParams.System.bTurbo = false;
-    ConfigureParams.System.bColor = false;
-    Configuration_SetSystemDefaults();
-    ConfigureParams.Memory.nMemoryBankSize[0] = 16;
-    ConfigureParams.Memory.nMemoryBankSize[1] = 16;
-    ConfigureParams.Memory.nMemoryBankSize[2] = 0;
-    ConfigureParams.Memory.nMemoryBankSize[3] = 0;
+    configured = 1;
+    configure_model(&ConfigureParams, selected_model);
     ConfigureParams.Boot.nBootDevice = BOOT_ROM;
     ConfigureParams.Boot.bEnableSoundTest = false;
     ConfigureParams.Sound.bEnableSound = false;
@@ -50,11 +104,9 @@ void Web_Configure(void) {
     ConfigureParams.SCSI.target[3].bDiskInserted = File_Exists(media_paths[1]);
     ConfigureParams.SCSI.target[3].bWriteProtected = true;
     snprintf(ConfigureParams.SCSI.target[3].szImageName, FILENAME_MAX, "%s", media_paths[1]);
-    ConfigureParams.Floppy.drive[0].bDriveConnected = true;
-    ConfigureParams.Floppy.drive[0].bDiskInserted = File_Exists(media_paths[2]);
+    ConfigureParams.Floppy.drive[0].bDiskInserted = device_available(2) && File_Exists(media_paths[2]);
     snprintf(ConfigureParams.Floppy.drive[0].szImageName, FILENAME_MAX, "%s", media_paths[2]);
-    ConfigureParams.MO.drive[0].bDriveConnected = true;
-    ConfigureParams.MO.drive[0].bDiskInserted = File_Exists(media_paths[3]);
+    ConfigureParams.MO.drive[0].bDiskInserted = device_available(3) && File_Exists(media_paths[3]);
     snprintf(ConfigureParams.MO.drive[0].szImageName, FILENAME_MAX, "%s", media_paths[3]);
     SDL_SetHint(SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT, "#canvas");
 }
@@ -83,7 +135,7 @@ int web_media_present(int device) { return device >= 0 && device < 4 ? SDL_GetAt
 /* Fixed controller topology: exchange removable media without resetting CPU,
  * controller or other disks. Called by JS only after the CPU acknowledges pause. */
 int web_eject(int device) {
-    if (!ready || !web_paused() || device < 1 || device > 3) return 0;
+    if (!ready || !web_paused() || device < 1 || device > 3 || !device_available(device)) return 0;
     if (device == 1) {
         SCSI_Eject(3);
         ConfigureParams.SCSI.target[3].bDiskInserted = false;
@@ -94,7 +146,7 @@ int web_eject(int device) {
     return 1;
 }
 int web_insert(int device) {
-    if (!ready || !web_paused() || device < 1 || device > 3 || !File_Exists(media_paths[device])) return 0;
+    if (!ready || !web_paused() || device < 1 || device > 3 || !device_available(device) || !File_Exists(media_paths[device])) return 0;
     if (device == 1) {
         snprintf(ConfigureParams.SCSI.target[3].szImageName, FILENAME_MAX, "%s", media_paths[1]);
         ConfigureParams.SCSI.target[3].bDiskInserted = true;

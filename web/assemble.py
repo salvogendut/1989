@@ -24,14 +24,20 @@ html = html.replace('<script type="module" src="preview.js"></script>', '<script
 html = html.replace('</head>', '  <link rel="stylesheet" href="runtime.css">\n</head>')
 html = html.replace('../../1989-logo.png', 'brand-1989.png').replace('../../POC/IllustratorScreenshot.jpg', 'reference.jpg')
 html = html.replace('Interface preview', 'WebAssembly · experimental').replace('NeXTstation visual preview', 'NeXT emulator')
-html = html.replace('<b>NeXTstation</b>', '<b>NeXTcube</b>')
+html = html.replace('<b>NeXTstation</b> <i>68040 · 25 MHz · 32 MB</i>', '<b id="modelName">NeXTcube</b> <i id="modelSpecs">68040 · 25 MHz · 32 MB · Monochrome</i>')
+html = html.replace('<div class="machine-caption">', '''<div class="model-picker">
+          <label for="modelSelect">Model</label>
+          <select id="modelSelect" aria-describedby="modelHint" disabled></select>
+          <p id="modelHint">Choose a model before starting.</p>
+        </div>
+        <div class="machine-caption">''')
 html = html.replace('Click a key to try the feel', 'Start the computer to type')
 html = html.replace('Preview mode', 'Local session')
 html = html.replace('Design preview · emulation is not running', 'SDL3 / WebAssembly · experimental')
 html = html.replace('<p class="media-note">', '<p class="storage-note">Disk changes live in this tab. Download writable images before reloading or closing. Originals stay untouched.</p>\n        <p class="media-note">')
 html = html.replace('<div class="studio">', '<p id="runStatus" class="run-status" role="status">Loading WebAssembly…</p>\n    <div class="studio">')
 (dist / "index.html").write_text(html)
-for name in ["app.js", "shell.js", "keyboard.js", "media.js", "runtime.css", "README.md", "serve.py"]:
+for name in ["app.js", "shell.js", "keyboard.js", "media.js", "models.js", "runtime.css", "README.md", "serve.py"]:
     shutil.copy2(root / name, dist / name)
 shutil.copy2(root / "preview/preview.css", dist / "preview.css")
 shutil.copytree(root / "preview/themes", dist / "themes", dirs_exist_ok=True)

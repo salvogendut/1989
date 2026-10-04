@@ -465,7 +465,7 @@ EXTRA_DIST = LICENSE README.md ROMS.md Development.md USAGE.md CONTROLS.md INSTA
 	packaging/debian/build-deb.sh packaging/macos/package.sh packaging/windows/package.sh \
 	packaging/io.github.salvogendut.Emulator1989.yml \
 	web/README.md web/Makefile web/config.h web/web_host.h web/web_host.c \
-	web/assemble.py web/serve.py web/app.js web/shell.js web/keyboard.js web/media.js \
+	web/assemble.py web/serve.py web/app.js web/shell.js web/keyboard.js web/media.js web/models.js \
 	web/runtime.css web/package.json web/package-lock.json web/test-unit.js web/test-browser.js \
 	web/preview/index.html web/preview/preview.css web/preview/preview.js \
 	web/preview/themes/theme-retro-crt.css web/preview/themes/theme-sapporo.css \

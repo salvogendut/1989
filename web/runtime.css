@@ -15,3 +15,12 @@
 .media-slot .media-hint { color: var(--muted); font-size: 9px; line-height: 1.4; margin: 8px 0 0; }
 html[data-theme="sapporo"] .run-status { color: #505655; }
 .page-footer { gap: 20px; }
+.model-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 9px 18px; font-size: 11px; }
+.model-picker label { color: var(--muted); }
+.model-picker select { min-width: 0; max-width: 100%; padding: 7px 10px; font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--panel-edge); border-radius: 3px; }
+.model-picker select:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
+.model-picker select:disabled { opacity: .65; }
+.model-picker p { flex-basis: 100%; margin: 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.machine-caption { flex-wrap: wrap; gap: 6px; }
+.machine-caption i { display: inline; }
+html[data-theme="sapporo"] .model-picker { --ink: #111415; --muted: #505655; }

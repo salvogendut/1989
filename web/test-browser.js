@@ -33,12 +33,29 @@ try {
   const floppy=Buffer.alloc(1474560,0x6b);
   for(const [id,name,bytes] of [['disk','system.sd',Buffer.alloc(1048576)],['cd','installer.iso',Buffer.alloc(16384)],['floppy','data.fd',floppy],['mo','backup.mo',Buffer.alloc(1296*64)]])
     await load(id,name,bytes);
+  assert.equal(await page.locator('#modelSelect option').count(),7);
+  await page.locator('#modelSelect').selectOption({label:'NeXTstation Color'});
+  assert(await slot('mo').locator('input').isDisabled());
+  assert.equal(await slot('mo').locator('output').textContent(),'Not connected · backup.mo');
+  assert(!(await slot('mo').locator('.save-button').isDisabled()));
+  assert((await page.locator('#modelSpecs').textContent()).endsWith('32 MB · Color'));
+  await page.locator('#modelSelect').selectOption({label:'NeXT Computer'});
+  assert(await slot('floppy').locator('input').isDisabled());
+  assert(!(await slot('mo').locator('input').isDisabled()));
+  assert.equal(await slot('mo').locator('output').textContent(),'backup.mo');
+  await page.locator('#modelSelect').selectOption({label:'NeXTcube'});
+  assert.equal(await slot('floppy').locator('output').textContent(),'data.fd');
+  assert.equal(await page.evaluate(()=>testCore._web_set_model(99)),0);
   await page.locator('#startButton').click();
   await page.waitForFunction(()=>document.documentElement.dataset.running==='true');
   await page.waitForFunction(()=>testCore._web_cycles()>200000000,{timeout:30000});
   const mounted=()=>page.evaluate(()=>[0,1,2,3].map(id=>testCore._web_media_present(id)));
   assert.deepEqual(await mounted(),[1,1,1,1]);
   assert(await slot('disk').locator('input').isDisabled());
+  assert(await page.locator('#modelSelect').isDisabled());
+  assert.equal(await page.evaluate(()=>testCore._web_set_model(0)),0,'Core must reject a running model change');
+  await page.locator('#modelSelect').evaluate(select=>{select.value='0';select.dispatchEvent(new Event('change'));});
+  assert.equal(await page.locator('#modelSelect').inputValue(),'1','Synthetic changes must not mislabel a running machine');
 
   // Inspect actual rendered pixels (rather than accepting a "ready" UI label).
   async function frameHash() {
@@ -105,6 +122,58 @@ try {
   await page.locator('#themeButton').click();await page.locator('#themeMenu [data-theme=next]').click();
   await mkdir('test-results',{recursive:true});
   await page.screenshot({path:'test-results/next-rom-monitor.png',fullPage:true});
+  // Fresh instances exercise every CPU/ROM/video variant, including ADB on Turbo.
+  const profiles=[
+    [0,'NeXT Computer',false,true],
+    [2,'NeXTcube Turbo',true,false],
+    [3,'NeXTstation',true,false],
+    [4,'NeXTstation Turbo',true,false],
+    [5,'NeXTstation Color',true,false],
+    [6,'NeXTstation Turbo Color',true,false]
+  ];
+  for(const [index,name,hasFloppy,hasMO] of profiles) {
+    await page.reload();
+    await page.waitForFunction(()=>!document.getElementById('startButton').disabled,null,{timeout:30000});
+    // Staged incompatible media must remain in the browser, never in the guest.
+    await load('floppy','data.fd',floppy);
+    await load('mo','backup.mo',Buffer.alloc(1296*64));
+    await page.locator('#modelSelect').selectOption(String(index));
+    assert.equal(await slot('floppy').locator('input').isDisabled(),!hasFloppy);
+    assert.equal(await slot('mo').locator('input').isDisabled(),!hasMO);
+    await page.locator('#startButton').click();
+    await page.waitForFunction(()=>document.documentElement.dataset.running==='true');
+    await page.waitForFunction(()=>testCore._web_cycles()>200000000,null,{timeout:45000});
+    assert.deepEqual(await mounted(),[0,0,Number(hasFloppy),Number(hasMO)],name);
+    await page.screenshot({path:`test-results/model-${index}.png`,fullPage:true});
+    const before=await frameHash();assert(before.white>10000,`${name} ROM console`);
+    await page.locator('#canvas').focus();
+    await page.keyboard.type('h',{delay:100});await page.keyboard.press('Enter');
+    await page.waitForTimeout(1000);
+    assert.notEqual((await frameHash()).hash,before.hash,`${name} accepts ROM help command`);
+    assert.equal(await page.evaluate(()=>testCore._web_set_model(1)),0);
+    if(index===0) {
+      const retainedDownload=page.waitForEvent('download');
+      await slot('floppy').locator('.save-button').click();
+      assert.deepEqual(await readFile(await (await retainedDownload).path()),floppy,'An unsupported drive must retain its selected image byte-for-byte');
+    }
+    if(!hasFloppy || !hasMO) {
+      await page.evaluate(()=>testCore._web_pause(1));
+      await page.waitForFunction(()=>testCore._web_paused());
+      const device=hasMO ? 2 : 3;
+      assert.equal(await page.evaluate(device=>testCore._web_insert(device),device),0,'Core must reject unsupported media');
+      await page.evaluate(()=>testCore._web_pause(0));
+    }
+    if(index===6) {
+      // Longest model name must fit even on the smallest supported viewport.
+      for(const width of [768,390,320]) {
+        await page.setViewportSize({width,height:900});
+        assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`${name} overflows at ${width}`);
+      }
+      await page.setViewportSize({width:1440,height:1400});
+    }
+    await page.screenshot({path:`test-results/model-${index}.png`,fullPage:true});
+    console.log(`PASS: ${name} ROM, display, keyboard and compatible drives.`);
+  }
   assert.deepEqual(errors,[]);
   console.log('PASS: real ROM boot, framebuffer, virtual/physical keyboard, four media slots, host/guest eject without reset, insertion, validation, byte-exact download, keyboard collapse and responsive themes.');
 } finally {

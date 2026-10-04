@@ -20,7 +20,7 @@ LDFLAGS = -O2 -g2 -pthread --use-port=sdl3 -sPTHREAD_POOL_SIZE=6 \
 	-sINITIAL_MEMORY=268435456 -sMAXIMUM_MEMORY=1073741824 -sALLOW_MEMORY_GROWTH \
 	-sSTACK_SIZE=4194304 -sDEFAULT_PTHREAD_STACK_SIZE=4194304 \
 	-sEXPORTED_RUNTIME_METHODS=FS,callMain,ccall \
-	-sEXPORTED_FUNCTIONS=_main,_web_key,_web_ready,_web_cycles,_web_pause,_web_paused,_web_eject,_web_insert,_web_media_present \
+	-sEXPORTED_FUNCTIONS=_main,_web_key,_web_ready,_web_cycles,_web_pause,_web_paused,_web_eject,_web_insert,_web_media_present,_web_model_info,_web_set_model \
 	--embed-file ../roms@/roms
 
 .PHONY: all clean serve
