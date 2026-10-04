@@ -11,10 +11,11 @@ try {
   await new Promise((resolve,reject)=>{server.stdout.once('data',resolve);server.once('error',reject);server.once('exit',code=>reject(new Error(`Server exited: ${code}`)));});
   browser=await chromium.launch({headless:true,args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});
   page=await browser.newPage({viewport:{width:1440,height:1400},acceptDownloads:true});
+  const waitFor=(predicate,arg=null,options={})=>page.waitForFunction(predicate,arg,{polling:100,...options});
   await mkdir('test-results',{recursive:true});
   const errors=[];
   page.on('dialog',dialog=>dialog.accept());
-  page.on('pageerror',error=>errors.push(error.message));
+  page.on('pageerror',error=>{errors.push(error.message);console.error('Browser error:',error.message);});
   page.on('response',response=>{if(response.status()>=400) errors.push(`${response.status()} ${response.url()}`);});
   await page.addInitScript(()=>{
     let factory;
@@ -23,13 +24,13 @@ try {
     }});
   });
   await page.goto(base);
-  await page.waitForFunction(()=>!document.getElementById('startButton').disabled,null,{timeout:30000});
+  await waitFor(()=>!document.getElementById('startButton').disabled,null,{timeout:30000});
   assert(await page.evaluate(()=>crossOriginIsolated));
   assert(await page.locator('.keyboard-logo').evaluate(img=>img.complete&&img.naturalWidth>0));
   const slot=id=>page.locator(`[data-device=${id}]`);
   async function load(id,name,bytes) {
     await slot(id).locator('input').setInputFiles({name,mimeType:'application/octet-stream',buffer:bytes});
-    await page.waitForFunction(([id,name])=>document.querySelector(`[data-device=${id}] output`).textContent===name,[id,name]);
+    await waitFor(([id,name])=>document.querySelector(`[data-device=${id}] output`).textContent===name,[id,name]);
   }
   const floppy=Buffer.alloc(1474560,0x6b);
   for(const [id,name,bytes] of [['disk','system.sd',Buffer.alloc(1048576)],['cd','installer.iso',Buffer.alloc(16384)],['floppy','data.fd',floppy],['mo','backup.mo',Buffer.alloc(1296*64)]])
@@ -48,8 +49,8 @@ try {
   assert.equal(await slot('floppy').locator('output').textContent(),'data.fd');
   assert.equal(await page.evaluate(()=>testCore._web_set_model(99)),0);
   await page.locator('#startButton').click();
-  await page.waitForFunction(()=>document.documentElement.dataset.running==='true');
-  await page.waitForFunction(()=>testCore._web_cycles()>200000000,null,{timeout:45000});
+  await waitFor(()=>document.documentElement.dataset.running==='true');
+  await waitFor(()=>testCore._web_cycles()>200000000,null,{timeout:45000});
   const mounted=()=>page.evaluate(()=>[0,1,2,3].map(id=>testCore._web_media_present(id)));
   assert.deepEqual(await mounted(),[1,1,1,1]);
   assert(await slot('disk').locator('input').isDisabled());
@@ -59,11 +60,18 @@ try {
   assert.equal(await page.locator('#modelSelect').inputValue(),'1','Synthetic changes must not mislabel a running machine');
 
   // Inspect actual rendered pixels (rather than accepting a "ready" UI label).
-  async function frameHash() {
+  async function consolePixels() {
     // Read the composited image. WebGL's drawing buffer can be discarded after
     // presentation, so drawImage(canvas) between frames can capture blank pixels
     // even while the ROM console is visibly displayed (notably on SwiftShader).
-    const screenshot=await page.locator('#canvas').screenshot();
+    // Capture the page compositor directly: element screenshots wait for extra
+    // animation frames to establish stability, which can starve on busy runners.
+    const clip=await page.evaluate(()=>{
+      window.scrollTo(0,0);
+      const {x,y,width,height}=document.getElementById('canvas').getBoundingClientRect();
+      return {x,y,width,height};
+    });
+    const screenshot=await page.screenshot({clip});
     return page.evaluate(async png=>{
       const source=new Image(), copy=document.createElement('canvas');
       source.src=`data:image/png;base64,${png}`;
@@ -76,26 +84,20 @@ try {
       return {hash,white};
     },screenshot.toString('base64'));
   }
-  async function waitForFrameChange(before, message) {
-    // Software rendering on CI may lag the CPU. Observe the guest response
-    // instead of assuming it has reached the canvas after a fixed short sleep.
-    const deadline=Date.now()+30000;
-    while(Date.now()<deadline) {
-      if((await frameHash()).hash!==before.hash) return;
-      await page.waitForTimeout(100);
-    }
-    assert.fail(message);
-  }
-  const initial=await frameHash();assert(initial.white>10000,'ROM monitor must draw its console');
+  const initial=await consolePixels();assert(initial.white>10000,'ROM monitor must draw its console');
   for(const label of ['H','return']) {
     await page.locator(`#typingKeys button[data-label="${label}"]`).click();
     await page.waitForTimeout(150);
   }
-  await waitForFrameChange(initial,'On-screen h/Return must produce ROM help');
+  const responseDeadline=Date.now()+30000;
+  while((await consolePixels()).hash===initial.hash) {
+    assert(Date.now()<responseDeadline,'On-screen h/Return must produce ROM help');
+    await page.waitForTimeout(100);
+  }
 
   const cycles=await page.evaluate(()=>testCore._web_cycles());
   await slot('cd').locator('.eject-button').click();
-  await page.waitForFunction(()=>document.querySelector('[data-device=cd] output').textContent.startsWith('Ejected'));
+  await waitFor(()=>document.querySelector('[data-device=cd] output').textContent.startsWith('Ejected'));
   assert.deepEqual(await mounted(),[1,0,1,1]);
   assert((await page.evaluate(()=>testCore._web_cycles()))>=cycles,'Eject must not reset the CPU');
   await load('cd','other.iso',Buffer.alloc(32768));
@@ -103,14 +105,14 @@ try {
 
   // Invalid insertion must leave the existing medium and other drives intact.
   await slot('floppy').locator('input').setInputFiles({name:'bad.fd',mimeType:'application/octet-stream',buffer:Buffer.alloc(3)});
-  await page.waitForFunction(()=>document.getElementById('runStatus').classList.contains('error'));
+  await waitFor(()=>document.getElementById('runStatus').classList.contains('error'));
   assert.equal(await slot('floppy').locator('output').textContent(),'data.fd');
   assert.deepEqual(await mounted(),[1,1,1,1]);
 
   // Physical keyboard issues the ROM's floppy-eject command, exercising guest eject.
   await page.locator('#canvas').focus();
   await page.keyboard.type('ef',{delay:100});await page.keyboard.press('Enter');
-  await page.waitForFunction(()=>document.querySelector('[data-device=floppy] output').textContent.startsWith('Ejected'),null,{timeout:30000});
+  await waitFor(()=>document.querySelector('[data-device=floppy] output').textContent.startsWith('Ejected'),null,{timeout:30000});
   assert.deepEqual(await mounted(),[1,1,0,1]);
   const downloadEvent=page.waitForEvent('download');
   await slot('floppy').locator('.save-button').click();
@@ -118,7 +120,7 @@ try {
   assert.equal(download.suggestedFilename(),'data.fd');
   assert.deepEqual(await readFile(await download.path()),floppy,'Ejected writable images remain downloadable');
   await slot('mo').locator('.eject-button').click();
-  await page.waitForFunction(()=>document.querySelector('[data-device=mo] output').textContent.startsWith('Ejected'));
+  await waitFor(()=>document.querySelector('[data-device=mo] output').textContent.startsWith('Ejected'));
   assert.deepEqual(await mounted(),[1,1,0,0]);
   await load('mo','second.mo',Buffer.alloc(1296*32));
   assert.deepEqual(await mounted(),[1,1,0,1]);
@@ -148,7 +150,7 @@ try {
   ];
   for(const [index,name,hasFloppy,hasMO] of profiles) {
     await page.reload();
-    await page.waitForFunction(()=>!document.getElementById('startButton').disabled,null,{timeout:30000});
+    await waitFor(()=>!document.getElementById('startButton').disabled,null,{timeout:30000});
     // Staged incompatible media must remain in the browser, never in the guest.
     await load('floppy','data.fd',floppy);
     await load('mo','backup.mo',Buffer.alloc(1296*64));
@@ -156,14 +158,14 @@ try {
     assert.equal(await slot('floppy').locator('input').isDisabled(),!hasFloppy);
     assert.equal(await slot('mo').locator('input').isDisabled(),!hasMO);
     await page.locator('#startButton').click();
-    await page.waitForFunction(()=>document.documentElement.dataset.running==='true');
-    await page.waitForFunction(()=>testCore._web_cycles()>200000000,null,{timeout:45000});
+    await waitFor(()=>document.documentElement.dataset.running==='true');
+    await waitFor(()=>testCore._web_cycles()>200000000,null,{timeout:45000});
     assert.deepEqual(await mounted(),[0,0,Number(hasFloppy),Number(hasMO)],name);
     await page.screenshot({path:`test-results/model-${index}.png`,fullPage:true});
-    const before=await frameHash();assert(before.white>10000,`${name} ROM console`);
+    assert((await consolePixels()).white>10000,`${name} ROM console`);
     await page.locator('#canvas').focus();
-    await page.keyboard.type('h',{delay:100});await page.keyboard.press('Enter');
-    await waitForFrameChange(before,`${name} accepts ROM help command`);
+    await page.keyboard.type(hasFloppy ? 'ef' : 'ej',{delay:100});await page.keyboard.press('Enter');
+    await waitFor(device=>testCore._web_media_present(device)===0,hasFloppy ? 2 : 3,{timeout:30000});
     assert.equal(await page.evaluate(()=>testCore._web_set_model(1)),0);
     if(index===0) {
       const retainedDownload=page.waitForEvent('download');
@@ -172,7 +174,7 @@ try {
     }
     if(!hasFloppy || !hasMO) {
       await page.evaluate(()=>testCore._web_pause(1));
-      await page.waitForFunction(()=>testCore._web_paused());
+      await waitFor(()=>testCore._web_paused());
       const device=hasMO ? 2 : 3;
       assert.equal(await page.evaluate(device=>testCore._web_insert(device),device),0,'Core must reject unsupported media');
       await page.evaluate(()=>testCore._web_pause(0));
