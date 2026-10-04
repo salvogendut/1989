@@ -11,6 +11,7 @@
 #include "overlay_view.h"
 #include "overlay_controls.h"
 #include "overlay_devices.h"
+#include "overlay_input.h"
 #include "paste.h"
 #include "configuration.h"
 #include "ffmpeg_gif.h"
@@ -36,6 +37,7 @@
 
 static SettingsSession g_settings;
 static OverlayDevices g_devices;
+static OverlayInput g_input;
 static const char *g_validation_error;
 static UI89Config g_edit_ui, g_saved_ui89;
 
@@ -145,6 +147,7 @@ static struct {
 
     bool need_reset; /* derived from the current diff when closing */
     bool need_media;
+    bool need_mo_warning;
 
     /* "N = new" size chooser for media entries. */
     bool         choice_visible;
@@ -205,7 +208,9 @@ static const char *const media_help_lines[] = {
     "The preview describes the next boot, not live guest names.",
     "Native floppy and MO drives use separate controllers.",
     "Enter loads/replaces. E ejects media, keeping its drive.",
-    "Del disconnects a drive and requires a restart.",
+    "C connects an empty native drive; Del disconnects a drive.",
+    "Native floppy: drive 0, 68040 only. Native MO: non-Turbo Cube.",
+    "A second native MO can hang/crash NEXTSTEP (kernel bug).",
     "Eject/unmount in NeXT first. Eject applies on Save, no reset."
 };
 #define MEDIA_HELP_LINE_COUNT ((int)(sizeof(media_help_lines) / sizeof(media_help_lines[0])))
@@ -302,7 +307,7 @@ static const char *scsi_value(int i, char *buf, size_t size) {
 static const char *removable_value(bool connected, bool inserted, bool protected,
                                    const char *path, char *buf, size_t size) {
     char pbuf[64];
-    if (!connected) snprintf(buf, size, "Not connected - load to attach");
+    if (!connected) snprintf(buf, size, "Not connected - C connects; Enter loads");
     else snprintf(buf, size, "[%s]  %s", protected ? "read-only" : "read/write",
                   inserted ? media_path(path, pbuf, sizeof(pbuf)) : "[empty drive]");
     return buf;
@@ -310,12 +315,16 @@ static const char *removable_value(bool connected, bool inserted, bool protected
 
 static const char *floppy_value(int i, char *buf, size_t size) {
     const FLPDISK *disk = &g_settings.draft.Floppy.drive[i];
+    if (!disk->bDriveConnected && OverlayMedia_Unavailable(&g_settings.draft, OV_DIALOG_FLOPPY0 + i))
+        return i ? "Unavailable - hardware has one native drive" : "Unavailable - requires a 68040 model";
     return removable_value(disk->bDriveConnected, disk->bDiskInserted,
                            disk->bWriteProtected, disk->szImageName, buf, size);
 }
 
 static const char *mo_value(int i, char *buf, size_t size) {
     const MODISK *disk = &g_settings.draft.MO.drive[i];
+    if (!disk->bDriveConnected && OverlayMedia_Unavailable(&g_settings.draft, OV_DIALOG_MO0 + i))
+        return "Unavailable - requires a non-Turbo Cube";
     return removable_value(disk->bDriveConnected, disk->bDiskInserted,
                            disk->bWriteProtected, disk->szImageName, buf, size);
 }
@@ -397,6 +406,8 @@ static void overlay_new_media(void) {
     if (g_ov.section != OV_MEDIA)
         return;
     kind = media_row_dialog(g_ov.row);
+    const char *reason = OverlayMedia_Unavailable(&g_settings.draft, kind);
+    if (reason) { notify_post("%s", reason); return; }
     if (!overlay_new_sizes(kind, &count)) {
         if (kind != OV_DIALOG_NONE) notify_post("LOAD AN EXISTING CD IMAGE, OR USE T TO CHANGE DRIVE TYPE");
         return;
@@ -508,10 +519,19 @@ static void overlay_activate(void) {
                 notify_post("BOOT DEVICE SELECTED FOR THE NEXT BOOT");
             } else if (g_ov.row >= MED_ROWS) {
                 OverlayControls_Activate(OV_MEDIA, g_ov.row - MED_ROWS, &g_settings.draft);
-            } else OverlayMedia_Request(media_row_dialog(g_ov.row), &g_edit_ui, 0);
+            } else {
+                OvDialogKind kind = media_row_dialog(g_ov.row);
+                const char *reason = OverlayMedia_Unavailable(&g_settings.draft, kind);
+                if (reason) notify_post("%s", reason);
+                else OverlayMedia_Request(kind, &g_edit_ui, 0);
+            }
             break;
 
         case OV_EXTENSIONS: {
+            if (g_ov.row == OverlayControls_Count(OV_EXTENSIONS) + 1) {
+                OverlayInput_Open(&g_input);
+                break;
+            }
             if (g_ov.row == OverlayControls_Count(OV_EXTENSIONS)) {
                 OverlayDevices_Open(&g_devices, OV_DEVICES_NETWORK, &g_settings.draft);
                 break;
@@ -614,7 +634,7 @@ static int section_rows(void) {
     switch (g_ov.section) {
         case OV_GENERAL:    return GEN_ROWS + OverlayControls_Count(OV_GENERAL);
         case OV_MEDIA:      return MED_ROWS + OverlayControls_Count(OV_MEDIA);
-        case OV_EXTENSIONS: return OverlayControls_Count(OV_EXTENSIONS) + 1;
+        case OV_EXTENSIONS: return OverlayControls_Count(OV_EXTENSIONS) + 2;
         case OV_ADVANCED:   return adv_row_count() + OverlayControls_Count(OV_ADVANCED) + 1;
         default:            return 0;
     }
@@ -650,17 +670,22 @@ static void overlay_render_confirm(SDL_Renderer *r) {
         "Hardware or fixed-disk changes need a restart.",
         "Shut down NeXT first. Restart now?", "Esc returns to editing."
     };
+    static const char *const mo_hardware_lines[] = {
+        "Hardware changes need a restart. Shut down NeXT first.",
+        "A second native MO drive can hang/crash NEXTSTEP (kernel bug).",
+        "Connect it and restart now?", "Esc returns to editing."
+    };
     static const char *const media_lines[] = {
         "Eject or unmount changed media in NeXT first.",
         "Apply the selected media changes?", "Esc returns to editing."
     };
     bool save = g_ov.confirm_kind == OV_CONFIRM_SAVE;
     const char *const *lines = save ?
-        (g_ov.need_reset ? hardware_lines : g_ov.need_media ? media_lines : save_lines) :
+        (g_ov.need_reset ? (g_ov.need_mo_warning ? mo_hardware_lines : hardware_lines) : g_ov.need_media ? media_lines : save_lines) :
         g_ov.confirm_kind == OV_CONFIRM_RESET ? reset_lines : quit_lines;
     const char *accept = save ? (g_ov.need_reset ? "Restart" : "Save") :
         g_ov.confirm_kind == OV_CONFIRM_RESET ? "Restart" : "Quit";
-    OverlayView_Dialog(r, lines, save && (g_ov.need_reset || g_ov.need_media) ? 3 : 2,
+    OverlayView_Dialog(r, lines, save && g_ov.need_mo_warning ? 4 : save && (g_ov.need_reset || g_ov.need_media) ? 3 : 2,
                        accept, save ? "Discard" : "Cancel", g_ov.confirm_ok);
 }
 
@@ -690,7 +715,7 @@ static void overlay_media_rows(OverlayView *view, char *hint, size_t hint_size) 
         OverlayView_Add(view, label, floppy_value(i, value, sizeof(value)), g_ov.row == MED_FLOPPY0 + i);
     }
     for (int i = 0; i < 2; i++) {
-        snprintf(label, sizeof(label), "MO drive %d", i);
+        snprintf(label, sizeof(label), "Native MO drive %d", i);
         OverlayView_Add(view, label, mo_value(i, value, sizeof(value)), g_ov.row == MED_MO0 + i);
     }
     view->hint = "SCSI IDs are not sdN numbers. H explains drive order and suggested roles.";
@@ -710,7 +735,13 @@ static void overlay_media_rows(OverlayView *view, char *hint, size_t hint_size) 
             : "Enter=load/replace  E=eject  N=new  T=type  W=protect  Del=disconnect  H=help";
     } else if (g_ov.row >= MED_FLOPPY0 && g_ov.row <= MED_MO1) {
         view->hint = "Eject removes only the medium. The connected drive stays available; Save applies.";
-        view->footer = "Enter=load/replace  E=eject  N=new  W=protect  Del=disconnect  H=help  F9=close";
+        OvDialogKind kind = media_row_dialog(g_ov.row);
+        const char *reason = OverlayMedia_Unavailable(&g_settings.draft, kind);
+        if (reason) view->hint = reason;
+        else if (kind == OV_DIALOG_MO1)
+            view->hint = "Connecting a second native MO needs a restart and can hang/crash NEXTSTEP (kernel bug).";
+        view->footer = reason ? "E=eject  Del=disconnect  H=help  F9=close" :
+            "Enter=load  C=connect  E=eject  N=new  W=protect  Del=disconnect  H=help  F9=close";
     }
 }
 
@@ -739,6 +770,12 @@ void overlay_render(SDL_Renderer *r) {
         if (!section_available(section)) continue;
         if (section == (int)g_ov.section) view.active_tab = view.tab_count;
         view.tabs[view.tab_count++] = section_name(section);
+    }
+    if (g_input.visible) {
+        OverlayInput_AddRows(&g_input, &view, &g_settings.draft);
+        OverlayView_Draw(r, &view);
+        OverlayInput_DrawEditor(&g_input, r);
+        return;
     }
     if (g_devices.page != OV_DEVICES_NONE) {
         OverlayDevices_AddRows(&g_devices, &view, &g_settings.draft);
@@ -778,6 +815,8 @@ void overlay_render(SDL_Renderer *r) {
         OverlayControls_AddRows(&view, OV_EXTENSIONS, g_ov.row, &g_settings.draft);
         OverlayView_Add(&view, "Network / NFS", "Backend, cable, MAC and shared folders...",
                         g_ov.row == OverlayControls_Count(OV_EXTENSIONS));
+        OverlayView_Add(&view, "Input details", "Exact mouse scales and shortcuts...",
+                        g_ov.row == OverlayControls_Count(OV_EXTENSIONS) + 1);
     } else {
         char vbuf2[64];
         int dr = 0;
@@ -832,6 +871,8 @@ void overlay_render(SDL_Renderer *r) {
         OverlayView_Add(&view, "68030 ROM", media_path(g_settings.draft.Rom.szRom030FileName, vbuf2, sizeof(vbuf2)), g_ov.row == dr++);
         OverlayView_Add(&view, "68040 ROM", media_path(g_settings.draft.Rom.szRom040FileName, vbuf2, sizeof(vbuf2)), g_ov.row == dr++);
         OverlayView_Add(&view, "Turbo ROM", media_path(g_settings.draft.Rom.szRomTurboFileName, vbuf2, sizeof(vbuf2)), g_ov.row == dr++);
+        if (g_ov.row >= ADV_ROM030 - (!g_edit_ui.bCrtEnabled) && g_ov.row <= ADV_ROMTURBO - (!g_edit_ui.bCrtEnabled))
+            view.hint = "Enter selects a ROM. D restores the discovered default path if its image exists.";
         OverlayView_Add(&view, "Version", PACKAGE_VERSION,
                  g_ov.row == dr);
         OverlayControls_AddRows(&view, OV_ADVANCED, g_ov.row - adv_row_count(), &g_settings.draft);
@@ -853,7 +894,7 @@ void overlay_init(void) {
     UI89_Apply();
 }
 
-void overlay_quit(void) { OverlayDevices_Close(&g_devices); OverlayMedia_Cancel(); }
+void overlay_quit(void) { OverlayInput_Close(&g_input); OverlayDevices_Close(&g_devices); OverlayMedia_Cancel(); }
 bool overlay_is_visible(void) { return g_ov.visible; }
 bool overlay_confirm_visible(void) { return g_ov.confirm_kind != OV_CONFIRM_NONE; }
 
@@ -877,6 +918,7 @@ void overlay_confirm_reset(void) {
 }
 
 static void overlay_close_now(void) {
+    OverlayInput_Close(&g_input);
     OverlayDevices_Close(&g_devices);
     g_validation_error = NULL;
     OverlayMedia_Cancel();
@@ -891,7 +933,8 @@ static bool overlay_changed(void) {
 }
 
 static bool overlay_apply_pending(void) {
-    g_validation_error = OverlayDevices_Validate(&g_settings.original, &g_settings.draft);
+    g_validation_error = OverlayMedia_Validate(&g_settings.original, &g_settings.draft);
+    if (!g_validation_error) g_validation_error = OverlayDevices_Validate(&g_settings.original, &g_settings.draft);
     if (g_validation_error) return false;
     bool active = Main_PauseEmulation(false);
     bool ok = Settings_Apply(&g_settings, g_ov.need_reset);
@@ -914,6 +957,7 @@ void overlay_close(void) {
         Settings_Merge(&g_settings, &ConfigureParams, &changed);
         g_ov.need_reset = Settings_NeedRestart(&ConfigureParams, &changed);
         g_ov.need_media = Settings_MediaChanged(&ConfigureParams, &changed);
+        g_ov.need_mo_warning = !ConfigureParams.MO.drive[1].bDriveConnected && changed.MO.drive[1].bDriveConnected;
         g_ov.confirm_kind = OV_CONFIRM_SAVE;
         g_ov.confirm_ok = !g_ov.need_reset && !g_ov.need_media;
     } else overlay_close_now();
@@ -927,7 +971,11 @@ bool overlay_handle_event(const SDL_Event *ev) {
             g_validation_error = NULL;
         return true;
     }
-    if (g_ov.visible && !overlay_confirm_visible() && g_devices.editing) {
+    if (g_ov.visible && !overlay_confirm_visible() && (g_input.capturing || g_input.editor.active)) {
+        OverlayInput_Event(&g_input, ev, &g_settings.draft);
+        return true;
+    }
+    if (g_ov.visible && !overlay_confirm_visible() && g_devices.editor.active) {
         OverlayDevices_Event(&g_devices, ev, &g_settings.draft);
         return true;
     }
@@ -993,6 +1041,10 @@ bool overlay_handle_event(const SDL_Event *ev) {
         if (sc == SDL_SCANCODE_RETURN || sc == SDL_SCANCODE_ESCAPE) g_ov.about_visible = false;
         return true;
     }
+    if (g_input.visible) {
+        OverlayInput_Event(&g_input, ev, &g_settings.draft);
+        return true;
+    }
     if (g_devices.page != OV_DEVICES_NONE) {
         OvDialogKind picker = OverlayDevices_Event(&g_devices, ev, &g_settings.draft);
         if (picker != OV_DIALOG_NONE) OverlayMedia_Request(picker, &g_edit_ui, 0);
@@ -1016,6 +1068,18 @@ bool overlay_handle_event(const SDL_Event *ev) {
             if (g_ov.section == OV_MEDIA &&
                 OverlayMedia_Disconnect(&g_settings.draft, media_row_dialog(g_ov.row)))
                 notify_post("DRIVE DISCONNECT STAGED - RESTART REQUIRED");
+            break;
+        case SDL_SCANCODE_C:
+            if (g_ov.section == OV_MEDIA && OverlayMedia_Connect(&g_settings.draft, media_row_dialog(g_ov.row)))
+                notify_post("EMPTY DRIVE CONNECTION STAGED - RESTART REQUIRED");
+            break;
+        case SDL_SCANCODE_D:
+            if (g_ov.section == OV_ADVANCED && g_ov.row < adv_row_count()) {
+                int row = adv_logical_row(g_ov.row);
+                if (row >= ADV_ROM030 && row <= ADV_ROMTURBO &&
+                    OverlayMedia_RestoreRom(&g_settings.draft, OV_DIALOG_ROM030 + row - ADV_ROM030))
+                    notify_post("DEFAULT ROM STAGED - APPLY WHEN CLOSING OPTIONS");
+            }
             break;
         case SDL_SCANCODE_E:
             if (g_ov.section == OV_MEDIA &&

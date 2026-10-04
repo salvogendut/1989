@@ -306,16 +306,11 @@ static void Main_Loop(void) {
 
 /*-----------------------------------------------------------------------*/
 /**
- * Show dialog at start.
+ * Check required files before starting.
  * 
  * @return true if configuration is ready, false if we need to quit
  */
-static bool Main_StartMenu(void) {
-	/* Boot straight into emulation; the config dialog is only shown at
-	 * startup when the user explicitly enabled it (F1 opens it anytime). */
-	if (ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup) {
-		Dialog_DoProperty();
-	}
+static bool Main_CheckStartupFiles(void) {
 	if (!bQuitProgram) {
 		Dialog_CheckFiles();
 	}
@@ -365,8 +360,8 @@ static bool Main_Init(void) {
 	/* Done as last, needs CPU & DSP running... */
 	DebugUI_Init();
 
-	/* Call menu at startup */
-	if (Main_StartMenu()) {
+	/* Recover missing files before the initial reset. */
+	if (Main_CheckStartupFiles()) {
 		/* Reset emulated machine */
 		return !Reset_Cold();
 	}

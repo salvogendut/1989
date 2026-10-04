@@ -4,6 +4,7 @@
 #include "file.h"
 #include "notify.h"
 #include "sdlscreen.h"
+#include "rom.h"
 #include <SDL3/SDL.h>
 #include <string.h>
 
@@ -25,6 +26,71 @@ SCSI_DEVTYPE OverlayMedia_ScsiType(const CNF_PARAMS *p, int id) {
 static bool scsi_attached(const SCSIDISK *disk) {
     return disk->nDeviceType != SD_NONE &&
            (disk->nDeviceType != SD_HARDDISK || disk->bDiskInserted);
+}
+
+const char *OverlayMedia_Unavailable(const CNF_PARAMS *p, OvDialogKind kind) {
+    if (kind == OV_DIALOG_FLOPPY0 || kind == OV_DIALOG_FLOPPY1) {
+        if (p->System.nMachineType == NEXT_CUBE030) return "Native floppy requires a 68040 model; SCSI floppy remains available.";
+        if (kind == OV_DIALOG_FLOPPY1) return "NeXT hardware supports one native floppy drive. Use drive 0 or SCSI floppy.";
+    }
+    if ((kind == OV_DIALOG_MO0 || kind == OV_DIALOG_MO1) &&
+        (p->System.bTurbo || p->System.nMachineType == NEXT_STATION))
+        return "Native MO requires a non-Turbo Cube.";
+    return NULL;
+}
+
+bool OverlayMedia_Connect(CNF_PARAMS *p, OvDialogKind kind) {
+    const char *reason = OverlayMedia_Unavailable(p, kind);
+    if (reason) { notify_post("%s", reason); return false; }
+    if (kind == OV_DIALOG_FLOPPY0 || kind == OV_DIALOG_FLOPPY1) {
+        FLPDISK *disk = &p->Floppy.drive[kind - OV_DIALOG_FLOPPY0];
+        if (disk->bDriveConnected) return false;
+        disk->bDriveConnected = true;
+        disk->bDiskInserted = false;
+        disk->szImageName[0] = 0;
+    } else if (kind == OV_DIALOG_MO0 || kind == OV_DIALOG_MO1) {
+        MODISK *disk = &p->MO.drive[kind - OV_DIALOG_MO0];
+        if (disk->bDriveConnected) return false;
+        disk->bDriveConnected = true;
+        disk->bDiskInserted = false;
+        disk->szImageName[0] = 0;
+    } else return false;
+    return true;
+}
+
+bool OverlayMedia_RestoreRom(CNF_PARAMS *p, OvDialogKind kind) {
+    const char *name = kind == OV_DIALOG_ROM030 ? "Rev_1.0_v41" :
+        kind == OV_DIALOG_ROM040 ? "Rev_2.5_v66" : kind == OV_DIALOG_ROMTURBO ? "Rev_3.3_v74" :
+        kind >= OV_DIALOG_NDROM0 && kind <= OV_DIALOG_NDROM2 ? "ND_step1_v43" : NULL;
+    if (!name) return false;
+    char path[FILENAME_MAX];
+    Rom_GetDefaultPath(path, sizeof(path), name);
+    if (!File_Exists(path) || File_DirExists(path)) {
+        notify_post("DEFAULT ROM NOT FOUND - CURRENT SELECTION KEPT");
+        return false;
+    }
+    return OverlayMedia_Set(p, kind, path);
+}
+
+const char *OverlayMedia_Validate(const CNF_PARAMS *old, const CNF_PARAMS *p) {
+    bool model = old->System.nMachineType != p->System.nMachineType || old->System.bTurbo != p->System.bTurbo;
+    /* Validate the two entries exposed by Media. Preserve legacy controller
+     * slots 2/3: they cannot be edited here and must not trap an imported draft. */
+    for (int i = 0; i < 2; i++) {
+        const FLPDISK *a = &old->Floppy.drive[i], *b = &p->Floppy.drive[i];
+        bool attach = !a->bDriveConnected || (b->bDiskInserted &&
+                      (!a->bDiskInserted || strcmp(a->szImageName, b->szImageName)));
+        if (b->bDriveConnected && (model || attach) && (i > 0 || p->System.nMachineType == NEXT_CUBE030))
+            return "Media: use native floppy 0 on a 68040 model, or disconnect the unsupported drive.";
+    }
+    for (int i = 0; i < MO_MAX_DRIVES; i++) {
+        const MODISK *a = &old->MO.drive[i], *b = &p->MO.drive[i];
+        bool attach = !a->bDriveConnected || (b->bDiskInserted &&
+                      (!a->bDiskInserted || strcmp(a->szImageName, b->szImageName)));
+        if (b->bDriveConnected && (model || attach) && (p->System.bTurbo || p->System.nMachineType == NEXT_STATION))
+            return "Media: disconnect native MO drives before using a NeXTstation or Turbo model.";
+    }
+    return NULL;
 }
 
 int OverlayMedia_ScsiDiskNumber(const CNF_PARAMS *p, int id) {
@@ -152,6 +218,8 @@ void OverlayMedia_Remember(UI89Config *ui, OvDialogKind kind, const char *path) 
 
 bool OverlayMedia_Set(CNF_PARAMS *p, OvDialogKind kind, const char *path) {
     bool inserted = path && path[0];
+    const char *reason = inserted ? OverlayMedia_Unavailable(p, kind) : NULL;
+    if (reason) { notify_post("%s", reason); return false; }
     if (kind >= OV_DIALOG_NFS0 && kind <= OV_DIALOG_NFS3) {
         if (inserted && !File_DirExists(path)) {
             notify_post("CHOOSE AN EXISTING NFS DIRECTORY");

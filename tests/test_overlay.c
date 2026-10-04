@@ -358,6 +358,7 @@ static void test_machine_summary(void) {
 }
 
 int main(void) {
+    ConfigureParams.System.nMachineType = NEXT_CUBE040;
     ConfigureParams.System.nCpuFreq = 25;
     ConfigureParams.Mouse.fLinScale = 1.0f;
     ConfigureParams.Mouse.fExpScale = .75f;
@@ -464,6 +465,9 @@ int main(void) {
     test_scsi_layout(created);
     test_removable_eject(created);
     test_migrated_controls(dir, created);
+    /* Hardware migration tests start with a compatible, media-free machine. */
+    memset(&ConfigureParams.Floppy, 0, sizeof(ConfigureParams.Floppy));
+    memset(&ConfigureParams.MO, 0, sizeof(ConfigureParams.MO));
     test_hardware_controls();
     remove(created); rmdir(dir);
     puts("test-overlay: OK");

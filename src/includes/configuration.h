@@ -23,7 +23,7 @@ extern "C" {
 /* Configuration Dialog */
 typedef struct
 {
-  bool bShowConfigDialogAtStartup;
+  bool bShowConfigDialogAtStartup; /* Retired; accepted and cleared on load. */
 } CNF_CONFIGDLG;
 
 /* Logging and tracing */
@@ -216,7 +216,7 @@ typedef enum
 
 typedef struct {
   SCSIDISK target[ESP_MAX_DEVS];
-  int nWriteProtection;
+  int nWriteProtection; /* Retired; ON migrates attached targets to read-only. */
 } CNF_SCSI;
 
 

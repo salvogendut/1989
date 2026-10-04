@@ -21,6 +21,8 @@ bool File_Exists(const char *path) { (void)path; return true; }
 bool File_DirExists(const char *path) { (void)path; return false; }
 off_t File_Length(const char *path) { (void)path; return 0; }
 void notify_post(const char *fmt, ...) { (void)fmt; }
+void Rom_GetDefaultPath(char *path, int length, const char *name) { snprintf(path, length, "%s.BIN", name); }
+void Log_PrintfInt(LOGTYPE level, const char *format, ...) { (void)level; (void)format; }
 
 static int row(OvSection section, const char *label, const CNF_PARAMS *p) {
     OverlayView view = {0};
@@ -215,6 +217,22 @@ int main(void) {
     test_model(NEXT_STATION, true, true);
     test_nbic();
     test_dimension();
+    ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup = true;
+    ConfigureParams.SCSI.nWriteProtection = WRITEPROT_ON;
+    ConfigureParams.SCSI.target[1].nDeviceType = SD_HARDDISK;
+    ConfigureParams.SCSI.target[3].nDeviceType = SD_CD;
+    ConfigureParams.SCSI.target[4].nDeviceType = SD_FLOPPY;
+    Configuration_Apply(false);
+    assert(!ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup);
+    assert(ConfigureParams.SCSI.nWriteProtection == WRITEPROT_OFF);
+    assert(ConfigureParams.SCSI.target[1].bWriteProtected);
+    assert(ConfigureParams.SCSI.target[3].bWriteProtected);
+    assert(ConfigureParams.SCSI.target[4].bWriteProtected);
+    assert(!ConfigureParams.SCSI.target[0].bWriteProtected);
+    /* Migration is one-shot; an explicit per-disk unprotect remains possible. */
+    ConfigureParams.SCSI.target[1].bWriteProtected = false;
+    Configuration_Apply(false);
+    assert(!ConfigureParams.SCSI.target[1].bWriteProtected);
     /* Imported legacy preferences cannot resurrect the duplicate bar. */
     ConfigureParams.Screen.bShowStatusbar = true;
     ConfigureParams.Shortcut.withModifier[SHORTCUT_STATUSBAR] = SDLK_B;

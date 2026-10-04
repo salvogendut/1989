@@ -3,7 +3,6 @@
 #include "main.h"
 #include "overlay_devices.h"
 #include "overlay_media.h"
-#include "sdlscreen.h"
 #include "file.h"
 #include "slirp/ctl.h"
 #if HAVE_PCAP
@@ -35,7 +34,7 @@ static const char *slot_name(int slot) {
 }
 
 void OverlayDevices_Close(OverlayDevices *s) {
-    if (s->editing && sdlWindow) SDL_StopTextInput(sdlWindow);
+    OverlayText_Close(&s->editor);
     memset(s, 0, sizeof(*s));
 }
 
@@ -74,19 +73,6 @@ static const char *name_error(const CNF_PARAMS *p, int share, const char *name) 
     return NULL;
 }
 
-static void edit_begin(OverlayDevices *s, const char *text) {
-    snprintf(s->text, sizeof(s->text), "%s", text);
-    s->editing = s->replace_text = true;
-    s->message[0] = 0;
-    if (sdlWindow) SDL_StartTextInput(sdlWindow);
-}
-
-static void edit_end(OverlayDevices *s) {
-    s->editing = false;
-    s->message[0] = 0;
-    if (sdlWindow) SDL_StopTextInput(sdlWindow);
-}
-
 static int hex_value(char c) {
     if (c >= '0' && c <= '9') return c - '0';
     if (c >= 'a' && c <= 'f') return c - 'a' + 10;
@@ -97,63 +83,25 @@ static int hex_value(char c) {
 static void edit_accept(OverlayDevices *s, CNF_PARAMS *p) {
     if (s->row == NET_MAC) {
         int bytes[3];
-        bool valid = strlen(s->text) == 8 && s->text[2] == ':' && s->text[5] == ':';
+        bool valid = strlen(s->editor.value) == 8 && s->editor.value[2] == ':' && s->editor.value[5] == ':';
         for (int i = 0; valid && i < 3; i++) {
-            int hi = hex_value(s->text[i * 3]), lo = hex_value(s->text[i * 3 + 1]);
+            int hi = hex_value(s->editor.value[i * 3]), lo = hex_value(s->editor.value[i * 3 + 1]);
             valid = hi >= 0 && lo >= 0;
             bytes[i] = hi * 16 + lo;
         }
         if (!valid) {
-            snprintf(s->message, sizeof(s->message), "Enter three hexadecimal bytes, for example 12:34:56.");
+            snprintf(s->editor.error, sizeof(s->editor.error), "Enter three hexadecimal bytes, for example 12:34:56.");
             return;
         }
         /* Previous preserves the manufacturer prefix stored in the ROM. */
         for (int i = 0; i < 3; i++) p->Rom.nRomCustomMac[i + 3] = bytes[i];
     } else {
         int share = (s->row - NET_SHARE0) / 2;
-        const char *error = name_error(p, share, s->text);
-        if (error) { snprintf(s->message, sizeof(s->message), "%s", error); return; }
-        snprintf(p->Ethernet.nfs[share].szHostName, sizeof(p->Ethernet.nfs[share].szHostName), "%s", s->text);
+        const char *error = name_error(p, share, s->editor.value);
+        if (error) { snprintf(s->editor.error, sizeof(s->editor.error), "%s", error); return; }
+        snprintf(p->Ethernet.nfs[share].szHostName, sizeof(p->Ethernet.nfs[share].szHostName), "%s", s->editor.value);
     }
-    edit_end(s);
-}
-
-static void edit_append(OverlayDevices *s, const char *text) {
-    size_t len = s->replace_text ? 0 : strlen(s->text);
-    size_t extra = strlen(text);
-    if (len + extra >= sizeof(s->text)) {
-        snprintf(s->message, sizeof(s->message), "Maximum length is 63 characters.");
-        return;
-    }
-    /* Reject unsupported input intact; never turn a pasted invalid name into
-     * a different valid one by silently dropping characters. */
-    for (size_t i = 0; i < extra; i++)
-        if ((unsigned char)text[i] < 32 || (unsigned char)text[i] > 126) {
-            snprintf(s->message, sizeof(s->message), "Use ASCII letters, numbers and punctuation.");
-            return;
-        }
-    memcpy(s->text + len, text, extra + 1);
-    s->replace_text = false;
-    s->message[0] = 0;
-}
-
-static void edit_event(OverlayDevices *s, const SDL_Event *event, CNF_PARAMS *p) {
-    if (event->type == SDL_EVENT_TEXT_INPUT) { edit_append(s, event->text.text); return; }
-    if (event->type != SDL_EVENT_KEY_DOWN) return;
-    SDL_Scancode key = event->key.scancode;
-    if (key == SDL_SCANCODE_ESCAPE) edit_end(s);
-    else if (key == SDL_SCANCODE_RETURN) edit_accept(s, p);
-    else if ((event->key.mod & SDL_KMOD_CTRL) && key == SDL_SCANCODE_A) s->replace_text = true;
-    else if ((event->key.mod & SDL_KMOD_CTRL) && key == SDL_SCANCODE_V) {
-        char *text = SDL_GetClipboardText();
-        if (text) { edit_append(s, text); SDL_free(text); }
-    } else if (key == SDL_SCANCODE_BACKSPACE || key == SDL_SCANCODE_DELETE) {
-        size_t len = strlen(s->text);
-        if (s->replace_text) s->text[0] = 0;
-        else if (len) s->text[len - 1] = 0;
-        s->replace_text = false;
-        s->message[0] = 0;
-    }
+    OverlayText_Close(&s->editor);
 }
 
 static void next_interface(OverlayDevices *s, CNF_PARAMS *p) {
@@ -200,14 +148,14 @@ static OvDialogKind network_activate(OverlayDevices *s, CNF_PARAMS *p) {
                 char suffix[16];
                 snprintf(suffix, sizeof(suffix), "%02x:%02x:%02x", p->Rom.nRomCustomMac[3] & 255,
                          p->Rom.nRomCustomMac[4] & 255, p->Rom.nRomCustomMac[5] & 255);
-                edit_begin(s, suffix);
+                OverlayText_Begin(&s->editor, suffix);
             }
             break;
         default:
             if (slirp && s->row >= NET_SHARE0 && s->row < NET_BACK) {
                 int share = (s->row - NET_SHARE0) / 2;
                 if (!((s->row - NET_SHARE0) & 1)) return OV_DIALOG_NFS0 + share;
-                if (share) edit_begin(s, p->Ethernet.nfs[share].szHostName);
+                if (share) OverlayText_Begin(&s->editor, p->Ethernet.nfs[share].szHostName);
             }
             break;
     }
@@ -269,7 +217,10 @@ static OvDialogKind dimension_activate(OverlayDevices *s, CNF_PARAMS *p) {
 }
 
 OvDialogKind OverlayDevices_Event(OverlayDevices *s, const SDL_Event *event, CNF_PARAMS *p) {
-    if (s->editing) { edit_event(s, event, p); return OV_DIALOG_NONE; }
+    if (s->editor.active) {
+        if (OverlayText_Event(&s->editor, event) == OV_TEXT_ACCEPT) edit_accept(s, p);
+        return OV_DIALOG_NONE;
+    }
     if (event->type != SDL_EVENT_KEY_DOWN || s->page == OV_DEVICES_NONE) return OV_DIALOG_NONE;
     SDL_Scancode key = event->key.scancode;
     int back = s->page == OV_DEVICES_NETWORK ? NET_BACK : ND_BACK;
@@ -278,6 +229,10 @@ OvDialogKind OverlayDevices_Event(OverlayDevices *s, const SDL_Event *event, CNF
         return OV_DIALOG_NONE;
     }
     s->message[0] = 0;
+    if (key == SDL_SCANCODE_D && s->page == OV_DEVICES_DIMENSION && s->row == ND_ROM && p->System.nMachineType != NEXT_STATION) {
+        OverlayMedia_RestoreRom(p, OV_DIALOG_NDROM0 + s->board);
+        return OV_DIALOG_NONE;
+    }
     if (key == SDL_SCANCODE_UP && s->row > 0) s->row--;
     else if (key == SDL_SCANCODE_DOWN && s->row < back) s->row++;
     else if (key == SDL_SCANCODE_RETURN)
@@ -359,6 +314,7 @@ static void dimension_rows(const OverlayDevices *s, OverlayView *v, const CNF_PA
     ADD("Back", "Advanced");
     v->hint = station ? "NeXTdimension requires a Cube. Advanced hardware options are unavailable on NeXTstation." :
         "Place at least two displays for Grouped mode. Display changes apply without a restart.";
+    if (s->row == ND_ROM) v->hint = "Enter selects the board ROM. D restores the discovered default if its image exists.";
     if (p->Dimension.nConsoleSlot > 0 && monitor_present(p, p->Dimension.nConsoleSlot)) {
         int ram = 0;
         for (int i = 0; i < 4; i++) ram += p->Dimension.board[p->Dimension.nConsoleSlot / 2 - 1].nMemoryBankSize[i];
@@ -375,12 +331,8 @@ void OverlayDevices_AddRows(const OverlayDevices *s, OverlayView *v, const CNF_P
 }
 
 void OverlayDevices_DrawEditor(const OverlayDevices *s, SDL_Renderer *renderer) {
-    if (!s->editing) return;
-    char value[72];
-    snprintf(value, sizeof(value), s->replace_text ? "[%s]" : "%s_", s->text);
-    const char *lines[] = {s->row == NET_MAC ? "Custom MAC suffix (last three bytes)" : "NFS host name (.home is added by SLiRP)",
-        value, s->message[0] ? s->message : "Type to replace; Ctrl+A selects all; Ctrl+V pastes.", "Enter accepts the edit. Esc cancels it."};
-    OverlayView_Dialog(renderer, lines, 4, "Enter", "Esc", true);
+    OverlayText_Draw(&s->editor, renderer, s->row == NET_MAC ?
+        "Custom MAC suffix (last three bytes)" : "NFS host name (.home is added by SLiRP)");
 }
 
 const char *OverlayDevices_Validate(const CNF_PARAMS *old, const CNF_PARAMS *p) {

@@ -11,7 +11,7 @@ const char DlgRom_fileid[] = "Previous dlgRom.c";
 #include "dialog.h"
 #include "sdlgui.h"
 #include "file.h"
-#include "paths.h"
+#include "rom.h"
 
 
 #define DLGROM_ROM030_DEFAULT     4
@@ -88,9 +88,8 @@ void DlgRom_Main(void)
 		switch (but)
 		{
 			case DLGROM_ROM030_DEFAULT:
-				File_MakePathBuf(ConfigureParams.Rom.szRom030FileName,
-				                 sizeof(ConfigureParams.Rom.szRom030FileName),
-				                 Paths_GetDataDir(), "Rev_1.0_v41", "BIN");
+				Rom_GetDefaultPath(ConfigureParams.Rom.szRom030FileName,
+				                   sizeof(ConfigureParams.Rom.szRom030FileName), "Rev_1.0_v41");
 				File_ShrinkName(szDlgRom030Name, ConfigureParams.Rom.szRom030FileName, sizeof(szDlgRom030Name)-1);
 				break;
 				
@@ -103,9 +102,8 @@ void DlgRom_Main(void)
 				break;
 				
 			case DLGROM_ROM040_DEFAULT:
-				File_MakePathBuf(ConfigureParams.Rom.szRom040FileName,
-				                 sizeof(ConfigureParams.Rom.szRom040FileName),
-				                 Paths_GetDataDir(), "Rev_2.5_v66", "BIN");
+				Rom_GetDefaultPath(ConfigureParams.Rom.szRom040FileName,
+				                   sizeof(ConfigureParams.Rom.szRom040FileName), "Rev_2.5_v66");
 				File_ShrinkName(szDlgRom040Name, ConfigureParams.Rom.szRom040FileName, sizeof(szDlgRom040Name)-1);
 				break;
 				
@@ -118,9 +116,8 @@ void DlgRom_Main(void)
 				break;
 				
 			case DLGROM_ROMTURBO_DEFAULT:
-				File_MakePathBuf(ConfigureParams.Rom.szRomTurboFileName,
-				                 sizeof(ConfigureParams.Rom.szRomTurboFileName),
-				                 Paths_GetDataDir(), "Rev_3.3_v74", "BIN");
+				Rom_GetDefaultPath(ConfigureParams.Rom.szRomTurboFileName,
+				                   sizeof(ConfigureParams.Rom.szRomTurboFileName), "Rev_3.3_v74");
 				File_ShrinkName(szDlgRomTurboName, ConfigureParams.Rom.szRomTurboFileName, sizeof(szDlgRomTurboName)-1);
 				break;
 				

@@ -19,11 +19,12 @@ void Settings_Merge(const SettingsSession *s, const CNF_PARAMS *live,
     if (memcmp(&s->original.field, &s->draft.field, sizeof(s->draft.field))) \
         result->field = s->draft.field; \
 } while (0)
-    MERGE(ConfigDialog); MERGE(Log); MERGE(Debugger); MERGE(Screen);
+    MERGE(Log); MERGE(Debugger); MERGE(Screen);
     MERGE(Keyboard); MERGE(Shortcut); MERGE(Mouse); MERGE(Tablet);
     MERGE(Sound); MERGE(Memory); MERGE(Boot); MERGE(Ethernet);
     MERGE(Rom); MERGE(Printer); MERGE(System); MERGE(Dimension);
-    MERGE(SCSI.nWriteProtection);
+    result->ConfigDialog.bShowConfigDialogAtStartup = false;
+    result->SCSI.nWriteProtection = WRITEPROT_OFF;
     for (int i = 0; i < ESP_MAX_DEVS; i++) {
         MERGE(SCSI.target[i]);
         if (result->SCSI.target[i].nDeviceType == SD_HARDDISK &&
@@ -49,8 +50,7 @@ bool Settings_NeedRestart(const CNF_PARAMS *a, const CNF_PARAMS *b) {
     if (memcmp(&old_system, &new_system, sizeof(old_system)) ||
         memcmp(&a->Memory, &b->Memory, sizeof(a->Memory)) ||
         a->Ethernet.nHostInterface != b->Ethernet.nHostInterface ||
-        a->Ethernet.bNetworkTime != b->Ethernet.bNetworkTime ||
-        a->SCSI.nWriteProtection != b->SCSI.nWriteProtection)
+        a->Ethernet.bNetworkTime != b->Ethernet.bNetworkTime)
         return true;
     const char *old_rom = a->System.nMachineType == NEXT_CUBE030 ? a->Rom.szRom030FileName :
                          a->System.bTurbo ? a->Rom.szRomTurboFileName : a->Rom.szRom040FileName;

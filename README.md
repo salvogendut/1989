@@ -30,6 +30,9 @@ optional i860-based NeXTdimension graphics board.
   creation, device types and write protection are available in the same tab.
 - Printer paper/PNG/TIFF/output-folder settings and keyboard/mouse controls
   in Extensions; all next-boot diagnostics grouped in Media.
+- **Input details** in Extensions edits numeric mouse sensitivity and shortcut
+  bindings. **C** connects an empty native drive; model restrictions and the
+  second-MO warning are included. **D** restores discovered default ROM paths.
 - Individual RAM banks, memory speed and fixed/variable CPU clock in General;
   DSP RAM, SCSI/RTC chips and NBIC in Advanced, with model-specific choices.
 - Network/NFS details in Extensions: SLiRP/optional PCAP, cable, MAC, network
@@ -46,11 +49,15 @@ optional i860-based NeXTdimension graphics board.
 - **F5** confirmed restart and **F12** confirmed quit. Shut down NeXT inside
   the guest before restarting or quitting, especially with writable disks.
 
-**F1 opens the legacy options menu.** It still provides shortcut editing,
-custom numeric mouse scales, configuration import/export and remaining media
-and recovery controls. See the
+**F1 opens the legacy options menu.** Configuration import/export and legacy
+file recovery/alerts still need migration. See the
 [interface coverage table](docs/INTERFACE.md) for exactly what has and has
 not moved to F9, and [CONTROLS.md](CONTROLS.md) for keyboard controls.
+
+“Show menu at startup” and the testing-only temporary SCSI write overlay are
+retired. Old configurations using that overlay become read-only per drive;
+ordinary writable images use persistent writes. See the
+[compatibility notes](docs/INTERFACE.md#retired-options).
 
 The core includes 68030/68040 CPU, MMU/FPU, DSP56001, monochrome/color
 1120 × 832 video, SCSI, floppy, magneto-optical, sound, SLiRP networking

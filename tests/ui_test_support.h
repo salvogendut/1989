@@ -12,4 +12,5 @@ extern int mo_in[MO_MAX_DRIVES], mo_out[MO_MAX_DRIVES];
 extern SDL_DialogFileCallback picker_callback;
 extern void *picker_userdata;
 extern int folder_requests, keymap_inits;
+extern char default_rom_dir[FILENAME_MAX];
 #endif

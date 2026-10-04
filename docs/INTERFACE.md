@@ -63,28 +63,66 @@ This inventory is based on `src/gui-sdl/dlg*.c` and the F9 row/actions code.
 | --- | --- | --- |
 | System | General: seven model variants, 16/20/25/33 MHz (40 on Turbo), fixed/variable clock, FPU, DSP mode, MMU status, Turbo ADB and model defaults; Advanced: DSP RAM, SCSI/RTC chip and Cube NBIC selection | None of the effective system controls |
 | Memory | General: model-appropriate total-RAM presets, individual bank editing and controller-specific memory speed | None |
-| ROM | 68030, 68040 and Turbo ROM pickers in Advanced | Restore-default-path buttons |
+| ROM | 68030, 68040 and Turbo ROM pickers in Advanced; D restores discovered defaults | None |
 | Boot | Media: boot device, power-on test master switch, DRAM/sound/SCSI tests, repeat/extended tests, diagnostic video and verbose boot | None |
-| SCSI | Suggested roles and next-boot sdN preview; seven image slots; T disk/CD/floppy type; W protection; E eject; Delete disconnect; blank HDD/floppy images | Legacy browser and testing-only global disk-write overlay |
-| Floppy | Drives 0/1, image selection, E eject, Delete disconnect, write protection, blank 720 KiB/1.44 MiB/2.88 MiB images | Connect an empty drive without loading media |
-| Magneto-optical | Drives 0/1, image selection, E eject, Delete disconnect, write protection, blank-image creation | Connect an empty drive without media; legacy second-drive warning |
+| SCSI | Suggested roles and next-boot sdN preview; seven image slots; T disk/CD/floppy type; W protection; E eject; Delete disconnect; blank HDD/floppy images | Temporary write overlay retired; legacy browser remains for recovery |
+| Floppy | Native drive 0 on 68040 models, image selection, C connects empty, E eject, Delete disconnect, write protection, blank 720 KiB/1.44 MiB/2.88 MiB images; imported drive 1 can be removed | None of the supported hardware controls |
+| Magneto-optical | Drives 0/1 on non-Turbo Cubes, image selection, C connects empty, E eject, Delete disconnect, write protection, blank-image creation and second-drive warning | None |
 | Graphics | Extensions: slot-2 quick toggle; Advanced: slots 2/4/6, per-board ROM/RAM/defaults, boot console, single/separate/grouped displays, shown slot and 4 × 4 monitor arrangement; fullscreen, filtering, CRT and title bar | None of the effective controls (i860 threading is chosen automatically by the core) |
 | Network | Extensions: connection plus Network/NFS detail page with SLiRP/optional PCAP, host interface, cable, ROM/custom MAC, network time, four NFS folders and names | None |
 | Sound | Output enable in General; microphone in Extensions | No additional sound-menu toggle |
-| Keyboard | Clipboard paste; Extensions: scancode/symbolic mapping and Command/Alt swap | Configurable legacy shortcuts |
-| Mouse/tablet | Extensions: tablet model, slow/fast motion presets, raw motion, automatic capture, wheel-to-arrow keys and Ctrl-click mapping; Ctrl+Enter release | Exact numeric linear/exponential scales |
+| Keyboard | Clipboard paste; Extensions: scancode/symbolic mapping, Command/Alt swap and Input details for shortcut bindings | None |
+| Mouse/tablet | Extensions: tablet model, slow/fast motion presets, numeric linear/exponential scales, raw motion, automatic capture, wheel-to-arrow keys and Ctrl-click mapping; Ctrl+Enter release | None |
 | Printer | Extensions: connection, paper size, PNG/TIFF format and native output-folder picker | None |
-| Main menu | About; model hardware defaults; confirmed restart/quit | Configuration import/export and show-legacy-menu-at-startup setting |
+| Main menu | About; model hardware defaults; confirmed restart/quit | Configuration import/export; show-menu-at-startup retired |
 
 The m68k/i860 debuggers, legacy PNG/TIFF screenshots and AIFF recording remain
 available through their shortcuts. Missing-ROM/media recovery still uses
 legacy dialogs. These are separate migration tasks, not removed features.
+
+## Retired options
 
 The duplicate legacy status bar has been retired. The existing model/hint
 strip shows configured CPU frequency and total RAM; the LEDs handle activity,
 and core status messages use shared notifications. The old visibility setting
 and status-bar shortcut keys are accepted for configuration compatibility,
 then cleared. They cannot trigger window recreation or bring back the bar.
+
+**Show menu at startup** is retired: its old key is accepted but cleared, and
+startup proceeds directly to emulation after checking required files.
+Missing-file recovery remains available.
+
+The testing-only **temporary SCSI write overlay** and its shadow-sector
+storage have been removed. On configuration load, an old `[HardDisk]`
+`nWriteProtection = 1` makes each configured SCSI target read-only, then
+clears the global flag. This preserves disk protection without pretending
+that temporary guest writes are still supported. Per-drive protection is
+still editable with W; writable images receive persistent writes. Changing
+a fixed disk's protection requires a confirmed restart after guest shutdown.
+Saved configurations retain the obsolete keys as false/zero for compatibility.
+
+## Input and native media details
+
+Extensions → **Input details** edits exact linear/exponential mouse scales
+and all effective legacy shortcut actions, with separate Ctrl+Alt and plain
+bindings. Reserved desktop keys and duplicate assignments are rejected.
+Text/key capture stays within the draft; Save applies without resetting the
+machine. Esc cancels an edit or returns to Extensions. The fixed F4/F6/F9
+desktop shortcuts remain available independently of legacy bindings.
+
+Media's **C** connects an empty native drive. Native floppy 0 requires a
+68040 model; MO drives require a non-Turbo Cube. These checks apply to new
+connections and selected images, with validation before saving a model
+change. Unsupported imported entries can still be ejected/disconnected;
+unused legacy floppy controller slots 2/3 are preserved without blocking
+Save because they are not exposed by the overlay. Connecting the second MO
+drive includes the legacy NEXTSTEP kernel-crash warning in the existing
+restart confirmation. Ejection keeps the drive connected and needs no reset.
+
+**D** on a machine or NeXTdimension ROM row restores a default using the same
+resource lookup as startup. Missing defaults leave the selection unchanged.
+Saving a changed active ROM requires restart confirmation; inactive ROM
+preferences do not.
 
 ## Network/NFS and NeXTdimension detail pages
 
@@ -162,11 +200,11 @@ does not delete an image already created on the host.
 The offered MO image sizes are file-size choices, not a compatibility claim
 for every format. The Previous MO core expects its own sector/ECC layout;
 use a known-compatible image or the supplied `empty.ecc.od.zip` template.
-The legacy menu restricts MO to non-Turbo Cubes and warns about a second MO
-drive; F9 does not yet reproduce all of those hardware-specific affordances.
+F9 restricts native MO connections to non-Turbo Cubes and carries the legacy
+second-drive warning; those checks do not validate an image's sector layout.
 
-Remaining interface work includes shortcut editing, exact numeric mouse
-scales, replacing missing-file/legacy alerts, and moving
+Remaining interface work includes configuration import/export,
+replacing missing-file/legacy alerts, and moving
 the optional FFmpeg post-processing pass off the UI thread. Browser/WASM is
 still a placeholder. UI/component tests do not establish NeXTstep desktop or
 disk-filesystem compatibility on every machine variant.

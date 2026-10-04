@@ -34,13 +34,17 @@ The [interface inventory](docs/INTERFACE.md) and
   network time, MAC suffix, four exports and validated names; live export updates.
 - Advanced NeXTdimension/display detail page: all three boards, ROM/RAM,
   console, single/separate/grouped outputs and live monitor arrangement.
+- Extensions Input details: exact mouse scales and shortcut remapping with
+  reserved-key/duplicate checks, using shared text entry with Network/NFS.
+- Native empty-drive connections, model restrictions and second-MO guidance;
+  default ROM restoration for machine variants and NeXTdimension boards.
+- Retired show-menu-at-startup and temporary SCSI writes; old temporary-write
+  configurations migrate to per-drive read-only protection.
 
 ## Next interface work
 
-- Migrate shortcut editing and custom numeric mouse scales.
 - Replace legacy missing-file dialogs, alerts and config import/export.
-- Match hardware-specific media restrictions and second-MO-drive guidance
-  throughout F9; validate created images against supported guest formats.
+- Validate created images against supported guest formats, particularly MO/ECC.
 - Provide a separate save-for-next-launch workflow for hardware changes.
 - Run FFmpeg post-processing asynchronously; extend capture beyond GIF.
 - Improve UI-only coverage on macOS/Windows and native file-dialog backends.

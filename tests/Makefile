@@ -13,7 +13,7 @@ PCAP_LIBS ?= $(shell pkg-config --libs libpcap 2>/dev/null)
 PNG_CFLAGS ?= $(shell pkg-config --cflags libpng 2>/dev/null)
 PNG_LIBS ?= $(shell pkg-config --libs libpng 2>/dev/null)
 
-TESTS = test-str test-paste test-settings test-overlay test-devices test-devices-pcap test-hardware test-status test-sound test-grab test-printer
+TESTS = test-str test-paste test-settings test-overlay test-devices test-devices-pcap test-input-media test-scsi test-hardware test-status test-sound test-grab test-printer
 
 all: $(TESTS) test-headers test-capture
 
@@ -30,7 +30,7 @@ test-settings: test_settings.c ui_test_support.c ui_test_support.h ../src/settin
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) -ffunction-sections -fdata-sections \
 		test_settings.c ui_test_support.c ../src/settings.c ../src/change.c -Wl,--gc-sections -o $@
 
-UI_SOURCES = ../src/overlay_devices.c ../src/overlay.c ../src/overlay_controls.c ../src/overlay_view.c ../src/overlay_media.c ../src/settings.c ../src/change.c
+UI_SOURCES = ../src/overlay_input.c ../src/overlay_text.c ../src/overlay_devices.c ../src/overlay.c ../src/overlay_controls.c ../src/overlay_view.c ../src/overlay_media.c ../src/settings.c ../src/change.c
 
 test-overlay: test_overlay.c ui_test_support.c ui_test_support.h $(UI_SOURCES) ../src/includes/overlay_devices.h ../src/includes/overlay.h ../src/includes/overlay_controls.h ../src/includes/ui_config.h ../src/includes/configuration.h ../src/includes/overlay_media.h ../src/includes/overlay_view.h ../src/includes/settings.h ../config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) $(PCAP_CFLAGS) -DTEST_OVERLAY -ffunction-sections -fdata-sections \
@@ -40,13 +40,23 @@ test-devices: test_devices.c ui_test_support.c ui_test_support.h $(UI_SOURCES) .
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) $(PCAP_CFLAGS) -DTEST_OVERLAY -ffunction-sections -fdata-sections \
 		test_devices.c ui_test_support.c $(UI_SOURCES) $(SDL3_LIBS) $(PCAP_LIBS) -Wl,--gc-sections -o $@
 
+# New input controls, native drive constraints, empty connections and ROM defaults.
+test-input-media: test_input_media.c ui_test_support.c ui_test_support.h $(UI_SOURCES) ../src/shortcut.c ../src/includes/overlay_input.h ../src/includes/overlay_text.h ../src/includes/overlay_media.h ../config.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) $(PCAP_CFLAGS) -DTEST_OVERLAY -ffunction-sections -fdata-sections \
+		test_input_media.c ui_test_support.c $(UI_SOURCES) ../src/shortcut.c $(SDL3_LIBS) $(PCAP_LIBS) -Wl,--gc-sections -o $@
+
+# Real SCSI sector reads/writes and guest-visible per-disk write protection.
+test-scsi: test_scsi.c ../src/scsi.c ../src/file.c ../config.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) -ffunction-sections -fdata-sections \
+		test_scsi.c ../src/file.c -Wl,--gc-sections -o $@
+
 # Compile and exercise optional PCAP discovery without host capture privileges.
 test-devices-pcap: test_devices.c pcap_test_support.c stubs/pcap.h ui_test_support.c $(UI_SOURCES) ../src/includes/overlay_devices.h ../src/includes/ui_config.h ../config.h
 	$(CC) -Istubs $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) -DHAVE_PCAP=1 -DTEST_PCAP_STUB -DTEST_OVERLAY -ffunction-sections -fdata-sections \
 		test_devices.c pcap_test_support.c ui_test_support.c $(UI_SOURCES) $(SDL3_LIBS) -Wl,--gc-sections -o $@
 
 # Overlay RAM choices checked against the real core for all seven models.
-DEVICE_SOURCES = ../src/overlay_devices.c ../src/overlay_media.c
+DEVICE_SOURCES = ../src/overlay_text.c ../src/overlay_devices.c ../src/overlay_media.c
 
 test-hardware: test_hardware.c $(DEVICE_SOURCES) ../src/includes/overlay_devices.h ../src/configuration.c ../src/overlay_controls.c ../src/overlay_view.c ../src/includes/overlay_controls.h ../src/includes/configuration.h ../config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) $(PCAP_CFLAGS) -ffunction-sections -fdata-sections \

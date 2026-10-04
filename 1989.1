@@ -75,6 +75,14 @@ without disconnecting the drive or resetting the machine. Delete disconnects
 the drive and requires restart confirmation. T changes SCSI type, W changes
 write protection, N creates a blank image, and H explains SCSI roles and
 NEXTSTEP drive numbering. Existing images are never overwritten.
+C connects an empty native drive with restart confirmation. Native floppy 0
+requires a 68040 model; native MO requires a non-Turbo Cube.
+.PP
+Extensions > Input details edits numeric mouse sensitivity and shortcut
+bindings. In Advanced, D on a machine or NeXTdimension ROM row restores its
+discovered default path. Active ROM changes require restart confirmation.
+Show-menu-at-startup and temporary SCSI writes are retired; old configurations
+using temporary writes import their SCSI targets as read-only.
 .PP
 The suggested layout uses ID 1 for the system disk and ID 3 for CD-ROM;
 ID 7 is reserved for the host controller. Existing assignments are preserved.
@@ -95,5 +103,6 @@ Install-time location of the NeXT firmware images (see
 .SH SEE ALSO
 .BR SDL3 (3)
 .SH BUGS
-Based on Previous 4.3. Legacy-menu migration is incomplete.
+Based on Previous 4.4 plus r1854 fixes. Configuration import/export and
+file recovery/alerts still use the legacy interface.
 See Development.md and docs/INTERFACE.md for integration status and remaining controls.

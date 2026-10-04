@@ -25,6 +25,9 @@ To eject removable media, select its row, press **E**, then close F9 and choose
 **Save**. Ejection keeps the drive connected, needs no reset, and leaves other
 disks open. Enter loads another image. Delete disconnects the drive and requires
 a restart. Native floppy/MO drives are grouped separately from the SCSI bus.
+**C** connects an empty native drive, with restart confirmation. Native floppy
+0 is available on 68040 models; native MO uses the Cube's separate optical
+controller and is available only on non-Turbo Cubes.
 
 The row labels are suggested roles, not forced assignments; existing disks
 are never moved. H explains SCSI IDs versus NEXTSTEP `sdN` drive numbers.
@@ -45,10 +48,16 @@ boot. Hardware changes need a separate, clearly labelled restart confirmation.
 See [CONTROLS.md](CONTROLS.md) and the
 [interface inventory](docs/INTERFACE.md) for details.
 
-F1 (also Ctrl+Alt+O) opens the legacy options dialog for shortcut remapping
-and custom numeric mouse scales, remaining media controls and config
-import/export. Its media changes are staged until OK. The legacy Save config
-button explicitly writes to the chosen file.
+F1 (also Ctrl+Alt+O by default) still provides config import/export. Its media
+changes are staged until OK. The legacy Save config button explicitly writes
+to the chosen file. Missing-file recovery and alerts also still use legacy
+dialogs. “Show menu at startup” is retired.
+
+The testing-only temporary SCSI write overlay is retired. Loading an old
+configuration with it enabled makes configured SCSI drives read-only. Use
+per-drive write protection in Media to change this; writable images now
+always receive persistent writes. Shut down the guest before changing a
+fixed disk's protection and confirming the required restart.
 
 The default effective memory configuration is 64 MiB on the 68030 Cube.
 Changing machine variants chooses model-specific CPU/RAM defaults.
@@ -81,9 +90,11 @@ be saved without rebooting. Esc returns to the tab; F9 opens Save/Discard.
 
 F9 toggles sound, microphone, tablet and printer connection without restarting
 NeXT. Extensions also provides printer paper, PNG/TIFF format and output
-folder, keyboard mapping, mouse motion presets and capture options. These
-remain drafts until Save. F1 retains shortcut editing and custom numeric
-mouse sensitivity.
+folder, keyboard mapping, mouse motion presets and capture options.
+**Input details** edits shortcut bindings and numeric mouse sensitivity.
+These remain drafts until Save and apply without a restart. **D** on machine
+or board ROM rows restores an available default path; active ROM changes
+require restart confirmation.
 The emulated printer is the NeXT Laser Printer.
 
 ## Capture, debuggers and disk tools

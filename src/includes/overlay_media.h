@@ -10,6 +10,11 @@ SCSI_DEVTYPE OverlayMedia_ScsiType(const CNF_PARAMS *draft, int id);
 int OverlayMedia_ScsiDiskNumber(const CNF_PARAMS *draft, int id);
 bool OverlayMedia_Eject(CNF_PARAMS *draft, OvDialogKind kind);
 bool OverlayMedia_Disconnect(CNF_PARAMS *draft, OvDialogKind kind);
+/* Existing unsupported connections remain visible and can be ejected/removed. */
+const char *OverlayMedia_Unavailable(const CNF_PARAMS *draft, OvDialogKind kind);
+bool OverlayMedia_Connect(CNF_PARAMS *draft, OvDialogKind kind);
+bool OverlayMedia_RestoreRom(CNF_PARAMS *draft, OvDialogKind kind);
+const char *OverlayMedia_Validate(const CNF_PARAMS *original, const CNF_PARAMS *draft);
 
 /* The callback owns no pointer into an edit session. Closing the panel
  * invalidates its result; only the UI thread applies a completed selection. */

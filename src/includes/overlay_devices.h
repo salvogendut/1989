@@ -4,14 +4,16 @@
 #include "configuration.h"
 #include "overlay_view.h"
 #include "ui_config.h"
+#include "overlay_text.h"
 
 typedef enum { OV_DEVICES_NONE, OV_DEVICES_NETWORK, OV_DEVICES_DIMENSION } OvDevicePage;
 typedef struct {
     OvDevicePage page;
     int row, board;
-    bool editing, replace_text, rom_mac_known;
+    bool rom_mac_known;
     unsigned char rom_mac[6];
-    char text[64], message[128];
+    OverlayText editor;
+    char message[128];
 } OverlayDevices;
 
 void OverlayDevices_Open(OverlayDevices *panel, OvDevicePage page, const CNF_PARAMS *draft);

@@ -778,6 +778,19 @@ void Configuration_CheckPeripheralSettings(void) {
 }
 
 
+/* Compatibility migration only: neither retired option has a runtime path.
+ * Old temporary-overlay users must not silently acquire writable images. */
+static void Configuration_RetireLegacyOptions(void) {
+    ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup = false;
+    if (ConfigureParams.SCSI.nWriteProtection == WRITEPROT_ON) {
+        for (int i = 0; i < ESP_MAX_DEVS; i++)
+            if (ConfigureParams.SCSI.target[i].nDeviceType != SD_NONE)
+                ConfigureParams.SCSI.target[i].bWriteProtected = true;
+        Log_Printf(LOG_WARN, "Retired temporary SCSI overlay: configured drives are now read-only. Use per-drive write protection to change this.");
+    }
+    ConfigureParams.SCSI.nWriteProtection = WRITEPROT_OFF;
+}
+
 /*-----------------------------------------------------------------------*/
 /**
  * Copy details from configuration structure into global variables for system,
@@ -786,6 +799,8 @@ void Configuration_CheckPeripheralSettings(void) {
 void Configuration_Apply(bool bReset)
 {
 	int i;
+
+	Configuration_RetireLegacyOptions();
 
 	/* Retired duplicate UI: old configurations must not bring it back. */
 	ConfigureParams.Screen.bShowStatusbar = false;
@@ -1046,6 +1061,7 @@ void Configuration_Load(const char *psFileName)
 	Configuration_LoadSection(psFileName, configs_Printer, "[Printer]");
 	Configuration_LoadSection(psFileName, configs_System, "[System]");
 	Configuration_LoadSection(psFileName, configs_Dimension, "[Dimension]");
+	Configuration_RetireLegacyOptions();
 }
 
 

@@ -27,10 +27,12 @@ Keep machine-core changes contained so upstream fixes remain practical to merge.
 | --- | --- |
 | `overlay.c` | Sections/rows, keyboard navigation, edit-session and confirmation flow |
 | `overlay_controls.c` | Shared control definitions across the four tabs; typed draft accessors, model-dependent choices/availability, labels and hints; no runtime or dialog calls |
-| `overlay_devices.c` | Networking/NFS and NeXTdimension detail-page navigation, draft edits, constrained text entry and Save validation; read-only ROM MAC/PCAP discovery |
+| `overlay_devices.c` | Networking/NFS and NeXTdimension detail-page navigation, draft edits and Save validation; read-only ROM MAC/PCAP discovery |
+| `overlay_input.c` | Numeric mouse scales and shortcut capture/validation in Extensions; draft-only edits |
+| `overlay_text.c` | Shared text-entry lifecycle, selection, paste, cancellation and drawing; field owners validate accepted text |
 | `overlay_view.c` | Stateless SDL drawing of copied rows, tabs, choices and dialogs; no device/configuration calls |
 | `sdlstatusbar.c` | Compatibility hooks forwarding core activity/messages to LEDs and notifications; no legacy status-bar drawing |
-| `overlay_media.c` | Suggested SCSI roles/types, next-boot drive-number preview, native-picker handoff, eject/disconnect draft updates, image validation and exclusive sparse-file creation |
+| `overlay_media.c` | Suggested SCSI roles/types, next-boot drive numbers, native-picker handoff, connect/eject/disconnect drafts, model restrictions, default-ROM lookup and exclusive sparse-file creation |
 | `ui_config.c` | Load/save/apply `[UI89]` desktop preferences |
 | `settings.c` | Private machine draft, merge with live state, restart policy and per-target media application |
 | `change.c` | Apply configuration to runtime subsystems; shared by F9 and the legacy dialog |
@@ -73,6 +75,13 @@ use the corresponding Application Support/AppData paths from `paths.c`.
 configured data directory, installed ROM directory and source-tree `roms/`.
 Internal Previous/Hatari names generally remain in core code.
 
+`Configuration_RetireLegacyOptions` runs on configuration load/application.
+It clears show-menu-at-startup and migrates enabled global temporary SCSI
+writes to per-target read-only flags, then clears the global setting. The
+keys/struct fields remain for file compatibility; no runtime shadow-write
+or automatic options-menu path remains. Settings drafts cannot reactivate
+these flags. Per-drive write protection still uses the ordinary SCSI path.
+
 ## Verification
 
 ```sh
@@ -100,6 +109,13 @@ slots 4/6, console selection, display layouts and unchanged disk I/O counters.
 `test-devices-pcap` builds the optional PCAP UI with simulated interface
 enumeration, including empty/error results and allocation cleanup.
 These checks do not replace a guest NFS mount or a multi-board NEXTSTEP boot.
+`test-input-media` covers numeric validation/no-op precision, shortcut capture
+and conflict checks, runtime key matching, empty-drive connections, model
+restrictions, ROM defaults and Save/Discard/restart behavior with unchanged
+boot disks. It renders the input editors and MO warning through SDL software
+rendering. `test-hardware` also exercises the real retired-option migration;
+`test-scsi` checks persistent sector writes/readback and write-protection
+sense codes using the real command/sector handlers and a temporary disk file.
 Status tests cover literal core messages, notification modes/expiry,
 concurrent posting/rendering and the retired shortcut. The model summary
 is checked against active settings while different hardware remains staged.

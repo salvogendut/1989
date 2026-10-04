@@ -88,3 +88,8 @@ void SDL_ShowOpenFolderDialog(SDL_DialogFileCallback cb, void *userdata, SDL_Win
     folder_requests++;
     SDL_ShowOpenFileDialog(cb, userdata, window, NULL, 0, path, multiple);
 }
+
+char default_rom_dir[FILENAME_MAX];
+void Rom_GetDefaultPath(char *path, int length, const char *name) {
+    snprintf(path, length, "%s/%s.BIN", default_rom_dir, name);
+}

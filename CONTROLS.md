@@ -4,7 +4,7 @@
 hint strip. [Interface coverage](docs/INTERFACE.md) lists the controls still
 available only in the F1 legacy menu.
 
-## Host shortcuts
+## Default host shortcuts
 
 | Key | Action |
 | --- | --- |
@@ -27,8 +27,9 @@ restarting or quitting.
 The configurable legacy shortcuts require **Ctrl+Alt**, not Alt alone:
 O options, F fullscreen, M mouse capture, C restart, G legacy screenshot,
 R AIFF recording, S sound, P pause, D m68k debugger, I i860 debugger,
-Q quit, N display switch and T title bar. F1 → Keyboard can
-rebind them. The dedicated F4/F6/F9 and Ctrl+V controls are handled separately.
+Q quit, N display switch and T title bar. F9 → Extensions → **Input details**
+can rebind them, including the default F1/F5/F11/F12 bindings. The dedicated
+F4/F6/F9 and Ctrl+V controls are handled separately.
 
 Clipboard paste sends timed key presses with Shift where needed; unsupported
 bytes are skipped. Opening F9 stops an in-progress paste. Window scale and
@@ -41,12 +42,14 @@ fullscreen are restored from `1989.conf` on the next launch.
 | Left/Right | Switch tab |
 | Up/Down | Select a row; holding the key repeats |
 | Enter | Change a setting; load/replace selected media |
+| C | Connect an empty native floppy/MO drive; requires a restart |
 | E | Eject removable media while keeping the drive connected |
 | Delete | Disconnect the selected drive; requires a restart |
 | N | Create a blank image for selected media |
 | T | Cycle selected SCSI type: hard disk, CD, floppy |
 | W | Toggle selected media's write protection; CDs stay read-only |
 | H | Media help: SCSI roles, drive numbering and eject/disconnect |
+| D | Restore the selected machine or NeXTdimension ROM's default path |
 | Esc / F9 | Close or show Save/Discard confirmation |
 
 Settings are staged in private copies while NeXT keeps running. **Save**
@@ -92,6 +95,14 @@ MO drive stays connected and can accept another image with Enter. E does
 not remove a fixed hard disk. **Delete disconnects the drive**, which needs
 restart confirmation. Loading an unconnected drive also requires a restart.
 
+**C connects an empty native drive** without choosing an image. Native floppy
+0 requires a 68040 model; hardware has only one native floppy drive. Native
+MO requires a non-Turbo Cube and uses its own optical controller, without a
+SCSI ID. These restrictions do not affect SCSI floppy devices. Existing
+unsupported entries can still be ejected or disconnected. Connecting the
+second MO drive adds the legacy NEXTSTEP kernel-crash warning to the existing
+restart confirmation. No extra confirmation appears for ordinary ejection.
+
 The selected SCSI row previews its expected `sdN` number on the next boot.
 It is not a query of the running guest. H explains why adding a lower-ID
 drive shifts later numbers; see [SCSI layout](docs/INTERFACE.md#scsi-layout-and-drive-numbers).
@@ -112,8 +123,16 @@ screenshots; F4/F6 keep PPM/GIF. Without libpng, image output uses TIFF.
 **Keyboard and mouse** provides symbolic/scancode mapping, Command/Alt swap,
 slow/fast motion presets, raw motion, Ctrl-click as right-click, wheel-to-arrow
 mapping and automatic mouse capture. Imported custom sensitivity values are
-shown and preserved until edited; exact numeric entry and shortcut remapping
-remain in F1. Ctrl+Enter still releases the mouse.
+shown and preserved until edited. Ctrl+Enter still releases the mouse.
+
+**Input details** edits the linear mouse scale (0.01–10.0) and exponential
+scale (0.50–1.00); a decimal point or comma is accepted. For shortcuts, cycle
+**Action**, then edit **With Ctrl+Alt** or **Without Ctrl+Alt**. Enter starts
+key capture; press the desired key, Esc to cancel or Delete to clear. Delete
+also clears a selected binding without capture. Duplicate bindings are
+rejected within each modifier group. F4/F6/F9 and modifier-only keys are
+reserved, as are Ctrl+Alt combinations intercepted by desktop paste, mouse
+release and zoom. Save applies input changes without a restart.
 
 **Network / NFS** opens a detail page for SLiRP/PCAP, PCAP host interface,
 thinwire/twisted-pair cable, network time, ROM/custom MAC and four NFS exports.
@@ -142,6 +161,11 @@ notifications, debug output, RTC local/UTC, fullscreen, title bar,
 apply on Save. Boot diagnostics are grouped in Media, including DRAM test
 and verbose boot, and do not require Tinker.
 
+Enter on a ROM row selects a file; **D restores its discovered default** from
+the same installed/source-tree lookup used at startup. A missing default
+leaves the current choice intact. Changes to the active machine ROM require
+restart confirmation; inactive variants can be saved without a reset.
+
 **Machine hardware** provides DSP RAM (24/96 KB), SCSI controller
 (NCR53C90/NCR53C90A), RTC chip (MC68HC68T1/MCCS1850) and NBIC. NBIC is
 Cube-only and cannot be disabled while any NeXTdimension board is enabled.
@@ -152,6 +176,7 @@ host-clock preference.
 Choose the board, then its connection, ROM and four RAM banks. Bank 0 allows
 4/16 MB; other banks also allow empty. Board RAM defaults restore 16 MB total.
 Disconnected boards can have ROM/RAM preferences saved without a restart.
+**D** on the board's ROM row restores its discovered default as well.
 
 Boot console selects the main display or a connected NeXTdimension and
 requires restart confirmation. Display mode selects one display, separate

@@ -255,7 +255,7 @@ static void test_pcap(void) {
     activate(&s, &draft, "Network time");
     assert(activate(&s, &draft, "Share 2 folder") == OV_DIALOG_NONE);
     activate(&s, &draft, "Share 2 host name");
-    assert(!s.editing && !memcmp(&before, &draft, sizeof(draft)));
+    assert(!s.editor.active && !memcmp(&before, &draft, sizeof(draft)));
     pcap_test_mode = 1;
     activate(&s, &draft, "Host interface");
     assert(s.message[0] && !memcmp(&before, &draft, sizeof(draft)));
