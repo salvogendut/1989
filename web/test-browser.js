@@ -9,7 +9,7 @@ const server=spawn('python3',['serve.py','--port',String(port)],{stdio:['ignore'
 let browser, page;
 try {
   await new Promise((resolve,reject)=>{server.stdout.once('data',resolve);server.once('error',reject);server.once('exit',code=>reject(new Error(`Server exited: ${code}`)));});
-  browser=await chromium.launch({headless:true,args:['--enable-unsafe-swiftshader']});
+  browser=await chromium.launch({headless:true,args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});
   page=await browser.newPage({viewport:{width:1440,height:1400},acceptDownloads:true});
   await mkdir('test-results',{recursive:true});
   const errors=[];
@@ -60,15 +60,21 @@ try {
 
   // Inspect actual rendered pixels (rather than accepting a "ready" UI label).
   async function frameHash() {
-    return page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>{
-      const source=document.getElementById('canvas'), copy=document.createElement('canvas');
+    // Read the composited image. WebGL's drawing buffer can be discarded after
+    // presentation, so drawImage(canvas) between frames can capture blank pixels
+    // even while the ROM console is visibly displayed (notably on SwiftShader).
+    const screenshot=await page.locator('#canvas').screenshot();
+    return page.evaluate(async png=>{
+      const source=new Image(), copy=document.createElement('canvas');
+      source.src=`data:image/png;base64,${png}`;
+      await source.decode();
       copy.width=1120;copy.height=832;
       const ctx=copy.getContext('2d');ctx.drawImage(source,0,0,1120,832);
       const pixels=ctx.getImageData(90,270,700,280).data;
       let hash=2166136261,white=0;
       for(let i=0;i<pixels.length;i+=4) {hash=Math.imul(hash^pixels[i],16777619);if(pixels[i]>230)white++;}
-      resolve({hash,white});
-    })));
+      return {hash,white};
+    },screenshot.toString('base64'));
   }
   async function waitForFrameChange(before, message) {
     // Software rendering on CI may lag the CPU. Observe the guest response
