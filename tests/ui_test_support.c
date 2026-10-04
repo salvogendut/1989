@@ -65,7 +65,6 @@ void paste_stop(void) {}
 void notify_post(const char *fmt, ...) { (void)fmt; }
 void Configuration_SetSystemDefaultsFor(CNF_PARAMS *p) { p->System.nCpuFreq = 25; p->Memory.nMemoryBankSize[0] = 16; }
 void leds_set_enabled(LedId id, bool value) { (void)id; (void)value; }
-void leds_set_cpu_frequency(unsigned freq) { (void)freq; }
 void leds_set_scsi_present(int target, bool value) { (void)target; (void)value; }
 #ifndef TEST_OVERLAY
 void overlay_update_leds(void) {}

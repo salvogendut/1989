@@ -787,6 +787,11 @@ void Configuration_Apply(bool bReset)
 {
 	int i;
 
+	/* Retired duplicate UI: old configurations must not bring it back. */
+	ConfigureParams.Screen.bShowStatusbar = false;
+	ConfigureParams.Shortcut.withModifier[SHORTCUT_STATUSBAR] = 0;
+	ConfigureParams.Shortcut.withoutModifier[SHORTCUT_STATUSBAR] = 0;
+
 	/* Mouse settings */
 	if (ConfigureParams.Mouse.bEnableMacClick) {
 		ConfigureParams.Mouse.bEnableAutoGrab = false;

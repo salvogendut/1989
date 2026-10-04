@@ -53,5 +53,7 @@ void overlay_update_leds(void);
 
 /* Name of the currently selected machine model (e.g. "NeXT Computer"). */
 const char *overlay_machine_name(void);
+/* Bottom-strip label: live model, configured CPU clock and total RAM. */
+void overlay_machine_summary(char *buffer, size_t size);
 
 #endif /* PREV_OVERLAY_H */

@@ -57,7 +57,6 @@ void Keymap_InitShortcutDefaultKeys(void)
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_SOUND]         = SDLK_S;
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_QUIT]          = SDLK_Q;
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_DIMENSION]     = SDLK_N;
-	ConfigureParams.Shortcut.withModifier[SHORTCUT_STATUSBAR]     = SDLK_B;
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_TITLEBAR]      = SDLK_T;
 }
 

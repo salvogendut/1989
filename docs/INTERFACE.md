@@ -17,7 +17,7 @@ produces no save prompt or restart.
 | Change | Effect when confirmed |
 | --- | --- |
 | Smoothing, CRT, notifications, GIF settings, debug output, RTC local/UTC | Apply without a machine restart |
-| Fullscreen, status bar, title bar | Update the window without rebooting NeXT |
+| Fullscreen, title bar | Update the window without rebooting NeXT |
 | Sound/microphone, Ethernet connection, tablet, printer connection | Update the affected host/peripheral subsystem; disks stay attached |
 | Boot device, power-on diagnostics, verbose boot | Save for the next boot; the current OS keeps running |
 | Media in an already connected removable drive | Exchange only the changed drive's media; other disks stay open |
@@ -68,7 +68,7 @@ This inventory is based on `src/gui-sdl/dlg*.c` and the F9 row/actions code.
 | SCSI | Suggested roles and next-boot sdN preview; seven image slots; T disk/CD/floppy type; W protection; E eject; Delete disconnect; blank HDD/floppy images | Legacy browser and testing-only global disk-write overlay |
 | Floppy | Drives 0/1, image selection, E eject, Delete disconnect, write protection, blank 720 KiB/1.44 MiB/2.88 MiB images | Connect an empty drive without loading media |
 | Magneto-optical | Drives 0/1, image selection, E eject, Delete disconnect, write protection, blank-image creation | Connect an empty drive without media; legacy second-drive warning |
-| Graphics | First NeXTdimension board enable; fullscreen, filtering, CRT, status/title bars | Boards in slots 4/6; per-board ROM/RAM; console/display slot; separate/grouped displays and monitor arrangement |
+| Graphics | First NeXTdimension board enable; fullscreen, filtering, CRT and title bar | Boards in slots 4/6; per-board ROM/RAM; console/display slot; separate/grouped displays and monitor arrangement |
 | Network | Connected/disconnected | SLiRP/pcap selection, host interface, twisted-pair selection, MAC address, network time, NFS shares and names |
 | Sound | Output enable in General; microphone in Extensions | No additional sound-menu toggle |
 | Keyboard | Clipboard paste; Extensions: scancode/symbolic mapping and Command/Alt swap | Configurable legacy shortcuts |
@@ -79,6 +79,12 @@ This inventory is based on `src/gui-sdl/dlg*.c` and the F9 row/actions code.
 The m68k/i860 debuggers, legacy PNG/TIFF screenshots and AIFF recording remain
 available through their shortcuts. Missing-ROM/media recovery still uses
 legacy dialogs. These are separate migration tasks, not removed features.
+
+The duplicate legacy status bar has been retired. The existing model/hint
+strip shows configured CPU frequency and total RAM; the LEDs handle activity,
+and core status messages use shared notifications. The old visibility setting
+and status-bar shortcut keys are accepted for configuration compatibility,
+then cleared. They cannot trigger window recreation or bring back the bar.
 
 ## SCSI layout and drive numbers
 

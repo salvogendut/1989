@@ -241,7 +241,7 @@ static void test_migrated_controls(const char *dir, const char *image) {
     assert(!memcmp(&before.SCSI, &ConfigureParams.SCSI, sizeof(before.SCSI)));
 
     /* Protect layout/navigation from silently truncating a growing definition. */
-    const int base_rows[] = {11, 15, 0, 16};
+    const int base_rows[] = {11, 15, 0, 15};
     for (int section = OV_GENERAL; section <= OV_ADVANCED; section++) {
         OverlayView view = {0};
         int count = OverlayControls_Count(section), selectable = 0, selected = 0;
@@ -258,7 +258,7 @@ static void test_migrated_controls(const char *dir, const char *image) {
 static void hardware(OvSection section, const char *label) {
     key(SDL_SCANCODE_F9);
     if (section == OV_ADVANCED) key(SDL_SCANCODE_LEFT);
-    int base = section == OV_GENERAL ? 11 : (UI89Config_.bCrtEnabled ? 16 : 15);
+    int base = section == OV_GENERAL ? 11 : (UI89Config_.bCrtEnabled ? 15 : 14);
     down(base + control_row(section, label));
 }
 
@@ -337,6 +337,26 @@ static void test_hardware_controls(void) {
     assert(restarts == resets_before && saved == saves_before);
 }
 
+static void test_machine_summary(void) {
+    CNF_PARAMS before = ConfigureParams;
+    char label[128], draft_label[128];
+    ConfigureParams.System.nMachineType = NEXT_STATION;
+    ConfigureParams.System.bTurbo = ConfigureParams.System.bColor = true;
+    ConfigureParams.System.nCpuFreq = 40;
+    for (int i = 0; i < 4; i++) ConfigureParams.Memory.nMemoryBankSize[i] = 32;
+    overlay_machine_summary(label, sizeof(label));
+    assert(!strcmp(label, "1989 NeXTstation Turbo Color | 40 MHz | 128 MB"));
+    key(SDL_SCANCODE_F9); down(2); key(SDL_SCANCODE_RETURN);
+    key(SDL_SCANCODE_UP); key(SDL_SCANCODE_RETURN); /* Edit RAM as well. */
+    overlay_machine_summary(draft_label, sizeof(draft_label));
+    assert(!strcmp(label, draft_label)); /* Display active hardware, not the draft. */
+    key(SDL_SCANCODE_F9); key(SDL_SCANCODE_RETURN); /* Discard. */
+    ConfigureParams.System.bRealtime = true;
+    overlay_machine_summary(label, sizeof(label));
+    assert(strstr(label, "40 MHz (variable) | 128 MB"));
+    ConfigureParams = before;
+}
+
 int main(void) {
     ConfigureParams.System.nCpuFreq = 25;
     ConfigureParams.Mouse.fLinScale = 1.0f;
@@ -345,6 +365,7 @@ int main(void) {
     UI89Config_.bTinker = true;
     UI89Config_.nGifFps = 25;
     overlay_init();
+    test_machine_summary();
     key(SDL_SCANCODE_F9);
     key(SDL_SCANCODE_RIGHT); /* Media, boot device. */
     key(SDL_SCANCODE_RETURN);

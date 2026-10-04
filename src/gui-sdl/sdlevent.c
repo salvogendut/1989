@@ -19,7 +19,6 @@ const char SDLevent_fileid[] = "Previous sdlevent.c";
 #include "sdlaudio.h"
 #include "sdlkeymap.h"
 #include "sdlscreen.h"
-#include "sdlstatusbar.h"
 #include "tablet.h"
 #include "dimension.hpp"
 #include "overlay.h"
@@ -513,7 +512,6 @@ void GuiEvent_EventHandler(void) {
 							break;
 #ifndef ENABLE_RENDERING_THREAD
 						case SPECIAL_EVENT_REPAINT:
-							Statusbar_Update(sdlscrn);
 							Screen_Repaint();
 							break;
 						case SPECIAL_EVENT_ND_DISPLAY:

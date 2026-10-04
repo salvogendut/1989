@@ -5,7 +5,8 @@
  *   NOTIFY_MODE_CONSOLE - stderr only
  *   NOTIFY_MODE_OFF     - silent
  *
- * Single global singleton - call-sites need no context handle. */
+ * Posting, ticking and mode changes are thread-safe. Rendering draws a
+ * snapshot and must run on the renderer's owning thread. */
 
 #ifndef PREV_NOTIFY_H
 #define PREV_NOTIFY_H

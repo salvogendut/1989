@@ -339,13 +339,14 @@ static bool Main_Init(void) {
 	/* Load the 1989 UI settings before the window is created so it can be
 	 * opened at the saved scale (a later resize is ignored by some
 	 * Wayland compositors). */
+	/* Initialize messages before loading the saved Screen/Console/Off mode. */
+	notify_init();
 	UI89_Load();
 
 	/* Init user interface */
 	UI_Init();
 
-	/* Init 1989 happy-years UI (options overlay, LED bar, toasts) */
-	notify_init();
+	/* Init 1989 happy-years options overlay and activity LEDs. */
 	overlay_init();
 	overlay_update_leds();
 
@@ -426,29 +427,10 @@ static void Main_LoadInitialConfig(void) {
 
 /*-----------------------------------------------------------------------*/
 /**
- * Set system information and initial help message
+ * Show the primary desktop shortcuts.
  */
-static void Main_StatusbarSetup(void) {
-	const char *name = NULL;
-	int key;
-
-	key = ConfigureParams.Shortcut.withoutModifier[SHORTCUT_OPTIONS];
-	if (!key)
-		key = ConfigureParams.Shortcut.withModifier[SHORTCUT_OPTIONS];
-	if (key)
-		name = Keymap_GetKeyName(key);
-	if (name)
-	{
-		char message[24], *keyname;
-
-		keyname = Str_ToUpper(strdup(name));
-		snprintf(message, sizeof(message), "Press %s for Options", keyname);
-		free(keyname);
-
-		Statusbar_AddMessage(message, 6000);
-	}
-	/* update information loaded by Main_Init() */
-	Statusbar_UpdateInfo();
+static void Main_DesktopHelp(void) {
+	notify_post("F9: OPTIONS   Ctrl+Enter: RELEASE MOUSE");
 }
 
 /**
@@ -527,8 +509,8 @@ int main(int argc, char *argv[])
 
 	/* Init emulator system */
 	if (Main_Init()) {
-		/* Set initial Statusbar information */
-		Main_StatusbarSetup();
+		/* Show the desktop shortcuts. */
+		Main_DesktopHelp();
 
 		/* Run emulation */
 		Main_Loop();

@@ -10,6 +10,8 @@ The [interface inventory](docs/INTERFACE.md) and
 - Firmware/resource installation, desktop integration, RPM/Debian/macOS
   packaging scaffolding and `ditool`.
 - F9 General/Media/Extensions/Advanced tabs, activity LEDs and function hints.
+- CPU clock/RAM beside the model in the hint strip; duplicate legacy status
+  bar removed, with core messages routed through shared notifications.
 - Private settings drafts; Save/Discard; shared restart policy; confirmed
   F5 restart; per-drive removable-media updates in F9 and F1.
 - Live display/audio/network-connection/tablet/printer settings; boot options

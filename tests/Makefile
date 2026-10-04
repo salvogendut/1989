@@ -11,7 +11,7 @@ SDL3_LIBS ?= $(shell pkg-config --libs sdl3)
 PNG_CFLAGS ?= $(shell pkg-config --cflags libpng 2>/dev/null)
 PNG_LIBS ?= $(shell pkg-config --libs libpng 2>/dev/null)
 
-TESTS = test-str test-paste test-settings test-overlay test-hardware test-sound test-grab test-printer
+TESTS = test-str test-paste test-settings test-overlay test-hardware test-status test-sound test-grab test-printer
 
 all: $(TESTS) test-headers test-capture
 
@@ -38,6 +38,11 @@ test-overlay: test_overlay.c ui_test_support.c ui_test_support.h $(UI_SOURCES) .
 test-hardware: test_hardware.c ../src/configuration.c ../src/overlay_controls.c ../src/overlay_view.c ../src/includes/overlay_controls.h ../src/includes/configuration.h ../config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) -ffunction-sections -fdata-sections \
 		test_hardware.c ../src/configuration.c ../src/overlay_controls.c ../src/overlay_view.c -Wl,--gc-sections -o $@
+
+# Core status messages/LEDs and the retired shortcut, with threaded posting.
+test-status: test_status.c ../src/notify.c ../src/gui-sdl/sdlstatusbar.c ../src/shortcut.c ../src/includes/notify.h ../config.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(SDL3_CFLAGS) -ffunction-sections -fdata-sections \
+		test_status.c ../src/notify.c ../src/gui-sdl/sdlstatusbar.c ../src/shortcut.c $(SDL3_LIBS) -Wl,--gc-sections -o $@
 
 # Audio byte order, double-rate modes, activity and timing with host sound off.
 test-sound: test_sound.c ../src/snd.c ../src/includes/snd.h ../config.h

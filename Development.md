@@ -28,6 +28,7 @@ Keep machine-core changes contained so upstream fixes remain practical to merge.
 | `overlay.c` | Sections/rows, keyboard navigation, edit-session and confirmation flow |
 | `overlay_controls.c` | Shared control definitions across the four tabs; typed draft accessors, model-dependent choices/availability, labels and hints; no runtime or dialog calls |
 | `overlay_view.c` | Stateless SDL drawing of copied rows, tabs, choices and dialogs; no device/configuration calls |
+| `sdlstatusbar.c` | Compatibility hooks forwarding core activity/messages to LEDs and notifications; no legacy status-bar drawing |
 | `overlay_media.c` | Suggested SCSI roles/types, next-boot drive-number preview, native-picker handoff, eject/disconnect draft updates, image validation and exclusive sparse-file creation |
 | `ui_config.c` | Load/save/apply `[UI89]` desktop preferences |
 | `settings.c` | Private machine draft, merge with live state, restart policy and per-target media application |
@@ -92,6 +93,9 @@ Save/Discard/restart and model-specific availability, with the Advanced
 scanline row both present and hidden. `test-hardware` links the real
 configuration code to check RAM choices for all seven models against core
 normalization, Turbo memory-speed labels and NBIC dependencies.
+Status tests cover literal core messages, notification modes/expiry,
+concurrent posting/rendering and the retired shortcut. The model summary
+is checked against active settings while different hardware remains staged.
 Capture tests use a synthetic framebuffer and real PPM/GIF encoding.
 The grab tests exercise real framebuffer conversion and PNG/TIFF writing;
 sound tests check byte order, double-rate modes and timing with host sound

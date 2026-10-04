@@ -1,7 +1,7 @@
 /* leds.h — activity LED bar rendered at the bottom of the 1989 window.
  *
  * Categories (color coded):
- *   68K CPU     - grey / white (with CPU clock label)
+ *   68K CPU     - grey / white
  *   DSP 56001   - dark blue / bright blue
  *   SCSI disk   - dark green / bright green (one lamp per attached target
  *                 when more than one disk is in use)
@@ -49,8 +49,6 @@ typedef enum {
 
 /* Configure which LEDs to display in the bar. Call after reading config. */
 void leds_set_enabled(LedId id, bool enabled);
-/* Update the CPU clock label (MHz) shown beside the CPU lamp. */
-void leds_set_cpu_frequency(unsigned mhz);
 /* Mark a SCSI target as attached. When more than one target is attached the
  * single SCSI lamp is replaced by one lamp per target ("SCSI 0", ...). */
 void leds_set_scsi_present(int target, bool present);

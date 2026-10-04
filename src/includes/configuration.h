@@ -100,7 +100,7 @@ typedef enum {
   SHORTCUT_PAUSE,
   SHORTCUT_QUIT,
   SHORTCUT_DIMENSION,
-  SHORTCUT_STATUSBAR,
+  SHORTCUT_STATUSBAR, /* Reserved for old config files; no active binding. */
   SHORTCUT_TITLEBAR,
   SHORTCUT_KEYS,  /* number of shortcuts */
   SHORTCUT_NONE
@@ -285,7 +285,7 @@ typedef struct
   int nGroupModePos[NUM_MONITORS];
   int nSingleModeSlot;
   bool bFullScreen;
-  bool bShowStatusbar;
+  bool bShowStatusbar; /* Accepted from old config files, ignored by the UI. */
   bool bShowTitlebar;
 } CNF_SCREEN;
 

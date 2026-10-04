@@ -71,7 +71,6 @@ void Video_VBL_Handler(void) {
 	leds_ping(LED_CPU);
 #ifdef ENABLE_RENDERING_THREAD
 	Timing_BlankCount(MAIN_DISPLAY, true);
-	Screen_StatusbarUpdate();
 	Video_Interrupt();
 	CycInt_UpdateTimeEvent((1000*1000)/NEXT_VBL_FREQ, 0, EVENT_VIDEO_VBL);
 #else

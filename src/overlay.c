@@ -109,7 +109,6 @@ enum {
     ADV_DEBUG,
     ADV_RTC_CLOCK,
     ADV_FULLSCREEN,
-    ADV_STATUSBAR,
     ADV_TITLEBAR,
     ADV_ROM030,
     ADV_ROM040,
@@ -321,7 +320,6 @@ static const char *mo_value(int i, char *buf, size_t size) {
 /* Refresh the activity-LED enable/colour state from the running machine. */
 void overlay_update_leds(void) {
 	leds_set_enabled(LED_CPU, true);
-	leds_set_cpu_frequency((unsigned)ConfigureParams.System.nCpuFreq);
 	leds_set_enabled(LED_DSP,
 	                 ConfigureParams.System.nDSPType != DSP_TYPE_NONE);
 	leds_set_enabled(LED_SCSI, true);
@@ -337,6 +335,15 @@ void overlay_update_leds(void) {
 /* Name of the currently selected machine model. */
 const char *overlay_machine_name(void) {
 	return machines[current_machine_index(&ConfigureParams)].name;
+}
+
+/* Read the running configuration, never the unconfirmed options draft. */
+void overlay_machine_summary(char *buffer, size_t size) {
+    int ram = 0;
+    for (int i = 0; i < 4; i++) ram += ConfigureParams.Memory.nMemoryBankSize[i];
+    snprintf(buffer, size, "1989 %s | %d MHz%s | %d MB", overlay_machine_name(),
+             ConfigureParams.System.nCpuFreq,
+             ConfigureParams.System.bRealtime ? " (variable)" : "", ram);
 }
 
 /* ------------------------------------------------------------------ */
@@ -563,10 +570,6 @@ static void overlay_activate(void) {
                     break;
                 case ADV_FULLSCREEN:
                     g_settings.draft.Screen.bFullScreen = !g_settings.draft.Screen.bFullScreen;
-                    break;
-                case ADV_STATUSBAR:
-                    g_settings.draft.Screen.bShowStatusbar =
-                        !g_settings.draft.Screen.bShowStatusbar;
                     break;
                 case ADV_TITLEBAR:
                     g_settings.draft.Screen.bShowTitlebar =
@@ -796,9 +799,6 @@ void overlay_render(SDL_Renderer *r) {
                  g_edit_ui.bRtcLocalTime ? "Local time" : "UTC",
                  g_ov.row == dr); dr++;
         OverlayView_Add(&view, "Fullscreen", g_settings.draft.Screen.bFullScreen ? "On" : "Off",
-                 g_ov.row == dr); dr++;
-        OverlayView_Add(&view, "Status bar",
-                 g_settings.draft.Screen.bShowStatusbar ? "On" : "Off",
                  g_ov.row == dr); dr++;
         OverlayView_Add(&view, "Title bar",
                  g_settings.draft.Screen.bShowTitlebar ? "On" : "Off",

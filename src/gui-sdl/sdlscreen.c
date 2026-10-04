@@ -13,7 +13,6 @@ const char SDLscreen_fileid[] = "Previous sdlscreen.c";
 #include "screen.h"
 #include "sdlscreen.h"
 #include "statusbar.h"
-#include "sdlstatusbar.h"
 #include "sdlgui.h"
 #include "event.h"
 #include "dimension.hpp"
@@ -55,7 +54,6 @@ static SDL_FRect     uiRect;
 static SDL_FRect     fbRect;
 static SDL_FRect     groupRect[NUM_MONITORS];
 static SDL_AtomicInt blitUI;
-static SDL_Rect      statusBar;
 static SDL_Rect      saveWindowBounds; /* Window bounds before going fullscreen. Used to restore window size & position. */
 static SCREENMODE    saveScreenMode;   /* Save screen mode to restore on return from fullscreen */
 static SCREENMODE    initScreenMode;   /* Save screen mode present at last init */
@@ -249,8 +247,7 @@ static void Screen89_RenderScanlines(SDL_Renderer *r, const SDL_FRect *rect) {
  window coordinates. Also advances GIF capture.
  */
 static void Screen89_RenderExtras(SDL_Renderer *r) {
-	int sbh = Statusbar_GetHeight();
-	int led_y = height - sbh - LED_BAR_H;
+	int led_y = height - LED_BAR_H;
 	int strip_y = led_y - FUNCTION_KEY_BAR_H;
 
 	/* Function-key hint strip (sibling convention: red machine name,
@@ -260,8 +257,8 @@ static void Screen89_RenderExtras(SDL_Renderer *r) {
 	                   (float)FUNCTION_KEY_BAR_H };
 	SDL_RenderFillRect(r, &band);
 
-	char model[64];
-	snprintf(model, sizeof(model), "1989 %s", overlay_machine_name());
+	char model[128];
+	overlay_machine_summary(model, sizeof(model));
 	const char *keys =
 	    "  F1=legacy  F4=screenshot  F5=reset  F6=gif  F9=options  "
 	    "F11=fullscreen  F12=quit";
@@ -489,8 +486,6 @@ static void Screen_GetWindowBounds(SDL_Rect* r) {
 		if (SDL_GetWindowBordersSize(sdlWindow, &top, &left, &bottom, &right) == false) {
 			top = bottom = 50;
 			left = right = 25;
-		} else if (!ConfigureParams.Screen.bShowStatusbar) {
-			bottom += 24; /* make sure there is enough space to show statusbar */
 		}
 		hscale = (float)(usable.h - top - bottom) / height;
 		wscale = (float)(usable.w - left - right) / width;
@@ -579,24 +574,10 @@ void Screen_Reset(void) {
 	width  = screen_w;
 	height = screen_h;
 
-	/* 1989 happy-years UI: a function-key hint strip and an LED activity
-	 * bar sit at the bottom of the window, above the (optional) legacy
-	 * statusbar. The statusbar pins itself to the bottom of the surface,
-	 * so tell it its screen area includes the strips: that keeps it
-	 * correctly positioned without leaving a mask-coloured gap. */
-	{
-		int strip_total = FUNCTION_KEY_BAR_H + LED_BAR_H;
-		height += Statusbar_SetHeight(screen_w, screen_h + strip_total);
-		height += strip_total;
-	}
+	/* One function-key/model strip and one activity-LED bar. */
+	height += FUNCTION_KEY_BAR_H + LED_BAR_H;
 
-	/* Statusbar */
-	statusBar.x = 0;
-	statusBar.y = height - Statusbar_GetHeight();
-	statusBar.w = screen_w;
-	statusBar.h = Statusbar_GetHeight();
-
-	/* User interface including statusbar */
+	/* User interface */
 	uiRect.x = 0;
 	uiRect.y = 0;
 	uiRect.w = width;
@@ -653,9 +634,7 @@ void Screen_Reset(void) {
 		/* Clear UI with mask */
 		SDL_FillSurfaceRect(sdlscrn, NULL, mask);
 
-		/* Keep the SDL GUI screen pointer valid even when the legacy
-		 * statusbar is disabled (it used to be set by Statusbar_Init).
-		 * The missing-file / alert dialogs depend on it. */
+		/* The remaining missing-file / alert dialogs need this surface. */
 		SDLGui_SetScreen(sdlscrn);
 
 		/* Allocate buffer for copy routines */
@@ -697,12 +676,6 @@ void Screen_Reset(void) {
 	initScreenMode   = ConfigureParams.Screen.nMode;
 	initScreenWidth  = width;
 	initScreenHeight = height;
-
-	/* Initialise statusbar and set visibility */
-	if (ConfigureParams.Screen.bShowStatusbar) {
-		Statusbar_Init(sdlscrn);
-		Statusbar_Update(sdlscrn);
-	}
 
 #ifdef ENABLE_RENDERING_THREAD
 	/* Start repaint thread */
@@ -975,54 +948,32 @@ void Screen_TitlebarChanged(void) {
 
 /*-----------------------------------------------------------------------*/
 /**
- * Wrapper for Statusbar_AddMessage() and Statusbar_Update() in one go.
+ * Compatibility entry point for core/debugger messages.
  */
 void Screen_StatusbarMessage(const char *msg, uint32_t msecs)
 {
 	Statusbar_AddMessage(msg, msecs);
-	Statusbar_Update(sdlscrn);
+	Screen_RequestRepaint();
 }
 
 /*-----------------------------------------------------------------------*/
 /**
- * Wrapper for Statusbar_Update().
- */
-void Screen_StatusbarUpdate(void) {
-	Statusbar_Update(sdlscrn);
-}
-
-/*-----------------------------------------------------------------------*/
-/**
- * Check if we need to update full user interface or just the statusbar 
- * and copy user interface surface to buffer. Replace mask pixels with 
+ * Copy user interface surface to buffer. Replace mask pixels with
  * transparent pixels for blending with framebuffer texture.
  */
 void Screen_UpdateRects(SDL_Surface *screen, int numrects, SDL_Rect *rects) {
-	bool doUIblit = true;
-
-	while (numrects--) {
-		doUIblit = (rects->y < statusBar.y);
-		if (doUIblit) {
-			break;
-		}
-		rects++;
-	}
+	(void)screen;
+	(void)numrects;
+	(void)rects;
 
 	SDL_LockSurface(sdlscrn);
 	SDL_LockSpinlock(&uiBufferLock);
-	if (doUIblit) {
-		/* Copy user interface surface and replace mask pixels. */
-		int i;
-		uint32_t* src = (uint32_t*)sdlscrn->pixels;
-		uint32_t* dst = (uint32_t*)uiBuffer;
-		/* Primitive green-screen - would be nice if SDL had more blending modes. */
-		for (i = sdlscrn->w * sdlscrn->h; --i >= 0; src++) *dst++ = *src == mask ? 0 : *src;
-	} else {
-		/* Copy statusbar without transparent pixels. */
-		void* src = (uint8_t*)sdlscrn->pixels + statusBar.y * sdlscrn->pitch;
-		void* dst = (uint8_t*)uiBuffer + statusBar.y * sdlscrn->pitch;
-		memcpy(dst, src, statusBar.h * sdlscrn->pitch);
-	}
+	/* Copy user interface surface and replace mask pixels. */
+	int i;
+	uint32_t* src = (uint32_t*)sdlscrn->pixels;
+	uint32_t* dst = (uint32_t*)uiBuffer;
+	/* Primitive green-screen - would be nice if SDL had more blending modes. */
+	for (i = sdlscrn->w * sdlscrn->h; --i >= 0; src++) *dst++ = *src == mask ? 0 : *src;
 	SDL_SetAtomicInt(&blitUI, 1);
 	SDL_UnlockSpinlock(&uiBufferLock);
 	SDL_UnlockSurface(sdlscrn);

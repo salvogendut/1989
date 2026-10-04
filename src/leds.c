@@ -20,7 +20,6 @@ static const LedPalette palette[LED_COUNT] = {
 };
 
 static bool    g_enabled[LED_COUNT];
-static unsigned g_cpu_mhz = 25;
 static Uint64  g_last_ms[LED_COUNT];
 static bool    g_scsi_present[LED_SCSI_TARGETS];
 static Uint64  g_scsi_last_ms[LED_SCSI_TARGETS];
@@ -42,10 +41,6 @@ static const char *led_label(LedId id) {
 
 void leds_set_enabled(LedId id, bool enabled) {
     if ((unsigned)id < LED_COUNT) g_enabled[id] = enabled;
-}
-
-void leds_set_cpu_frequency(unsigned mhz) {
-    if (mhz >= 20 && mhz <= 100) g_cpu_mhz = mhz;
 }
 
 void leds_set_scsi_present(int target, bool present) {
@@ -104,10 +99,7 @@ void leds_render(SDL_Renderer *r, int x, int y, int w, int h) {
         }
         pals[n]  = &palette[i];
         lasts[n] = g_last_ms[i];
-        if (i == LED_CPU)
-            snprintf(labels[n], sizeof(labels[n]), "68K %uM", g_cpu_mhz);
-        else
-            snprintf(labels[n], sizeof(labels[n]), "%s", led_label((LedId)i));
+        snprintf(labels[n], sizeof(labels[n]), "%s", led_label((LedId)i));
         n++;
     }
     if (n == 0) return;

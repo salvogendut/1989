@@ -27,12 +27,17 @@ int main(void) {
     session.draft.Tablet.nTabletType = TABLET_MM961;
     session.draft.Sound.bEnableMicrophone = true;
     session.draft.Printer.bPrinterConnected = true;
-    session.draft.Screen.bShowStatusbar = true;
+    session.draft.Screen.nMode = SCREEN_ALL;
     assert(!memcmp(&before, &ConfigureParams, sizeof(before)));
     assert(!Settings_NeedRestart(&before, &session.draft));
     assert(Settings_Apply(&session, false));
     assert(!restarts && network == 1 && tablet == 1 && sound == 1 && printer == 1 && screen == 1);
     assert(scsi_out[0] == 0 && scsi_in[0] == 0);
+
+    Settings_Begin(&session);
+    session.draft.Screen.bShowStatusbar = true; /* Old imported preference: ignored. */
+    assert(Settings_Apply(&session, false));
+    assert(!restarts && screen == 1); /* No window rebuild or hardware reset. */
 
     Settings_Begin(&session);
     session.draft.System.nCpuFreq = 33;

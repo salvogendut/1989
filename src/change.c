@@ -110,8 +110,7 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 		bReInitPrinter = current->Printer.bPrinterConnected != changed->Printer.bPrinterConnected;
 
 		/* Do we need to change Screen configuration? */
-		if (current->Screen.nMode != changed->Screen.nMode ||
-            current->Screen.bShowStatusbar != changed->Screen.bShowStatusbar) {
+		if (current->Screen.nMode != changed->Screen.nMode) {
 			bScreenModeChange = true;
 		} else if (current->Screen.nMode == SCREEN_GROUP) {
 			for (i = 0; i < NUM_MONITORS; i++) {

@@ -149,6 +149,14 @@ int main(void) {
     test_model(NEXT_STATION, false, true);
     test_model(NEXT_STATION, true, true);
     test_nbic();
+    /* Imported legacy preferences cannot resurrect the duplicate bar. */
+    ConfigureParams.Screen.bShowStatusbar = true;
+    ConfigureParams.Shortcut.withModifier[SHORTCUT_STATUSBAR] = SDLK_B;
+    ConfigureParams.Shortcut.withoutModifier[SHORTCUT_STATUSBAR] = SDLK_F2;
+    Configuration_Apply(false);
+    assert(!ConfigureParams.Screen.bShowStatusbar);
+    assert(!ConfigureParams.Shortcut.withModifier[SHORTCUT_STATUSBAR]);
+    assert(!ConfigureParams.Shortcut.withoutModifier[SHORTCUT_STATUSBAR]);
     puts("test-hardware: OK");
     return 0;
 }

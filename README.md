@@ -34,6 +34,8 @@ optional i860-based NeXTdimension graphics board.
   DSP RAM, SCSI/RTC chips and NBIC in Advanced, with model-specific choices.
 - Activity LEDs, function-key hints, toast notifications, window/fullscreen
   persistence, optional CRT scanlines and framebuffer filtering.
+- Model, configured CPU frequency and total RAM share the bottom hint strip.
+  The duplicate legacy status bar is retired; its messages use notifications.
 - **F4** PPM screenshot, **F6** GIF capture with optional FFmpeg optimization,
   **F11** fullscreen, **Ctrl+V** clipboard typing, **Ctrl+Enter** mouse release.
 - **F5** confirmed restart and **F12** confirmed quit. Shut down NeXT inside

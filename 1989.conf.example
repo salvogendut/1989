@@ -111,6 +111,7 @@ nGroupModePos2 = -1
 nGroupModePos3 = -1
 nSingleModeSlot = 0
 bFullScreen = 0
+# Legacy status-bar keys are accepted but ignored; use the LEDs/notifications.
 bShowStatusbar = 0
 bShowTitlebar = 1
 
@@ -134,7 +135,7 @@ kDebuggerM68K = D
 kDebuggerI860 = I
 kQuit = Q
 kDimension = N
-kStatusbar = B
+kStatusbar =
 kTitlebar = T
 
 [Log]
