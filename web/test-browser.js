@@ -6,11 +6,12 @@ import {mkdir,readFile} from 'node:fs/promises';
 
 const port=19891, base=`http://127.0.0.1:${port}`;
 const server=spawn('python3',['serve.py','--port',String(port)],{stdio:['ignore','pipe','inherit']});
-let browser;
+let browser, page;
 try {
   await new Promise((resolve,reject)=>{server.stdout.once('data',resolve);server.once('error',reject);server.once('exit',code=>reject(new Error(`Server exited: ${code}`)));});
   browser=await chromium.launch({headless:true,args:['--enable-unsafe-swiftshader']});
-  const page=await browser.newPage({viewport:{width:1440,height:1400},acceptDownloads:true});
+  page=await browser.newPage({viewport:{width:1440,height:1400},acceptDownloads:true});
+  await mkdir('test-results',{recursive:true});
   const errors=[];
   page.on('dialog',dialog=>dialog.accept());
   page.on('pageerror',error=>errors.push(error.message));
@@ -22,7 +23,7 @@ try {
     }});
   });
   await page.goto(base);
-  await page.waitForFunction(()=>!document.getElementById('startButton').disabled,{timeout:30000});
+  await page.waitForFunction(()=>!document.getElementById('startButton').disabled,null,{timeout:30000});
   assert(await page.evaluate(()=>crossOriginIsolated));
   assert(await page.locator('.keyboard-logo').evaluate(img=>img.complete&&img.naturalWidth>0));
   const slot=id=>page.locator(`[data-device=${id}]`);
@@ -48,7 +49,7 @@ try {
   assert.equal(await page.evaluate(()=>testCore._web_set_model(99)),0);
   await page.locator('#startButton').click();
   await page.waitForFunction(()=>document.documentElement.dataset.running==='true');
-  await page.waitForFunction(()=>testCore._web_cycles()>200000000,{timeout:30000});
+  await page.waitForFunction(()=>testCore._web_cycles()>200000000,null,{timeout:45000});
   const mounted=()=>page.evaluate(()=>[0,1,2,3].map(id=>testCore._web_media_present(id)));
   assert.deepEqual(await mounted(),[1,1,1,1]);
   assert(await slot('disk').locator('input').isDisabled());
@@ -69,13 +70,22 @@ try {
       resolve({hash,white});
     })));
   }
+  async function waitForFrameChange(before, message) {
+    // Software rendering on CI may lag the CPU. Observe the guest response
+    // instead of assuming it has reached the canvas after a fixed short sleep.
+    const deadline=Date.now()+30000;
+    while(Date.now()<deadline) {
+      if((await frameHash()).hash!==before.hash) return;
+      await page.waitForTimeout(100);
+    }
+    assert.fail(message);
+  }
   const initial=await frameHash();assert(initial.white>10000,'ROM monitor must draw its console');
   for(const label of ['H','return']) {
     await page.locator(`#typingKeys button[data-label="${label}"]`).click();
     await page.waitForTimeout(150);
   }
-  await page.waitForTimeout(700);
-  assert.notEqual((await frameHash()).hash,initial.hash,'On-screen h/Return must produce ROM help');
+  await waitForFrameChange(initial,'On-screen h/Return must produce ROM help');
 
   const cycles=await page.evaluate(()=>testCore._web_cycles());
   await slot('cd').locator('.eject-button').click();
@@ -94,7 +104,7 @@ try {
   // Physical keyboard issues the ROM's floppy-eject command, exercising guest eject.
   await page.locator('#canvas').focus();
   await page.keyboard.type('ef',{delay:100});await page.keyboard.press('Enter');
-  await page.waitForFunction(()=>document.querySelector('[data-device=floppy] output').textContent.startsWith('Ejected'),{timeout:10000});
+  await page.waitForFunction(()=>document.querySelector('[data-device=floppy] output').textContent.startsWith('Ejected'),null,{timeout:30000});
   assert.deepEqual(await mounted(),[1,1,0,1]);
   const downloadEvent=page.waitForEvent('download');
   await slot('floppy').locator('.save-button').click();
@@ -120,7 +130,6 @@ try {
   }
   await page.setViewportSize({width:1440,height:1400});
   await page.locator('#themeButton').click();await page.locator('#themeMenu [data-theme=next]').click();
-  await mkdir('test-results',{recursive:true});
   await page.screenshot({path:'test-results/next-rom-monitor.png',fullPage:true});
   // Fresh instances exercise every CPU/ROM/video variant, including ADB on Turbo.
   const profiles=[
@@ -148,8 +157,7 @@ try {
     const before=await frameHash();assert(before.white>10000,`${name} ROM console`);
     await page.locator('#canvas').focus();
     await page.keyboard.type('h',{delay:100});await page.keyboard.press('Enter');
-    await page.waitForTimeout(1000);
-    assert.notEqual((await frameHash()).hash,before.hash,`${name} accepts ROM help command`);
+    await waitForFrameChange(before,`${name} accepts ROM help command`);
     assert.equal(await page.evaluate(()=>testCore._web_set_model(1)),0);
     if(index===0) {
       const retainedDownload=page.waitForEvent('download');
@@ -176,6 +184,16 @@ try {
   }
   assert.deepEqual(errors,[]);
   console.log('PASS: real ROM boot, framebuffer, virtual/physical keyboard, four media slots, host/guest eject without reset, insertion, validation, byte-exact download, keyboard collapse and responsive themes.');
+} catch(error) {
+  if(page && !page.isClosed()) {
+    await page.screenshot({path:'test-results/failure.png',fullPage:true}).catch(()=>{});
+    console.error('Guest state:',await page.evaluate(()=>({
+      cycles:window.testCore?._web_cycles(),
+      status:document.getElementById('runStatus')?.textContent,
+      model:document.getElementById('modelName')?.textContent
+    })).catch(()=>null));
+  }
+  throw error;
 } finally {
   await browser?.close();server.kill();
 }
